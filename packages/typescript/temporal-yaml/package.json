@@ -58,7 +58,7 @@
     "langsmith": "^0.8.1",
     "openai": "^6.46.0",
     "tsx": "^4.19.2",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vitest": "^3.0.5",
     "zod": "^4.4.0"
   },
