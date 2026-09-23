@@ -31,18 +31,12 @@ uv run --extra api python -m typeflux.controlplane serve \
 
 # 2. Start the console (proxies /api to 8400, no CORS needed):
 cd clients/console
-export NODE_AUTH_TOKEN=<PAT with read:packages>   # GitHub Packages auth, see below
 npm ci
 npm run dev                               # http://127.0.0.1:5173
 ```
 
-`@gibli-labs/control-plane-client` installs from the **GitHub Packages npm
-registry** (#616) — the committed `.npmrc` maps the scope and reads the token
-from `NODE_AUTH_TOKEN`. Locally that's a GitHub PAT with `read:packages`
-(refreshing the gh CLI token with `gh auth refresh -s read:packages` and
-using `gh auth token` usually works as well); CI uses the workflow token.
-With no token, the install fails with a 401 — there is no anonymous
-fallback.
+`@typeflux/control-plane-client` installs from the public npm registry —
+no credentials or registry configuration needed.
 
 A separately-hosted console must point at the API origin
 (`localStorage.setItem("typeflux.apiBase", "https://…")`) and the server
@@ -165,7 +159,7 @@ needs no switcher and behaves exactly as before.
 
 ## Architecture notes
 
-- All contract types come from `@gibli-labs/control-plane-client`
+- All contract types come from `@typeflux/control-plane-client`
   (generated from the normative contract, consumed as a **pinned published
   release** — no workspace link); the console declares no contract shapes by
   hand. Picking up a contract change is a three-step loop: contract PR

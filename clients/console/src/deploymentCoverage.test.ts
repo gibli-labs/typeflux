@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { components } from "@gibli-labs/control-plane-client";
+import type { components } from "@typeflux/control-plane-client";
 
 import { latestPlanCoverage, workflowsWithoutPlan } from "./deploymentCoverage";
 
