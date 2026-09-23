@@ -231,7 +231,7 @@ jobs:
           # a rerun could weld a mixed, unrecoverable train (versions are
           # immutable).
           while read -r name version tarball; do
-            tarball_file="dist-train/$(basename "$tarball")"
+            tarball_file="./dist-train/$(basename "$tarball")"
             if ! probe "$name" "$version"; then
               echo "$name absent at phase-1 check" >> /tmp/phase1-absent
               continue
@@ -273,7 +273,7 @@ jobs:
           # RAW byte identity (we uploaded those exact bytes).
           : > dist-train/PUBLISHED_NOW
           while read -r name version tarball; do
-            tarball_file="dist-train/$(basename "$tarball")"
+            tarball_file="./dist-train/$(basename "$tarball")"
             # --provenance: this pipeline is LAUNCH-COUPLED (owner decision,
             # 2026-09-19) — it dispatches only from the public repository, so
             # every published artifact carries a provenance attestation from
@@ -318,7 +318,7 @@ jobs:
             fi
           }
           while read -r name version tarball; do
-            tarball_file="dist-train/$(basename "$tarball")"
+            tarball_file="./dist-train/$(basename "$tarball")"
             ok=""
             for attempt in 1 2 3 4 5 6 7 8; do
               if verify_one "$name" "$version" "$tarball_file"; then ok=1; break; fi
