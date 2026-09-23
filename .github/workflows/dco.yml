@@ -1,0 +1,94 @@
+# Enforce the Developer Certificate of Origin: every commit in a PR must carry
+# a Signed-off-by line matching "Name <email>" (see CONTRIBUTING.md). This is a
+# self-contained check — no third-party app or action, so nothing to install
+# and nothing extra to trust.
+name: DCO
+
+# pull_request_target: the check runs from the BASE branch's revision of this
+# file, so a PR cannot rewrite the gate into a no-op. Safe with _target here
+# because the job never checks out or executes PR code — it only reads the PR
+# commit list via the API — and permissions are read-only.
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  dco:
+    name: DCO sign-off
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Signed-off-by on every PR commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          failures=0
+          # The list-commits endpoint caps at 250 commits per PR. Refuse louder
+          # than we can miss: oversized PRs must be split (they are unreviewable
+          # anyway).
+          total=$(gh api "repos/$REPO/pulls/$PR" --jq '.commits')
+          if [ "$total" -gt 250 ]; then
+            echo "::error::PR has $total commits — beyond the 250 the API can enumerate. Split the PR."
+            exit 1
+          fi
+          # Paginate the PR commit list; validate each commit message.
+          page=1
+          while :; do
+            commits=$(gh api "repos/$REPO/pulls/$PR/commits?per_page=100&page=$page" \
+              --jq '.[] | @base64')
+            [ -z "$commits" ] && break
+            for row in $commits; do
+              sha=$(echo "$row" | base64 -d | jq -r '.sha')
+              message=$(echo "$row" | base64 -d | jq -r '.commit.message')
+              author_email=$(echo "$row" | base64 -d | jq -r '.commit.author.email')
+              author_login=$(echo "$row" | base64 -d | jq -r '.author.login // empty')
+              verified=$(echo "$row" | base64 -d | jq -r '.commit.verification.verified')
+              committer_email=$(echo "$row" | base64 -d | jq -r '.commit.committer.email')
+              # Trusted-automation exemption: ONLY the explicitly listed bots,
+              # and only for commits GitHub itself created and signed — the
+              # author login must pair with the bot's own committer identity
+              # (or GitHub's web-flow committer) AND a verified signature.
+              # Author attribution alone is forgeable, and a user's own
+              # verified signature must not launder a forged bot author:
+              # a user cannot produce verified=true with these committer
+              # identities without GitHub's signing key.
+              case "$author_login" in
+                "dependabot[bot]")
+                  case "$committer_email" in
+                    "noreply@github.com"|"49699333+dependabot[bot]@users.noreply.github.com")
+                      [ "$verified" = "true" ] && continue ;;
+                  esac ;;
+                "github-actions[bot]")
+                  case "$committer_email" in
+                    "noreply@github.com"|"41898282+github-actions[bot]@users.noreply.github.com")
+                      [ "$verified" = "true" ] && continue ;;
+                  esac ;;
+              esac
+              # The sign-off must be the AUTHOR's: some trailer must carry
+              # exactly one address equal to the commit author email
+              # (case-insensitive).
+              found=0
+              while IFS= read -r trailer_email; do
+                if [ "$(printf '%s' "$trailer_email" | tr '[:upper:]' '[:lower:]')" = \
+                     "$(printf '%s' "$author_email" | tr '[:upper:]' '[:lower:]')" ]; then
+                  found=1
+                fi
+              done < <(printf '%s\n' "$message" \
+                | sed -nE 's/^Signed-off-by: [^<>]+ <([^<>[:space:]]+@[^<>[:space:]]+)>$/\1/p')
+              if [ "$found" -ne 1 ]; then
+                echo "::error::commit ${sha:0:12} lacks a 'Signed-off-by: Name <$author_email>' line matching its author (git commit -s)"
+                failures=$((failures + 1))
+              fi
+            done
+            page=$((page + 1))
+          done
+          if [ "$failures" -gt 0 ]; then
+            echo "$failures commit(s) missing DCO sign-off — see CONTRIBUTING.md"
+            exit 1
+          fi
+          echo "All PR commits carry a DCO sign-off."

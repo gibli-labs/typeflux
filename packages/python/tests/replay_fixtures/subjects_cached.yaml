@@ -1,0 +1,35 @@
+# Subject-carrier cache fixture (#715 slice 1 review): a subjects-declared workflow
+# whose single activity has CROSS-RUN caching, so a live run through the real worker
+# writes a cache record that must carry the run's subject ids.
+project: replay_demo_project
+name: replay_subjects_cached
+task_queue: replay-fixture-subjects-cached-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      assess: assess {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - cross_run_cached_activities
+
+workflow:
+  name: ReplaySubjectsCachedWorkflow
+  input: schemas:InputModel
+  output: schemas:OutputModel
+  subjects:
+    - from: input.value
+  steps:
+    - id: assess
+      activity: assess_subject

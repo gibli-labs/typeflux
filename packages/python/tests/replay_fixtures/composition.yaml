@@ -1,0 +1,58 @@
+# The composition replay fixture (#55 slice 2): a parallel block with a
+# when-gated branch + an ungated branch, the collect merge keyed by branch id,
+# and a when-gated early-exit tail. Two recorded histories share this spec:
+# composition_full.json (input "deep": both branches run concurrently and the
+# tail executes) and composition_gated.json (input "start": the gated branch
+# contributes None through the strict activity boundary and the tail early-exits).
+project: replay_demo_project
+name: replay_composition
+task_queue: replay-fixture-composition-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      screen_item: screen {{value}}
+      plain_item: plain {{value}}
+      merge_fanout: merge the fanout
+      escalate_result: escalate {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - composition_activities
+
+workflow:
+  name: ReplayCompositionWorkflow
+  input: schemas:InputModel
+  output: schemas:OutputModel
+  lifecycle:
+    enabled: true
+  steps:
+    - id: fanout
+      parallel:
+        branches:
+          - id: screen
+            when: { path: input.value, eq: deep }
+            steps:
+              - id: screen_step
+                activity: screen_item
+          - id: plain
+            steps:
+              - id: plain_step
+                activity: plain_item
+        collect:
+          output: schemas:FanoutModel
+    - id: merge
+      activity: merge_fanout
+    - id: escalate
+      when: { path: input.value, eq: deep }
+      activity: escalate_result

@@ -1,0 +1,15 @@
+# EU tenant overlay — composed with the org baseline under the MOST-RESTRICTIVE
+# merge. Allow-lists INTERSECT (this drops gpt-4o and anthropic), and bounded
+# numerics take the stricter side (max_concurrent 2 < the org's 4).
+name: acme-eu-tenant
+description: EU tenant — tighter model + concurrency posture than the org baseline.
+
+providers:
+  allowed:
+    openai:
+      models: [gpt-4o-mini]
+
+runtime:
+  provider_limits:
+    default:
+      max_concurrent: 2

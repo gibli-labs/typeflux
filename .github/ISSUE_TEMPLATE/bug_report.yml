@@ -1,0 +1,66 @@
+name: Bug report
+description: Something behaves incorrectly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do **not** include secrets, API keys, customer data, or PII in any field —
+        manifests, traces, and YAML snippets included. Redact before pasting.
+        Security-sensitive reports go through private vulnerability reporting
+        (see SECURITY.md), never a public issue.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Python SDK (typeflux)
+        - TypeScript SDK (@typeflux/*)
+        - YAML runtime
+        - Control plane (Python edition)
+        - Control plane (TypeScript edition)
+        - Console
+        - MCP server (typeflux-mcp)
+        - Generated control-plane client
+        - Contracts / conformance
+        - Docs
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Package version(s)
+      description: e.g. `pip show typeflux` / `npm ls @typeflux/temporal` / `typeflux-mcp --version`
+      placeholder: typeflux 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      description: Python/Node version, OS, Temporal server version if relevant
+      placeholder: Python 3.12, macOS 15, Temporal dev-server 1.26
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest code/YAML + commands that reproduce the behavior. For YAML-runtime issues, attach the smallest workflow YAML that reproduces it.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the full error output/traceback (redacted).
+    validations:
+      required: true

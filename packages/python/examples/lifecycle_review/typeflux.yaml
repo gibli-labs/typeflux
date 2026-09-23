@@ -1,0 +1,89 @@
+project: examples.lifecycle_review
+name: lifecycle_review
+task_queue: ${TEMPORAL_TASK_QUEUE:-lifecycle-review-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  registry:
+    type: inline
+    prompts:
+      lifecycle-review-assess: |
+        Assess case {{case_id}} for lifecycle review.
+        Customer: {{customer_name}}
+        Request: {{request}}
+        Risk notes: {{risk_notes}}
+      lifecycle-review-package: |
+        Package case {{case_id}} for human review.
+        Risk level: {{risk_level}}
+        Summary: {{summary}}
+        Flags: {{flags}}
+      lifecycle-review-prepare-submission: |
+        Prepare case {{case_id}} for submission after human review.
+        Recommendation: {{recommendation}}
+        Summary: {{summary}}
+      lifecycle-review-route-department: |
+        Route case {{case_id}} to the appropriate department after human review.
+        Recommendation: {{recommendation}}
+        Summary: {{summary}}
+      lifecycle-review-send-email: |
+        Send case {{case_id}} email after human review.
+        Recommendation: {{recommendation}}
+        Summary: {{summary}}
+
+  provider:
+    type: custom
+    class: examples.lifecycle_review.fakes:LifecycleDemoProvider
+
+  imports:
+    allow_provider_class: true
+
+  observability:
+    type: ${TYPEFLUX_LIFECYCLE_OBSERVABILITY:-none}
+    execution_manifest: true
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: LifecycleReviewWorkflow
+  input: schemas:CaseInput
+  output: schemas:FinalDecision
+  lifecycle:
+    enabled: true
+    progress: true
+    cancellation: true
+    history:
+      status_event_limit: 50
+    review:
+      after_step: package_for_review
+      invalid_user_decision: warn
+      user_decisions:
+        prepare_submission:
+          route: prepare_submission
+        route_department:
+          route: route_to_department
+        send_email:
+          route: send_email
+  steps:
+    - id: assess_case
+      activity: assess_case
+    - id: package_for_review
+      activity: package_for_review
+    - id: prepare_submission
+      activity: prepare_submission
+    - id: route_to_department
+      activity: route_to_department
+    - id: send_email
+      activity: send_email

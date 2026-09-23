@@ -1,0 +1,49 @@
+name: Design proposal
+description: A significant change to public APIs, YAML surface, contracts, or architecture — the required first step before a large PR.
+labels: ["architecture", "human-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Per CONTRIBUTING.md, significant surface changes start as an issue
+        before code. Contract changes (`contracts/`) additionally require
+        conforming servers, regenerated clients, and version bumps to land
+        together.
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: The problem this design solves; why now.
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Design
+      description: The proposed API/YAML/contract shape, with examples.
+    validations:
+      required: true
+  - type: dropdown
+    id: compat
+    attributes:
+      label: Compatibility impact
+      options:
+        - No public API or YAML change
+        - Additive public surface
+        - Breaking change (0.x minor, CHANGELOG-called-out)
+        - Contract change (lockstep rules apply)
+    validations:
+      required: true
+  - type: textarea
+    id: parity
+    attributes:
+      label: Edition parity plan
+      description: How both SDK editions get the behavior, or why one is exempt.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

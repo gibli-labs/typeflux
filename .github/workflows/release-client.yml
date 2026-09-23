@@ -1,0 +1,207 @@
+name: Release control-plane client
+
+# Publishes @typeflux/control-plane-client to PUBLIC npmjs.org (#893 —
+# migrated from GitHub Packages so installation needs no credentials). The
+# package is generated from the normative contract
+# (contracts/controlplane/openapi.v1.json); every release re-runs the
+# generation and fails closed on drift, and the client's major version is
+# locked to the contract's API major.
+#
+# Release-policy conforming (#892): main-ancestry gate, tag-after-gates-
+# before-publish, exact-tarball publish on pinned npm >= 11.2, anonymous
+# post-publish byte-identity verification, GitHub Release with checksum.
+# --provenance is enabled once the source repository is public.
+
+on:
+  push:
+    tags:
+      - "client-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version; must equal clients/typescript/package.json version (e.g. 1.15.1)"
+        required: true
+
+permissions:
+  contents: write
+  # id-token backs npm --provenance (launch-coupled: public-repo only).
+  id-token: write
+
+concurrency:
+  group: release-client
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish @typeflux/control-plane-client
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: npm
+
+    defaults:
+      run:
+        working-directory: clients/typescript
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Resolve release version
+        id: version
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            version="${GITHUB_REF_NAME#client-v}"
+          else
+            version="$DISPATCH_VERSION"
+          fi
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::release version must be MAJOR.MINOR.PATCH, got '$version'" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Assert the release commit is on main
+        run: |
+          git fetch --no-tags --filter=blob:none origin main
+          git fetch --no-tags --filter=blob:none --unshallow origin main 2>/dev/null || true
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::release ref $GITHUB_SHA is not on origin/main — releases are cut from main only" >&2
+            exit 1
+          fi
+
+      - name: Refuse a mismatched pre-existing tag (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          existing=$(git ls-remote --tags origin "refs/tags/client-v$RELEASE_VERSION" "refs/tags/client-v$RELEASE_VERSION^{}" | awk 'END{print $1}')
+          if [ -n "$existing" ] && [ "$existing" != "$GITHUB_SHA" ]; then
+            echo "::error::tag client-v$RELEASE_VERSION exists at $existing, not HEAD ($GITHUB_SHA)" >&2
+            exit 1
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: clients/typescript/package-lock.json
+
+      # npm 10 re-packs on `npm publish <tarball>` (npm/cli#4533, fixed in
+      # 11.2.0) — pin so the hashed bytes are the published bytes.
+      - name: Pin npm >= 11.2.0 (exact-bytes tarball publish)
+        run: |
+          npm install -g npm@11.2.0
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate from the normative contract and fail on drift
+        run: |
+          npm run generate
+          git diff --exit-code -- src/schema.ts
+
+      - name: Build
+        run: npm run build
+
+      - name: Assert version lockstep (release == package, major == contract major)
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: node ../../scripts/assert_client_contract_lockstep.mjs
+
+      # Packed-content gate (release policy): license surface, exact public
+      # metadata, files allowlist, forbidden-terms scan, and an INSTALL smoke
+      # of the tarball so undeclared runtime deps fail closed.
+      - name: Packed-content gate + install smoke
+        run: node ../../scripts/verify-client-pack.mjs
+
+      - name: Pack and hash the tarball
+        id: pack
+        run: |
+          tarball=$(npm pack --json | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8"))[0].filename')
+          sha256=$(shasum -a 256 "$tarball" | cut -d' ' -f1)
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+          shasum -a 256 "$tarball" > "$tarball.sha256"
+
+      # Tag-after-gates, before any registry upload (release policy).
+      - name: Ensure the release tag exists at HEAD (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          existing=$(git ls-remote --tags origin "refs/tags/client-v$RELEASE_VERSION" "refs/tags/client-v$RELEASE_VERSION^{}" | awk 'END{print $1}')
+          if [ -n "$existing" ]; then
+            if [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "::error::tag client-v$RELEASE_VERSION exists at $existing, not HEAD ($GITHUB_SHA)" >&2
+              exit 1
+            fi
+            echo "tag already at HEAD"
+            exit 0
+          fi
+          git tag "client-v$RELEASE_VERSION"
+          git push origin "client-v$RELEASE_VERSION"
+
+      - name: Publish to npmjs.org (idempotent, exact tarball)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          if NPM_CONFIG_USERCONFIG=/dev/null npm view "@typeflux/control-plane-client@$RELEASE_VERSION" version --registry https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "@typeflux/control-plane-client@$RELEASE_VERSION already published — skipping; verification compares bytes"
+            exit 0
+          fi
+          npmrc="$RUNNER_TEMP/publish-npmrc"
+          echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$npmrc"
+          # --provenance: this pipeline is LAUNCH-COUPLED (owner decision,
+          # 2026-09-19) — it dispatches only from the public repository, so
+          # the artifact carries a provenance attestation from its first
+          # release. A private-repo dispatch fails here (E422) by design.
+          NPM_CONFIG_USERCONFIG="$npmrc" npm publish "$TARBALL" --provenance --registry https://registry.npmjs.org
+
+      - name: Verify the published tarball anonymously
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          LOCAL_SHA256: ${{ steps.pack.outputs.sha256 }}
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8; do
+            url=$(NPM_CONFIG_USERCONFIG=/dev/null npm view "@typeflux/control-plane-client@$RELEASE_VERSION" dist.tarball --registry https://registry.npmjs.org 2>/dev/null || true)
+            [ -n "$url" ] && break
+            echo "registry not serving $RELEASE_VERSION yet (attempt $attempt); waiting..."
+            sleep 60
+          done
+          if [ -z "$url" ]; then
+            echo "::error::@typeflux/control-plane-client@$RELEASE_VERSION not visible anonymously" >&2
+            exit 1
+          fi
+          curl -fsSL "$url" -o /tmp/published.tgz
+          published_sha=$(shasum -a 256 /tmp/published.tgz | cut -d' ' -f1)
+          if [ "$published_sha" != "$LOCAL_SHA256" ]; then
+            echo "::error::published tarball sha256 $published_sha != packed $LOCAL_SHA256" >&2
+            exit 1
+          fi
+          echo "anonymous fetch verified: sha256 $published_sha"
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+          SHA256: ${{ steps.pack.outputs.sha256 }}
+        run: |
+          notes="Published to npmjs.org as @typeflux/control-plane-client@$RELEASE_VERSION (no credentials required to install).
+
+          Generated from the normative control-plane contract; the major version tracks the contract's API major.
+          Tarball sha256: $SHA256"
+          if gh release view "client-v$RELEASE_VERSION" >/dev/null 2>&1; then
+            gh release upload "client-v$RELEASE_VERSION" "$TARBALL" "$TARBALL.sha256" --clobber
+          else
+            gh release create "client-v$RELEASE_VERSION" \
+              --title "@typeflux/control-plane-client $RELEASE_VERSION" \
+              --notes "$notes" \
+              "$TARBALL" "$TARBALL.sha256"
+          fi

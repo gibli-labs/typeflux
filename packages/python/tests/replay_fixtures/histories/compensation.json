@@ -1,0 +1,506 @@
+{
+  "events": [
+    {
+      "eventId": "1",
+      "eventTime": "2026-07-16T13:45:55.383854Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "taskId": "1049165",
+      "workflowExecutionStartedEventAttributes": {
+        "workflowType": {
+          "name": "ReplayCompensationWorkflow.00c21e729597"
+        },
+        "taskQueue": {
+          "name": "replay-fixture-compensation-typeflux",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJ2YWx1ZSI6InN0YXJ0In0="
+            }
+          ]
+        },
+        "workflowTaskTimeout": "10s",
+        "originalExecutionRunId": "019f6b2d-3fb7-7d00-8c49-41b3d368076b",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "firstExecutionRunId": "019f6b2d-3fb7-7d00-8c49-41b3d368076b",
+        "attempt": 1,
+        "firstWorkflowTaskBackoff": "0s",
+        "memo": {
+          "fields": {
+            "typeflux_project": {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "InJlcGxheV9kZW1vX3Byb2plY3Qi"
+            },
+            "typeflux_workflow": {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "IlJlcGxheUNvbXBlbnNhdGlvbldvcmtmbG93Ig=="
+            },
+            "typeflux_spec_digest": {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "IjAwYzIxZTcyOTU5NzAyOWYwNTBhOTQ5MGQyZGYzZjY4OWJiOTg5YTIyMzRiOTY1ZGRkYjdlMmNlZDhkYmZhYjEi"
+            }
+          }
+        },
+        "workflowId": "replay-fixture-compensation-c1663b23",
+        "priority": {}
+      }
+    },
+    {
+      "eventId": "2",
+      "eventTime": "2026-07-16T13:45:55.384109Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049166",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "replay-fixture-compensation-typeflux",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "3",
+      "eventTime": "2026-07-16T13:45:55.388620Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049171",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "2",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "requestId": "18daa67c-ce1e-43e5-85e4-0e6f459891fe",
+        "historySizeBytes": "665",
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        }
+      }
+    },
+    {
+      "eventId": "4",
+      "eventTime": "2026-07-16T13:45:55.399431Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049175",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "2",
+        "startedEventId": "3",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        },
+        "sdkMetadata": {
+          "coreUsedFlags": [
+            1,
+            2,
+            3
+          ],
+          "sdkName": "temporal-python",
+          "sdkVersion": "1.27.2"
+        },
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "5",
+      "eventTime": "2026-07-16T13:45:55.399496Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049176",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "book",
+        "activityType": {
+          "name": "book"
+        },
+        "taskQueue": {
+          "name": "replay-fixture-compensation-typeflux",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJ2YWx1ZSI6InN0YXJ0In0="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "0s",
+        "scheduleToStartTimeout": "0s",
+        "startToCloseTimeout": "120s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "4",
+        "retryPolicy": {
+          "initialInterval": "1s",
+          "backoffCoefficient": 2.0,
+          "maximumInterval": "60s",
+          "maximumAttempts": 5
+        },
+        "useWorkflowBuildId": true,
+        "priority": {}
+      }
+    },
+    {
+      "eventId": "6",
+      "eventTime": "2026-07-16T13:45:55.400660Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049182",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "5",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "requestId": "e28736fe-5ae8-4ecb-a4b8-8d0f42577b7a",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        }
+      }
+    },
+    {
+      "eventId": "7",
+      "eventTime": "2026-07-16T13:45:55.407152Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1049183",
+      "activityTaskCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJ2YWx1ZSI6InJlcGxheS1maXh0dXJlIn0="
+            }
+          ]
+        },
+        "scheduledEventId": "5",
+        "startedEventId": "6",
+        "identity": "8475@Josephs-MacBook-Pro-2.local"
+      }
+    },
+    {
+      "eventId": "8",
+      "eventTime": "2026-07-16T13:45:55.407159Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049184",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "8475@Josephs-MacBook-Pro-2.local-19ab0b82586d40c1a29a04b3e4af0b27",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "replay-fixture-compensation-typeflux"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "9",
+      "eventTime": "2026-07-16T13:45:55.407991Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049188",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "8",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "requestId": "903ae226-9a78-4976-9812-98383be75a89",
+        "historySizeBytes": "1513",
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        }
+      }
+    },
+    {
+      "eventId": "10",
+      "eventTime": "2026-07-16T13:45:55.410800Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049192",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "8",
+        "startedEventId": "9",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "11",
+      "eventTime": "2026-07-16T13:45:55.410825Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049193",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "charge",
+        "activityType": {
+          "name": "charge"
+        },
+        "taskQueue": {
+          "name": "replay-fixture-compensation-typeflux",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJ2YWx1ZSI6InJlcGxheS1maXh0dXJlIn0="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "0s",
+        "scheduleToStartTimeout": "0s",
+        "startToCloseTimeout": "120s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "10",
+        "retryPolicy": {
+          "initialInterval": "1s",
+          "backoffCoefficient": 2.0,
+          "maximumInterval": "100s",
+          "maximumAttempts": 1
+        },
+        "useWorkflowBuildId": true,
+        "priority": {}
+      }
+    },
+    {
+      "eventId": "12",
+      "eventTime": "2026-07-16T13:45:55.411512Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049198",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "11",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "requestId": "bd679d3b-03bc-407b-a2e3-16167d6b0a55",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        }
+      }
+    },
+    {
+      "eventId": "13",
+      "eventTime": "2026-07-16T13:45:55.418348Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_FAILED",
+      "taskId": "1049199",
+      "activityTaskFailedEventAttributes": {
+        "failure": {
+          "message": "charge failed (replay compensation fixture)",
+          "stackTrace": "  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/.venv/lib/python3.14/site-packages/temporalio/worker/_activity.py\", line 359, in _handle_start_activity_task\n    result = await self._execute_activity(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        start, running_activity, task_token, data_converter\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/.venv/lib/python3.14/site-packages/temporalio/worker/_activity.py\", line 714, in _execute_activity\n    return await impl.execute_activity(input)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/.venv/lib/python3.14/site-packages/temporalio/worker/_activity.py\", line 909, in execute_activity\n    return await input.fn(*input.args)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/worker.py\", line 260, in temporal_activity_fn\n    return await asyncio.to_thread(\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<17 lines>...\n    )\n    ^\n\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/threads.py\", line 25, in to_thread\n    return await loop.run_in_executor(None, func_call)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py\", line 86, in run\n    result = ctx.run(self.task)\n\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py\", line 73, in run\n    return fn(*args, **kwargs)\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/executor.py\", line 346, in execute_ai_activity\n    return execute_prepared_ai_activity(\n        prepared,\n    ...<7 lines>...\n        cache_store=cache_store,\n    )\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/executor.py\", line 995, in execute_prepared_ai_activity\n    output = _provider_structured_call_with_retries(\n        provider=provider,\n    ...<13 lines>...\n        lifecycle=lifecycle,\n    )\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/executor.py\", line 1353, in _provider_structured_call_with_retries\n    return _provider_structured_call(\n        provider,\n    ...<9 lines>...\n        cached_session=cached_session,\n    )\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/executor.py\", line 1557, in _provider_structured_call\n    return provider.structured_call(**kwargs)\n           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/tests/replay_fixtures/replay_demo_project/fakes.py\", line 99, in structured_call\n    raise RuntimeError(\"charge failed (replay compensation fixture)\")\n",
+          "applicationFailureInfo": {
+            "type": "RuntimeError"
+          }
+        },
+        "scheduledEventId": "11",
+        "startedEventId": "12",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "retryState": "RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED"
+      }
+    },
+    {
+      "eventId": "14",
+      "eventTime": "2026-07-16T13:45:55.418358Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049200",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "8475@Josephs-MacBook-Pro-2.local-19ab0b82586d40c1a29a04b3e4af0b27",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "replay-fixture-compensation-typeflux"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "15",
+      "eventTime": "2026-07-16T13:45:55.419095Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049204",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "14",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "requestId": "caa8aab5-d425-4b8f-bbe2-e4c3e0a97702",
+        "historySizeBytes": "5831",
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        }
+      }
+    },
+    {
+      "eventId": "16",
+      "eventTime": "2026-07-16T13:45:55.421103Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049208",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "14",
+        "startedEventId": "15",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "17",
+      "eventTime": "2026-07-16T13:45:55.421121Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1049209",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "book.__compensate__.0",
+        "activityType": {
+          "name": "cancel_book"
+        },
+        "taskQueue": {
+          "name": "replay-fixture-compensation-typeflux",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJ2YWx1ZSI6InJlcGxheS1maXh0dXJlIn0="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "0s",
+        "scheduleToStartTimeout": "0s",
+        "startToCloseTimeout": "120s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "16",
+        "retryPolicy": {
+          "initialInterval": "1s",
+          "backoffCoefficient": 2.0,
+          "maximumInterval": "60s",
+          "maximumAttempts": 5
+        },
+        "useWorkflowBuildId": true,
+        "priority": {}
+      }
+    },
+    {
+      "eventId": "18",
+      "eventTime": "2026-07-16T13:45:55.421716Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1049214",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "17",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "requestId": "844f118f-a87f-4717-baee-e858f7c71708",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        }
+      }
+    },
+    {
+      "eventId": "19",
+      "eventTime": "2026-07-16T13:45:55.423716Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1049215",
+      "activityTaskCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "eyJ2YWx1ZSI6InJlcGxheS1maXh0dXJlIn0="
+            }
+          ]
+        },
+        "scheduledEventId": "17",
+        "startedEventId": "18",
+        "identity": "8475@Josephs-MacBook-Pro-2.local"
+      }
+    },
+    {
+      "eventId": "20",
+      "eventTime": "2026-07-16T13:45:55.423719Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1049216",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "8475@Josephs-MacBook-Pro-2.local-19ab0b82586d40c1a29a04b3e4af0b27",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "replay-fixture-compensation-typeflux"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "21",
+      "eventTime": "2026-07-16T13:45:55.424247Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1049220",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "20",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "requestId": "5f8eb962-1987-4649-8152-749c103f6e24",
+        "historySizeBytes": "6681",
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        }
+      }
+    },
+    {
+      "eventId": "22",
+      "eventTime": "2026-07-16T13:45:55.425885Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1049224",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "20",
+        "startedEventId": "21",
+        "identity": "8475@Josephs-MacBook-Pro-2.local",
+        "workerVersion": {
+          "buildId": "628a4a816718d69149fe35e3d40eaf90"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "23",
+      "eventTime": "2026-07-16T13:45:55.425914Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_FAILED",
+      "taskId": "1049225",
+      "workflowExecutionFailedEventAttributes": {
+        "failure": {
+          "message": "Activity task failed",
+          "cause": {
+            "message": "charge failed (replay compensation fixture)",
+            "stackTrace": "  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/.venv/lib/python3.14/site-packages/temporalio/worker/_activity.py\", line 359, in _handle_start_activity_task\n    result = await self._execute_activity(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        start, running_activity, task_token, data_converter\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/.venv/lib/python3.14/site-packages/temporalio/worker/_activity.py\", line 714, in _execute_activity\n    return await impl.execute_activity(input)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/.venv/lib/python3.14/site-packages/temporalio/worker/_activity.py\", line 909, in execute_activity\n    return await input.fn(*input.args)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/worker.py\", line 260, in temporal_activity_fn\n    return await asyncio.to_thread(\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<17 lines>...\n    )\n    ^\n\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/threads.py\", line 25, in to_thread\n    return await loop.run_in_executor(None, func_call)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py\", line 86, in run\n    result = ctx.run(self.task)\n\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py\", line 73, in run\n    return fn(*args, **kwargs)\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/executor.py\", line 346, in execute_ai_activity\n    return execute_prepared_ai_activity(\n        prepared,\n    ...<7 lines>...\n        cache_store=cache_store,\n    )\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/executor.py\", line 995, in execute_prepared_ai_activity\n    output = _provider_structured_call_with_retries(\n        provider=provider,\n    ...<13 lines>...\n        lifecycle=lifecycle,\n    )\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/executor.py\", line 1353, in _provider_structured_call_with_retries\n    return _provider_structured_call(\n        provider,\n    ...<9 lines>...\n        cached_session=cached_session,\n    )\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/src/typeflux/execution/executor.py\", line 1557, in _provider_structured_call\n    return provider.structured_call(**kwargs)\n           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^\n\n  File \"/Users/josephgibli/GitHub/typeflux/.claude/worktrees/agent-a7234e42a790738df/packages/python/tests/replay_fixtures/replay_demo_project/fakes.py\", line 99, in structured_call\n    raise RuntimeError(\"charge failed (replay compensation fixture)\")\n",
+            "applicationFailureInfo": {
+              "type": "RuntimeError"
+            }
+          },
+          "activityFailureInfo": {
+            "scheduledEventId": "11",
+            "startedEventId": "12",
+            "identity": "8475@Josephs-MacBook-Pro-2.local",
+            "activityType": {
+              "name": "charge"
+            },
+            "activityId": "charge",
+            "retryState": "RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED"
+          }
+        },
+        "retryState": "RETRY_STATE_RETRY_POLICY_NOT_SET",
+        "workflowTaskCompletedEventId": "22"
+      }
+    }
+  ]
+}

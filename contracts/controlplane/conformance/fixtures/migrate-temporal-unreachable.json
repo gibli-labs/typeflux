@@ -1,0 +1,22 @@
+{
+  "mask": [
+    "/message"
+  ],
+  "name": "migrate-temporal-unreachable",
+  "request": {
+    "body": {
+      "environment_id": "unreachable",
+      "execution_id": "conf-unreachable-migrate",
+      "run_id": "conf-run"
+    },
+    "method": "POST",
+    "path": "/api/v1/workflows/workflow/migrate"
+  },
+  "response": {
+    "body": {
+      "error": "TemporalUnavailable",
+      "message": "<normalized>"
+    },
+    "status": 503
+  }
+}

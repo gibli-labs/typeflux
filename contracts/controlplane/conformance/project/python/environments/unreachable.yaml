@@ -1,0 +1,16 @@
+version: "1"
+name: unreachable
+variables:
+  TYPEFLUX_ENVIRONMENT: unreachable
+overrides:
+  runtime:
+    temporal:
+      # Port 1 refuses connections immediately: the 503 TemporalUnavailable
+      # conformance case stays deterministic even on machines running a
+      # local Temporal dev server on the default port.
+      address: 127.0.0.1:1
+      namespace: default
+      tls: false
+      api_key: ""
+    observability:
+      type: none

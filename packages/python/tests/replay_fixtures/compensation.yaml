@@ -1,0 +1,42 @@
+project: replay_demo_project
+name: replay_compensation
+task_queue: replay-fixture-compensation-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      book: book {{value}}
+      cancel_book: cancel {{value}}
+      charge: charge {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureCompensationProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - comp_activities
+
+workflow:
+  name: ReplayCompensationWorkflow
+  input: schemas:InputModel
+  output: schemas:FailModel
+  lifecycle:
+    enabled: true
+  steps:
+    # A saga (#299): `book` completes and records its compensation; `charge` then fails,
+    # so the workflow unwinds — running `cancel_book` on `book`'s output — before the
+    # original failure re-raises. The recorded history carries the compensation activity
+    # schedule + the compensation lifecycle events.
+    - id: book
+      activity: book
+      compensate:
+        activity: cancel_book
+    - id: charge
+      activity: charge

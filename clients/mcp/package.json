@@ -1,0 +1,57 @@
+{
+  "name": "typeflux-mcp",
+  "version": "0.5.7",
+  "description": "Model Context Protocol server for Typeflux: docs, examples, JSON-Schemas, and live governance reads (bundle, catalog, validate, topology, meta, ...), a capability-gated, confirmation-hinted OPERATE tier (start with schema-validated input + elicitation, subscribable status, review, cancel, repin, refresh), guided /typeflux:* recipes with live-project ID completions, and local authoring aids (scaffold_ai_activity/workflow/project + doctor) that return reviewable-diff content — over stdio or a bearer-authed, per-session-isolated Streamable-HTTP transport, with zero-config managed-local discovery. Makes a coding agent fluent in — and able to operate and author — a Typeflux project.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "typeflux-mcp": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src/schema",
+    "src/guide",
+    "src/generated",
+    "LICENSE",
+    "NOTICE",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gibli-labs/typeflux.git",
+    "directory": "clients/mcp"
+  },
+  "scripts": {
+    "generate:schemas": "node scripts/generate-schemas.mjs",
+    "generate:assets": "node scripts/generate-assets.mjs",
+    "prebuild": "npm run generate:schemas && npm run generate:assets && npm run typecheck",
+    "build": "node scripts/bundle.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "npm run generate:assets",
+    "test": "vitest run",
+    "smoke:attach": "node scripts/smoke-attach.mjs",
+    "verify:pack": "node scripts/verify-pack.mjs"
+  },
+  "dependencies": {
+    "@temporalio/worker": "^1.24.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@types/node": "^22.10.0",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.0",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  },
+  "homepage": "https://github.com/gibli-labs/typeflux/tree/main/clients/mcp#readme",
+  "bugs": {
+    "url": "https://github.com/gibli-labs/typeflux/issues"
+  }
+}

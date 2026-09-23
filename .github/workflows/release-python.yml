@@ -1,0 +1,351 @@
+name: Release typeflux (PyPI)
+
+# Publishes the Python SDK per docs/release-policy.md: tag-before-publish,
+# build once + hash, dist-content gate, TestPyPI rehearsal with a clean-venv
+# install smoke, then the production publish behind the protected `pypi`
+# environment (owner approval). Trusted Publishing (OIDC) everywhere — no
+# long-lived tokens; PyPI attaches attestations automatically.
+
+on:
+  push:
+    tags:
+      - "py-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version; must equal packages/python pyproject version (e.g. 0.1.0)"
+        required: true
+      production:
+        description: "Also publish to PRODUCTION PyPI (TestPyPI rehearsal always runs first)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-python
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build, gate, and hash the dists
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha256: ${{ steps.hash.outputs.sha256 }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Resolve release version
+        id: version
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            version="${GITHUB_REF_NAME#py-v}"
+          else
+            version="$DISPATCH_VERSION"
+          fi
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::release version must be MAJOR.MINOR.PATCH, got '$version'" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Assert version matches pyproject.toml
+        working-directory: packages/python
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          pkg=$(python3 -c 'import tomllib; print(tomllib.loads(open("pyproject.toml", "rb").read().decode())["project"]["version"])')
+          if [ "$pkg" != "$RELEASE_VERSION" ]; then
+            echo "::error::release version $RELEASE_VERSION != pyproject version $pkg" >&2
+            exit 1
+          fi
+
+      - name: Assert the release commit is on main
+        run: |
+          git fetch --no-tags --filter=blob:none origin main
+          git fetch --no-tags --filter=blob:none --unshallow origin main 2>/dev/null || true
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::release ref $GITHUB_SHA is not on origin/main — releases are cut from main only" >&2
+            exit 1
+          fi
+
+      # (The dispatch tag is created AFTER the build gates pass — see below —
+      # so a failed build never strands a version tag on an unpublishable SHA.
+      # A pre-existing tag must already match HEAD.)
+      - name: Refuse a mismatched pre-existing tag (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          existing=$(git ls-remote --tags origin "refs/tags/py-v$RELEASE_VERSION" "refs/tags/py-v$RELEASE_VERSION^{}" | awk 'END{print $1}')
+          if [ -n "$existing" ] && [ "$existing" != "$GITHUB_SHA" ]; then
+            echo "::error::tag py-v$RELEASE_VERSION exists at $existing, not HEAD ($GITHUB_SHA)" >&2
+            exit 1
+          fi
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.11.8"
+          enable-cache: true
+
+      - name: Build the dists
+        working-directory: packages/python
+        run: |
+          rm -rf dist
+          uv run python -m build
+
+      - name: Dist-content gate
+        working-directory: packages/python
+        run: |
+          uv run python ../../scripts/verify_python_dist.py
+          uv run --with twine twine check dist/*
+
+      # Evidence lives OUTSIDE dist/: the publish action treats every file in
+      # packages-dir as a distribution and rejects unknown formats.
+      - name: Generate the SBOM (CycloneDX)
+        working-directory: packages/python
+        run: |
+          mkdir -p evidence
+          uv export --no-dev --format requirements.txt > /tmp/requirements-locked.txt
+          uvx --from cyclonedx-bom cyclonedx-py requirements /tmp/requirements-locked.txt \
+            --output-format JSON --output-file evidence/typeflux-${{ steps.version.outputs.version }}.cdx.json
+
+      - name: Hash the artifacts
+        id: hash
+        working-directory: packages/python
+        run: |
+          (cd dist && shasum -a 256 -- *.whl *.tar.gz) > evidence/SHA256SUMS
+          echo "sha256=$(shasum -a 256 dist/*.whl | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          cat evidence/SHA256SUMS
+
+      # Tag-before-publish (release policy): the tag lands only once every
+      # build gate has passed, and always before any registry upload.
+      - name: Ensure the release tag exists at HEAD (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          existing=$(git ls-remote --tags origin "refs/tags/py-v$RELEASE_VERSION" "refs/tags/py-v$RELEASE_VERSION^{}" | awk 'END{print $1}')
+          if [ -n "$existing" ]; then
+            if [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "::error::tag py-v$RELEASE_VERSION exists at $existing, not HEAD ($GITHUB_SHA)" >&2
+              exit 1
+            fi
+            echo "tag already at HEAD"
+            exit 0
+          fi
+          git tag "py-v$RELEASE_VERSION"
+          git push origin "py-v$RELEASE_VERSION"
+
+      - name: Upload the dists for the publish jobs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: python-dists
+          path: packages/python/dist/
+          if-no-files-found: error
+
+      - name: Upload the release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: python-evidence
+          path: packages/python/evidence/
+          if-no-files-found: error
+
+  testpypi:
+    name: TestPyPI rehearsal + clean-venv smoke
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Download the built dists
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: python-dists
+          path: dist/
+
+      - name: Publish to TestPyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
+          skip-existing: true
+          verbose: true
+
+      - name: Verify TestPyPI serves THIS build's bytes
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          # skip-existing can silently reuse a previous rehearsal's files; the
+          # smoke below must test the bytes production will publish, so demand
+          # byte-identity between TestPyPI and this run's dist/.
+          verify_against_registry() {
+            # $1 = JSON API base (https://pypi.org/pypi or https://test.pypi.org/pypi)
+            urls=$(curl -fsSL "$1/typeflux/$RELEASE_VERSION/json" \
+              | python3 -c 'import json,sys; [print(u["url"]) for u in json.load(sys.stdin)["urls"]]')
+            [ -n "$urls" ] || { echo "no files listed for $RELEASE_VERSION at $1" >&2; return 1; }
+            count=0
+            for url in $urls; do
+              fname=$(basename "$url")
+              [ -f "dist/$fname" ] || { echo "::error::registry serves $fname but this run did not build it" >&2; return 1; }
+              curl -fsSL "$url" -o "/tmp/$fname"
+              local_sha=$(shasum -a 256 "dist/$fname" | cut -d" " -f1)
+              remote_sha=$(shasum -a 256 "/tmp/$fname" | cut -d" " -f1)
+              if [ "$local_sha" != "$remote_sha" ]; then
+                echo "::error::$fname: registry sha256 $remote_sha != local $local_sha" >&2
+                return 1
+              fi
+              count=$((count + 1))
+            done
+            [ "$count" -ge 2 ] || { echo "::error::expected wheel + sdist on the registry, found $count file(s)" >&2; return 1; }
+            echo "registry serves $count files byte-identical to this build"
+          }
+          for attempt in 1 2 3 4 5; do
+            verify_against_registry https://test.pypi.org/pypi && exit 0
+            echo "TestPyPI not consistent yet (attempt $attempt); waiting..."
+            sleep 30
+          done
+          exit 1
+
+      - name: Clean-venv install smoke from TestPyPI
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          python3 -m venv /tmp/smoke
+          # Fetch OUR package (only) from TestPyPI with --no-deps, then install
+          # the downloaded wheel with PyPI as the sole dependency index —
+          # --extra-index-url would let TestPyPI shadow dependency names.
+          mkdir -p /tmp/smoke-dl
+          for attempt in 1 2 3 4 5; do
+            if /tmp/smoke/bin/pip download --no-deps \
+              --index-url https://test.pypi.org/simple \
+              --dest /tmp/smoke-dl \
+              "typeflux==$RELEASE_VERSION"; then
+              break
+            fi
+            echo "TestPyPI not serving $RELEASE_VERSION yet (attempt $attempt); waiting..."
+            sleep 30
+          done
+          /tmp/smoke/bin/pip install \
+            --index-url https://pypi.org/simple \
+            /tmp/smoke-dl/typeflux-"$RELEASE_VERSION"*.whl
+          /tmp/smoke/bin/python -c "import typeflux; print(typeflux.__name__, 'imports')"
+          /tmp/smoke/bin/typeflux-project --help >/dev/null
+          echo "clean-venv smoke passed"
+
+  pypi:
+    name: Production PyPI publish (protected)
+    # Tag pushes always offer production; dispatch requires the checkbox.
+    if: github.event_name == 'push' || inputs.production
+    needs: [build, testpypi]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Check out repository (release notes source)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Download the built dists
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: python-dists
+          path: dist/
+
+      - name: Download the release evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: python-evidence
+          path: evidence/
+
+      - name: Check whether this version is already on PyPI
+        id: precheck
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          files=$(curl -fsSL "https://pypi.org/pypi/typeflux/$RELEASE_VERSION/json" 2>/dev/null \
+            | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["urls"]))' || echo 0)
+          if [ "$files" -ge 2 ]; then
+            # Fully published (a rerun after a post-publish failure). The
+            # verification step below arbitrates byte-identity; publishing
+            # again would only error on immutable filenames.
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "typeflux $RELEASE_VERSION fully on PyPI ($files files) — skipping upload; verification compares bytes"
+          else
+            # 0 files (unpublished) or 1 file (partial upload: retry with
+            # skip-existing so the missing artifact uploads and the immutable
+            # one is skipped per-file).
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to PyPI (Trusted Publishing)
+        if: steps.precheck.outputs.exists == 'false'
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist/
+          # Per-file skip: a rerun after a partial upload sends only the
+          # missing artifact instead of erroring on the immutable one.
+          skip-existing: true
+          verbose: true
+
+      - name: Verify the published artifacts anonymously (wheel + sdist, downloaded)
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          verify_against_registry() {
+            # $1 = JSON API base (https://pypi.org/pypi or https://test.pypi.org/pypi)
+            urls=$(curl -fsSL "$1/typeflux/$RELEASE_VERSION/json" \
+              | python3 -c 'import json,sys; [print(u["url"]) for u in json.load(sys.stdin)["urls"]]')
+            [ -n "$urls" ] || { echo "no files listed for $RELEASE_VERSION at $1" >&2; return 1; }
+            count=0
+            for url in $urls; do
+              fname=$(basename "$url")
+              [ -f "dist/$fname" ] || { echo "::error::registry serves $fname but this run did not build it" >&2; return 1; }
+              curl -fsSL "$url" -o "/tmp/$fname"
+              local_sha=$(shasum -a 256 "dist/$fname" | cut -d" " -f1)
+              remote_sha=$(shasum -a 256 "/tmp/$fname" | cut -d" " -f1)
+              if [ "$local_sha" != "$remote_sha" ]; then
+                echo "::error::$fname: registry sha256 $remote_sha != local $local_sha" >&2
+                return 1
+              fi
+              count=$((count + 1))
+            done
+            [ "$count" -ge 2 ] || { echo "::error::expected wheel + sdist on the registry, found $count file(s)" >&2; return 1; }
+            echo "registry serves $count files byte-identical to this build"
+          }
+          for attempt in 1 2 3 4 5; do
+            verify_against_registry https://pypi.org/pypi && exit 0
+            echo "PyPI not consistent yet (attempt $attempt); waiting..."
+            sleep 30
+          done
+          echo "::error::typeflux $RELEASE_VERSION failed anonymous byte-identity verification" >&2
+          exit 1
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          notes="Published to PyPI as typeflux==$RELEASE_VERSION (Trusted Publishing; PyPI-attached attestations).
+
+          Install: pip install typeflux==$RELEASE_VERSION (no credentials required).
+          SHA-256 checksums and the CycloneDX SBOM are attached."
+          if gh release view "py-v$RELEASE_VERSION" >/dev/null 2>&1; then
+            gh release upload "py-v$RELEASE_VERSION" dist/* evidence/* --clobber
+          else
+            gh release create "py-v$RELEASE_VERSION" \
+              --title "typeflux $RELEASE_VERSION" \
+              --notes "$notes" \
+              dist/* evidence/*
+          fi

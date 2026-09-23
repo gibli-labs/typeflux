@@ -1,0 +1,137 @@
+{
+  "name": "policy-base",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/policies/base"
+  },
+  "response": {
+    "body": {
+      "description": "Conformance-fixture guardrails.",
+      "extends": [],
+      "id": "base",
+      "name": "base",
+      "policy_hash": "129f8b36092ecddaf37886893f9118cd7b1d82ee7b4d7997fd6ea45e4ca72969",
+      "rules": {
+        "artifacts": {
+          "allowed_media_types": null,
+          "allowed_sources": [
+            "local_path"
+          ],
+          "max_bytes": null
+        },
+        "composition": {
+          "allow_map_over_workflow": null,
+          "max_parallel_nesting": null,
+          "max_parallel_width": null,
+          "max_steps": null,
+          "max_subworkflow_depth": null,
+          "max_total_steps": null
+        },
+        "imports": {
+          "allow_absolute_activity_modules": null,
+          "allow_moderator_callable": null,
+          "allow_observability_class": null,
+          "allow_provider_class": null,
+          "allow_registry_class": null,
+          "allowed_module_roots": null
+        },
+        "observability": {
+          "allowed_backends": [
+            "none"
+          ],
+          "redaction": {
+            "preserve_typeflux_metadata": null,
+            "require_custom_rules": null,
+            "required": null
+          },
+          "required": null
+        },
+        "providers": {
+          "allowed": {
+            "anthropic": {
+              "base_urls": null,
+              "models": [
+                "claude-sonnet-4-6"
+              ]
+            }
+          }
+        },
+        "review": {
+          "invalid_user_decision": null,
+          "require_review_routes": null
+        },
+        "risk_tiers": {
+          "human_gated": {
+            "constrain_providers": null,
+            "require_compensation": null,
+            "require_moderation": null,
+            "require_payload_codec": null,
+            "require_redaction": null,
+            "require_review": null
+          },
+          "min_tier": "policy_gated",
+          "policy_gated": {
+            "constrain_providers": {
+              "anthropic": {
+                "models": [
+                  "claude-sonnet-4-6"
+                ]
+              }
+            },
+            "require_compensation": null,
+            "require_moderation": null,
+            "require_payload_codec": null,
+            "require_redaction": true,
+            "require_review": true
+          },
+          "prohibited": {
+            "constrain_providers": null,
+            "require_compensation": null,
+            "require_moderation": null,
+            "require_payload_codec": null,
+            "require_redaction": null,
+            "require_review": null
+          },
+          "require_declared": null,
+          "safe": {
+            "constrain_providers": null,
+            "require_compensation": null,
+            "require_moderation": null,
+            "require_payload_codec": null,
+            "require_redaction": null,
+            "require_review": null
+          }
+        },
+        "runtime": {
+          "provider_limits": null,
+          "provider_retry": null,
+          "registry": {
+            "allowed_hosts": null
+          },
+          "temporal": {
+            "address_regions": null,
+            "allowed_addresses": null,
+            "allowed_namespaces": null,
+            "allowed_regions": null,
+            "require_api_key": null,
+            "require_payload_codec": null,
+            "require_tls": null
+          }
+        },
+        "secrets": {
+          "require_secret_references": null
+        },
+        "semantics": {
+          "categories": null,
+          "require_block": null,
+          "required": null,
+          "score_threshold": null
+        }
+      },
+      "used_by": [
+        "workflow"
+      ]
+    },
+    "status": 200
+  }
+}

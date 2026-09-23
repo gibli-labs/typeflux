@@ -1,0 +1,81 @@
+# The composition conformance fixture (#55 slice 2): a parallel block with an
+# ungated map branch + a when-gated branch, a typed collect merge keyed by branch
+# id, and a when-gated early-exit tail. Byte-identical to the Python binding's
+# workflow-composition.yaml — the topology projection must match across editions.
+project: conformance_project
+name: conformance_composition
+task_queue: conformance-demo-queue
+runtime:
+  temporal:
+    address: localhost:7233
+  registry:
+    type: inline
+    prompts:
+      classify: classify {{claims}}
+      assess: assess {{value}}
+      summarize: summarize {{value}}
+      merge: merge the review fanout
+      escalate: escalate {{value}}
+  provider:
+    type: anthropic
+    model: claude-sonnet-4-6
+    api_key:
+      value_from:
+        env: TYPEFLUX_CONFORMANCE_ANTHROPIC_API_KEY
+        required: false
+  observability:
+    type: none
+activities:
+  definitions:
+    - name: classify_claims
+      input: schemas:ClaimInput
+      output: schemas:Classification
+      prompt: classify
+    - name: assess_item
+      input: schemas:ClaimItem
+      output: schemas:ItemAssessment
+      prompt: assess
+    - name: summarize_deep
+      input: schemas:Classification
+      output: schemas:AssessmentBatch
+      prompt: summarize
+    - name: merge_reviews
+      input: schemas:ReviewFanout
+      output: schemas:Decision
+      prompt: merge
+    - name: escalate_decision
+      input: schemas:Decision
+      output: schemas:Decision
+      prompt: escalate
+workflow:
+  name: ConformanceCompositionWorkflow
+  input: schemas:ClaimInput
+  output: schemas:Decision
+  steps:
+    - id: classify
+      activity: classify_claims
+    - id: reviews
+      parallel:
+        branches:
+          - id: assessments
+            steps:
+              - id: assess_items
+                map:
+                  activity: assess_item
+                  over: input.claims
+                  concurrency: 2
+                  collect:
+                    output: schemas:AssessmentBatch
+                    field: reviews
+          - id: summary
+            when: { path: classify.deep_review, eq: true }
+            steps:
+              - id: summarize_claims
+                activity: summarize_deep
+        collect:
+          output: schemas:ReviewFanout
+    - id: merge
+      activity: merge_reviews
+    - id: escalate
+      when: { path: classify.deep_review, eq: true }
+      activity: escalate_decision

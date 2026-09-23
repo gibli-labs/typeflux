@@ -1,0 +1,18 @@
+{
+  "name": "enforcement-events-invalid-verdict",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/enforcement-events",
+    "query": {
+      "environment_id": "local",
+      "verdict": "nope"
+    }
+  },
+  "response": {
+    "body": {
+      "error": "InvalidRequest",
+      "message": "unknown verdict filter(s): nope; allowed: blocked, rejected"
+    },
+    "status": 422
+  }
+}

@@ -1,0 +1,13 @@
+version: "1"
+name: local
+variables:
+  TYPEFLUX_ENVIRONMENT: local
+overrides:
+  runtime:
+    temporal:
+      address: localhost:7233
+      namespace: default
+      tls: false
+      api_key: ""
+    observability:
+      type: none

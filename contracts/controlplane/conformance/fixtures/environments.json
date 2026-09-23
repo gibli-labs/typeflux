@@ -1,0 +1,22 @@
+{
+  "name": "environments",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/environments"
+  },
+  "response": {
+    "body": {
+      "environments": [
+        {
+          "id": "local",
+          "path": "environments/local.yaml"
+        },
+        {
+          "id": "unreachable",
+          "path": "environments/unreachable.yaml"
+        }
+      ]
+    },
+    "status": 200
+  }
+}

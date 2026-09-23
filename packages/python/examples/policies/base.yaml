@@ -1,0 +1,30 @@
+version: "1"
+name: base
+description: Common example project guardrails.
+
+providers:
+  allowed:
+    openai:
+      models:
+        - gpt-4o-mini
+        - gpt-4.1-mini
+        - gpt-4.1
+        - gpt-4o
+
+observability:
+  allowed_backends:
+    - none
+    - langfuse
+  redaction:
+    required: true
+    preserve_typeflux_metadata: true
+
+artifacts:
+  allowed_sources:
+    - local_path
+
+imports:
+  allow_absolute_activity_modules: true
+  allow_provider_class: true
+  allowed_module_roots:
+    - examples

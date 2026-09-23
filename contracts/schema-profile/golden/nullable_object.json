@@ -1,0 +1,29 @@
+{
+  "type": ["object", "null"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "note": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "null" }
+      ]
+    },
+    "meta": {
+      "type": ["object", "null"],
+      "properties": {
+        "score": {
+          "anyOf": [
+            { "type": "number" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": ["score"]
+    }
+  },
+  "required": ["id", "note", "meta"],
+  "additionalProperties": false
+}

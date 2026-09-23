@@ -1,0 +1,14 @@
+{
+  "name": "policy-unknown",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/policies/nope"
+  },
+  "response": {
+    "body": {
+      "error": "NotFound",
+      "message": "unknown project policy: nope"
+    },
+    "status": 404
+  }
+}

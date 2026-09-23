@@ -1,0 +1,41 @@
+project: replay_demo_project
+name: replay_saga_map
+task_queue: replay-fixture-saga-map-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      process: process {{value}}
+      undo: undo item
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayMapSagaProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - map_saga_activities
+
+workflow:
+  name: ReplaySagaMapWorkflow
+  input: schemas:BatchInputModel
+  output: schemas:BatchModel
+  lifecycle:
+    enabled: true
+  steps:
+    - id: process
+      map:
+        activity: process_item
+        over: input.items
+        concurrency: 1
+        collect:
+          output: schemas:BatchModel
+          field: results
+      compensate:
+        activity: undo_item

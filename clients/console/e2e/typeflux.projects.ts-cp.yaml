@@ -1,0 +1,19 @@
+# E2E smoke fixture, ts-cp lane (#621 slice 2): the canonical conformance fixture
+# project's TS binding registered under the same two ids as the python-cp lane, so
+# the switcher + project-scoped routing flows are exercised identically. Served by
+# the TypeScript control plane with --conformance-schemas (the #620 injected-schemas
+# seam supplies the fixture's activity IO schemas).
+version: "1"
+default: examples
+projects:
+  - id: examples
+    manifest: ../../../contracts/controlplane/conformance/project/typescript/typeflux.project.yaml
+    runtime: typescript
+  - id: examples_b
+    manifest: ../../../contracts/controlplane/conformance/project/typescript/typeflux.project.yaml
+    runtime: typescript
+  # Foreign-runtime entry (#621 slice 3): a python project the TS server cannot
+  # resolve — the console must degrade honestly, never error.
+  - id: foreign
+    manifest: ../../../contracts/controlplane/conformance/project/typescript/py-stub/typeflux.project.yaml
+    runtime: python

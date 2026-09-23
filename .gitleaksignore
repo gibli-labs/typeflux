@@ -1,0 +1,12 @@
+# Historical fingerprints for SYNTHETIC test key material (#715 slice 4, PR #764).
+# These commits carried conformance-vector combine outputs and hardcoded 32-byte TEST
+# codec keys — no real credentials; the branch is additive-only, so the blobs stay in
+# history. The current tree supersedes them with patterned/sequential vector inputs, a
+# scanner-neutral derived-field name (combined_sha256_hex), and textual test keys.
+3ca4807ca99f38acfd9772cf6556e067856015a7:contracts/temporal-binding/payload-codec-vectors.json:generic-api-key:53
+3ca4807ca99f38acfd9772cf6556e067856015a7:contracts/temporal-binding/payload-codec-vectors.json:generic-api-key:67
+e4e9c6be6a8c6dd8a8d7741780f7507706e211c7:packages/python/tests/test_subject_keystore.py:generic-api-key:416
+e4e9c6be6a8c6dd8a8d7741780f7507706e211c7:packages/python/tests/test_subject_keystore.py:generic-api-key:441
+e4e9c6be6a8c6dd8a8d7741780f7507706e211c7:packages/python/tests/test_subject_keystore.py:generic-api-key:531
+e4e9c6be6a8c6dd8a8d7741780f7507706e211c7:packages/typescript/temporal-yaml/test/subject-keystore.test.ts:generic-api-key:348
+e4e9c6be6a8c6dd8a8d7741780f7507706e211c7:packages/typescript/temporal-yaml/test/subject-keystore.test.ts:generic-api-key:361

@@ -1,0 +1,59 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "The operate tier is served (#563) and the enforcement-events feed lands (#723 slice 2): alice's 'review' grant \u2229 operable makes can_review true and enforcement_events follows resolvable (true), matching the base golden. The one by-design divergence is /runtime (typescript). github_provenance is false on BOTH editions here: the conformance project is a local mount (ProjectRegistry.single) with no recorded git source, so there is no GitHub repo provenance to serve (capability false, #727), and the TS edition now implements the endpoint (#727 slice 2) but its registry records no git source (local checkouts only), so `github_provenance` is `resolvable AND githubRepoPresent` = false there too \u2014 matching the base golden.",
+      "response": {
+        "body": {
+          "api_version": "1",
+          "bundle_version": "1",
+          "caller_identity": "alice",
+          "capabilities": {
+            "can_cancel": false,
+            "can_refresh_project": false,
+            "can_resolve": true,
+            "can_review": true,
+            "can_start": false,
+            "enforcement_events": true,
+            "github_provenance": false
+          },
+          "catalog_version": "1",
+          "manifest_path": "<normalized>",
+          "project": "conformance-fixture",
+          "runtime": "typescript"
+        },
+        "status": 200
+      }
+    }
+  },
+  "name": "auth-proxy-meta-actor",
+  "profile": "proxy",
+  "request": {
+    "headers": {
+      "X-Typeflux-Actor": "alice",
+      "X-Typeflux-Permissions": "inspect,review"
+    },
+    "method": "GET",
+    "path": "/api/v1/meta"
+  },
+  "response": {
+    "body": {
+      "api_version": "1",
+      "bundle_version": "1",
+      "caller_identity": "alice",
+      "capabilities": {
+        "can_cancel": false,
+        "can_refresh_project": false,
+        "can_resolve": true,
+        "can_review": true,
+        "can_start": false,
+        "enforcement_events": true,
+        "github_provenance": false
+      },
+      "catalog_version": "1",
+      "manifest_path": "<normalized>",
+      "project": "conformance-fixture",
+      "runtime": "python"
+    },
+    "status": 200
+  }
+}

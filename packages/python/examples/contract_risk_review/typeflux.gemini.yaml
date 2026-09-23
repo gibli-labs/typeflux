@@ -1,0 +1,122 @@
+project: examples.contract_risk_review
+name: contract_risk_review_gemini
+task_queue: ${TEMPORAL_TASK_QUEUE:-contract-risk-review-gemini-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  artifacts:
+    local_roots:
+      - ${TYPEFLUX_CONTRACT_ARTIFACT_ROOT:-fixtures}
+    allowed_sources:
+      - local_path
+    allowed_media_types:
+      - application/pdf
+    max_bytes: 20971520
+
+  registry:
+    type: ${TYPEFLUX_CONTRACT_PROMPT_REGISTRY:-inline}
+    label: ${LANGFUSE_PROMPT_LABEL:-production}
+    prompts:
+      analyze_contract:
+        model: ${TYPEFLUX_GEMINI_MODEL:-gemini-2.5-flash}
+        temperature: 0
+        provider_params:
+          max_tokens: 16000
+          # Disable Gemini 2.5 thinking for deterministic structured extraction:
+          # frees the whole output budget for the answer (no over-provisioning).
+          thinking_budget: 0
+          timeout: 300
+        messages:
+          - role: system
+            content: >
+              You are a contract review assistant for intake triage. Extract
+              entities, important clauses, obligations, monetary terms, dates,
+              and operational risks from the attached PDF. This is not legal
+              advice. Ground findings in the contract and avoid inventing facts
+              when the PDF is silent.
+          - role: user
+            content: |
+              Engagement ID: {{ engagement_id }}
+              Business context: {{ business_context }}
+              Review objective: {{ review_objective }}
+
+              Build a structured contract risk review. Prefer concise
+              evidence quotes for every material party, clause, and risk.
+              Mark ambiguous or missing terms explicitly.
+              For every risk item, populate severity, category, issue, why_it_matters,
+              recommended_action, owner, and evidence.
+
+  provider:
+    type: gemini
+    model: ${TYPEFLUX_GEMINI_MODEL:-gemini-2.5-flash}
+    structured_mode: json_schema
+    api_key:
+      value_from:
+        env: GEMINI_API_KEY
+    params:
+      max_tokens: 16000
+      thinking_budget: 0
+      timeout: 300
+
+  provider_retry:
+    max_attempts: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 4
+    backoff_multiplier: 2
+    retry_rate_limits: true
+    retry_transient_errors: true
+
+  observability:
+    type: langfuse
+    execution_manifest: true
+    redaction:
+      enabled: true
+      emails: true
+      phones: true
+      ssn: true
+      credit_cards: true
+      preserve_typeflux_metadata: true
+      exclude_paths: []
+
+activities:
+  definitions:
+    - name: analyze_contract
+      input: schemas:ContractAnalysisInput
+      output: schemas:ContractRiskReview
+      prompt:
+        name: analyze_contract
+        type: chat
+      provider_params:
+        max_tokens: 16000
+        thinking_budget: 0
+        timeout: 300
+      start_to_close_timeout_seconds: 600
+      validation_retries: 1
+      artifacts:
+        - name: contracts
+          from: input.contract_files
+          required: true
+          kind: document
+          media_types:
+            - application/pdf
+          max_count: 3
+          max_bytes: 20971520
+          attach:
+            role: user
+            text: "Contract PDFs:"
+
+workflow:
+  name: ContractRiskReviewGeminiWorkflow
+  input: schemas:ContractAnalysisInput
+  output: schemas:ContractRiskReview
+  steps:
+    - id: analyze_contract
+      activity: analyze_contract

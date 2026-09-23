@@ -1,0 +1,30 @@
+project: replay_demo_project
+name: replay_sub_child
+task_queue: replay-fixture-subworkflow-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      first: first {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: ReplaySubChildWorkflow
+  input: schemas:InputModel
+  output: schemas:MiddleModel
+  steps:
+    - id: first
+      activity: first

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability (private)
+    url: https://github.com/gibli-labs/typeflux/security/advisories/new
+    about: Never open a public issue for security reports — use private vulnerability reporting (see SECURITY.md).
+  - name: Questions and support
+    url: https://github.com/gibli-labs/typeflux/blob/main/SUPPORT.md
+    about: Where to ask what, and the details that make questions answerable.

@@ -1,0 +1,37 @@
+project: replay_demo_project
+name: replay_subjects
+task_queue: replay-fixture-subjects-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      first: first {{value}}
+      second: second {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: ReplaySubjectsWorkflow
+  input: schemas:InputModel
+  output: schemas:OutputModel
+  # #715 slice 1: extract the subject id off the workflow input at submit time;
+  # it stamps the TypefluxSubjectIds keyword-list search attribute (the index).
+  subjects:
+    - from: input.value
+  steps:
+    - id: first
+      activity: first
+    - id: second
+      activity: second

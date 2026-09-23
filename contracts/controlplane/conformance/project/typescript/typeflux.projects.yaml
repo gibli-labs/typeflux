@@ -1,0 +1,15 @@
+# The canonical conformance registry, TS binding (#620 slice 2): the fixture
+# project as the DEFAULT entry (runtime: typescript — this server resolves TS)
+# plus a python-runtime stub, so runtime-awareness (honest capabilities, 501
+# UnsupportedRuntime fail-closed) is part of the black-box surface on the TS
+# side too. Mirrors project/python/typeflux.projects.yaml, with the runtimes
+# swapped: here the DEFAULT is TS and the foreign entry is python.
+version: "1"
+default: conformance
+projects:
+  - id: conformance
+    manifest: typeflux.project.yaml
+    runtime: typescript
+  - id: py-project
+    manifest: py-stub/typeflux.project.yaml
+    runtime: python

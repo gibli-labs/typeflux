@@ -1,0 +1,20 @@
+# Example project registry (#256): serve several Typeflux projects from one
+# control plane. The default is also served at the unprefixed /api/v1/...
+# routes; every project is served at /api/v1/projects/{id}/...
+#
+#   uv run python -m typeflux.controlplane serve \
+#     --registry examples/typeflux.projects.yaml
+version: "1"
+default: examples
+projects:
+  # Local checkout — a path to a typeflux.project.yaml on disk.
+  - id: examples
+    manifest: typeflux.project.yaml
+  # Git-sourced — the server clones it into .typeflux-clones on first use
+  # and re-fetches on POST /api/v1/projects/{id}/refresh. (Commented out:
+  # point it at a real repo to try it.)
+  # - id: upstream
+  #   repo:
+  #     url: https://github.com/your-org/your-typeflux-project
+  #     ref: main
+  #     manifest: typeflux.project.yaml

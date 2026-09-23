@@ -1,0 +1,104 @@
+project: examples.regulated_claims_adjudication
+name: regulated_claims_adjudication
+task_queue: ${TEMPORAL_TASK_QUEUE:-regulated-claims-adjudication-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  registry:
+    type: inline
+    prompts:
+      assess_claim:
+        messages:
+          - role: system
+            content: >
+              You are a claims analyst at a regulated insurer, Smith & Sons
+              <Underwriting> Ltd. Assess the claim strictly from the provided
+              facts; never invent details. Severity is "high" only for losses
+              over $50,000 or suspected fraud. List fraud_indicators only when
+              the description itself supports them. The audit placeholder
+              ${AUDIT_REGION} is resolved by a downstream system - reproduce
+              nothing about it and treat it as opaque text.
+          - role: user
+            content: |
+              Claim ID: {{ claim_id }}
+              Claimant: {{ claimant }}
+              Policy: {{ policy_number }}
+              Amount (USD): {{ amount_usd }}
+              Description: {{ description }}
+
+              Produce a structured assessment for compliance routing.
+
+  provider:
+    type: anthropic
+    model: ${TYPEFLUX_ANTHROPIC_MODEL:-claude-sonnet-4-6}
+    structured_mode: json_schema
+    api_key:
+      value_from:
+        env: ANTHROPIC_API_KEY
+    params:
+      max_tokens: 4096
+      timeout: 120
+
+  provider_retry:
+    max_attempts: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 4
+    backoff_multiplier: 2
+    retry_rate_limits: true
+    retry_transient_errors: true
+
+  observability:
+    type: langfuse
+    execution_manifest: true
+    redaction:
+      enabled: true
+      emails: true
+      phones: true
+      ssn: true
+      credit_cards: true
+      preserve_typeflux_metadata: true
+
+activities:
+  modules:
+    - activities
+  definitions:
+    - name: assess_claim
+      input: schemas:ClaimInput
+      output: schemas:ClaimAssessment
+      prompt: assess_claim
+      validation_retries: 1
+      start_to_close_timeout_seconds: 180
+
+workflow:
+  name: RegulatedClaimsAdjudicationWorkflow
+  input: schemas:ClaimInput
+  output: schemas:FinalAdjudication
+  lifecycle:
+    enabled: true
+    progress: true
+    cancellation: true
+    review:
+      after_step: apply_compliance_policy
+      invalid_user_decision: fail
+      user_decisions:
+        approve_payment:
+          route: finalize_adjudication
+        escalate_fraud:
+          route: escalate_case
+  steps:
+    - id: assess_claim
+      activity: assess_claim
+    - id: apply_compliance_policy
+      activity: apply_compliance_policy
+    - id: escalate_case
+      activity: escalate_case
+    - id: finalize_adjudication
+      activity: finalize_adjudication

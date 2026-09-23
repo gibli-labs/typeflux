@@ -1,0 +1,86 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "Mirror registry: the default conformance project is typescript-runtime and the foreign stub entry is py-project (python) \u2014 the exact inverse of the Python fixture registry (#620).",
+      "response": {
+        "body": [
+          {
+            "available": true,
+            "default": true,
+            "detail": null,
+            "id": "conformance",
+            "last_refresh": null,
+            "manifest_path": "<normalized>",
+            "manifest_repo_path": null,
+            "name": "conformance-fixture",
+            "repo_ref": null,
+            "repo_sha": null,
+            "repo_url": null,
+            "resolvable": true,
+            "runtime": "typescript",
+            "source": "local"
+          },
+          {
+            "available": true,
+            "default": false,
+            "detail": null,
+            "id": "py-project",
+            "last_refresh": null,
+            "manifest_path": "<normalized>",
+            "manifest_repo_path": null,
+            "name": "conformance-py-stub",
+            "repo_ref": null,
+            "repo_sha": null,
+            "repo_url": null,
+            "resolvable": false,
+            "runtime": "python",
+            "source": "local"
+          }
+        ],
+        "status": 200
+      }
+    }
+  },
+  "name": "projects",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/projects"
+  },
+  "response": {
+    "body": [
+      {
+        "available": true,
+        "default": true,
+        "detail": null,
+        "id": "conformance",
+        "last_refresh": null,
+        "manifest_path": "<normalized>",
+        "manifest_repo_path": null,
+        "name": "conformance-fixture",
+        "repo_ref": null,
+        "repo_sha": null,
+        "repo_url": null,
+        "resolvable": true,
+        "runtime": "python",
+        "source": "local"
+      },
+      {
+        "available": true,
+        "default": false,
+        "detail": null,
+        "id": "ts-project",
+        "last_refresh": null,
+        "manifest_path": "<normalized>",
+        "manifest_repo_path": null,
+        "name": "conformance-ts-stub",
+        "repo_ref": null,
+        "repo_sha": null,
+        "repo_url": null,
+        "resolvable": false,
+        "runtime": "typescript",
+        "source": "local"
+      }
+    ],
+    "status": 200
+  }
+}

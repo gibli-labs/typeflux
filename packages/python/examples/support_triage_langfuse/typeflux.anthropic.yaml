@@ -1,0 +1,55 @@
+project: examples.support_triage_langfuse
+name: support_triage_langfuse_anthropic
+task_queue: ${TEMPORAL_TASK_QUEUE:-support-triage-anthropic-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  registry:
+    type: langfuse
+    label: ${LANGFUSE_PROMPT_LABEL:-production}
+
+  provider:
+    type: anthropic
+    model: ${TYPEFLUX_ANTHROPIC_MODEL:-claude-sonnet-4-6}
+    structured_mode: json_schema
+    api_key:
+      value_from:
+        env: ANTHROPIC_API_KEY
+
+  observability:
+    type: langfuse
+    execution_manifest: true
+    redaction:
+      enabled: true
+      emails: true
+      phones: true
+      ssn: true
+      credit_cards: true
+      preserve_typeflux_metadata: true
+      exclude_paths: []
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: SupportTriageAnthropicYamlWorkflow
+  input: schemas:TicketInput
+  output: schemas:ReviewPacket
+  steps:
+    - id: classification
+      activity: classify_ticket
+    - id: routing
+      activity: route_ticket
+    - id: draft
+      activity: draft_response
+    - id: review
+      activity: package_for_review

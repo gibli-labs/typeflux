@@ -1,0 +1,11 @@
+# Insight acknowledgement annotations (#733) — the conformance fixture ledger.
+# Two entries exercise the projection: one open ack with a tracking issue, and
+# one already-EXPIRED ack (served with its expiry so the console can derive the
+# "stale ack" rendering — expiry never mutates or hides the entry).
+annotations:
+  - insight_id_pattern: "policy.drift.base"
+    reason: "tracked upstream; not actionable until the provider ships the fix"
+    tracked_in: "https://github.com/typeflux/conformance/issues/1"
+  - insight_id_pattern: "runtime.pin.*"
+    reason: "accepted for the migration window; revisit after the cutover"
+    expires: 2026-01-01

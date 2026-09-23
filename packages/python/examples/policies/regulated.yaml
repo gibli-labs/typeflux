@@ -1,0 +1,39 @@
+version: "1"
+name: regulated
+description: Regulated example policy for Temporal Cloud review workloads.
+extends:
+  - base
+
+providers:
+  allowed:
+    openai:
+      models:
+        - gpt-4.1
+        - gpt-4o
+
+observability:
+  required: true
+  allowed_backends:
+    - langfuse
+  redaction:
+    required: true
+    preserve_typeflux_metadata: true
+
+runtime:
+  temporal:
+    allowed_regions:
+      - us-east
+    require_tls: true
+    require_api_key: true
+
+artifacts:
+  allowed_sources:
+    - local_path
+  allowed_media_types:
+    - application/pdf
+    - image/*
+  max_bytes: 20971520
+
+review:
+  require_review_routes: true
+  invalid_user_decision: fail

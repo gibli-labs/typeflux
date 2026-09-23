@@ -1,0 +1,27 @@
+{
+  "name": "connections-workflow-local",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/workflow/connections",
+    "query": {
+      "environment_id": "local"
+    }
+  },
+  "response": {
+    "body": {
+      "environment_id": "local",
+      "observability": {
+        "execution_manifest": true,
+        "reachable": true,
+        "redaction_enabled": true,
+        "type": "none"
+      },
+      "registry": {
+        "reachable": true,
+        "type": "inline"
+      },
+      "workflow_id": "workflow"
+    },
+    "status": 200
+  }
+}

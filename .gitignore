@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+.env
+.env.*
+!.env.example
+dist/
+build/
+node_modules/
+*.egg-info/
+/docs/design/
+
+# Local Claude Code working files (skills, queue, launch config)
+.claude/
+
+# Local MCP server config (absolute paths / tokens are per-machine)
+.mcp.json

@@ -1,0 +1,26 @@
+# escalation_review — a PURE-YAML sub-workflow (#55) invoked by the parent's
+# `workflow:` step. It keeps the parent's `Consolidated` type so the schema chain
+# flows through the child transparently.
+project: claims_review_composition
+name: escalation_review
+task_queue: claims-review-composition-ts
+runtime:
+  temporal: {}
+  registry:
+    type: inline
+    prompts:
+      escalate-review: "Re-summarize for compliance: {{summary}}"
+  provider: { type: openai }
+activities:
+  definitions:
+    - name: escalate_review
+      input: schemas:Consolidated
+      output: schemas:Consolidated
+      prompt: escalate-review
+workflow:
+  name: EscalationReviewWorkflow
+  input: schemas:Consolidated
+  output: schemas:Consolidated
+  steps:
+    - id: escalate
+      activity: escalate_review

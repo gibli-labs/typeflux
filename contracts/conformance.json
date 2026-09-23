@@ -1,0 +1,139 @@
+{
+  "contract_version": "1",
+  "description": "The executable cross-SDK parity surface (#392). Each area lists the goldens any SDK must reproduce from the named inputs via the canonical operation, plus per-SDK coverage. Conformance = both SDKs reproduce every golden from its input (the per-fixture reproduction tests: Python tests/test_contracts_*, TypeScript packages/typescript/temporal/test/*). Interfaces (#616) are the second contract class: normative surface documents that servers conform to and clients are generated from. This file is the index + the suite-integrity gate; it does not replace those tests.",
+  "areas": [
+    {
+      "name": "schema-profile",
+      "issue": 389,
+      "operation": "to_provider_safe(input) == golden",
+      "fixtures": [
+        {
+          "input": "schema-profile/golden/review_packet_input.json",
+          "golden": "schema-profile/golden/review_packet.json"
+        },
+        {
+          "input": "schema-profile/golden/nullable_object_input.json",
+          "golden": "schema-profile/golden/nullable_object.json"
+        }
+      ],
+      "coverage": {
+        "python": "full",
+        "typescript": "full"
+      }
+    },
+    {
+      "name": "canonical-json",
+      "issue": 420,
+      "operation": "canonical_json(value) == golden canonical (number-formatting parity)",
+      "fixtures": [
+        {
+          "golden": "canonical-json/golden/numbers.json",
+          "note": "{value, canonical} pairs spanning the fixed/scientific + big-int boundaries"
+        }
+      ],
+      "coverage": {
+        "python": "full",
+        "typescript": "full"
+      }
+    },
+    {
+      "name": "prompt-ref",
+      "issue": 390,
+      "operation": "PromptRef.to_dict() == golden (prompt_type is a resolve-time hint, not serialized)",
+      "fixtures": [
+        {
+          "golden": "prompt-ref/golden/prompt_ref.json"
+        }
+      ],
+      "coverage": {
+        "python": "full",
+        "typescript": "full"
+      }
+    },
+    {
+      "name": "manifest",
+      "issue": 390,
+      "operation": "schema_hash(input)/messages_hash + execution manifests reproduce the goldens",
+      "fixtures": [
+        {
+          "input": "manifest/golden/input_schema.json",
+          "note": "schema_hash(input) == activity/workflow golden input_schema.hash"
+        },
+        {
+          "input": "manifest/golden/output_schema.json",
+          "note": "schema_hash(input) == golden output_schema.hash"
+        },
+        {
+          "golden": "manifest/golden/activity_execution.json"
+        },
+        {
+          "golden": "manifest/golden/workflow_execution.json"
+        }
+      ],
+      "coverage": {
+        "python": "full",
+        "typescript": "full"
+      }
+    },
+    {
+      "name": "trace",
+      "issue": 390,
+      "operation": "TraceRecord.model_dump(exclude_none=True) == golden",
+      "fixtures": [
+        {
+          "golden": "trace/golden/trace_record.json"
+        }
+      ],
+      "coverage": {
+        "python": "full",
+        "typescript": "full"
+      }
+    },
+    {
+      "name": "cache-key",
+      "issue": 391,
+      "operation": "cache_input_hash/cache_key_digest/cache_record reproduce the goldens",
+      "fixtures": [
+        {
+          "golden": "cache-key/golden/cache_key.json"
+        },
+        {
+          "golden": "cache-key/golden/cache_record.json"
+        },
+        {
+          "golden": "cache-key/golden/cache_record_subjects.json",
+          "note": "#715 slice 1 \u2014 subjects ride on the RECORD (present-only); the KEY digest is byte-identical to cache_record.json, proving subjects never perturb the cache key"
+        },
+        {
+          "golden": "cache-key/golden/cache_key_artifacts.json",
+          "note": "#504 \u2014 the optional artifacts fold (artifact_groups_summary shape; absent fields drop)"
+        }
+      ],
+      "coverage": {
+        "python": "full",
+        "typescript": "full"
+      }
+    }
+  ],
+  "interfaces": [
+    {
+      "name": "resolver",
+      "issue": 619,
+      "document": "resolver/resolver.v1.json",
+      "description": "The transport-shaped resolution interface: the one language-bound control-plane layer, returning control-plane contract DTOs (response schemas cross-checked against the OpenAPI document by the suite-integrity gates)."
+    },
+    {
+      "name": "temporal-binding",
+      "issue": 618,
+      "document": "temporal-binding/binding.v1.json",
+      "description": "Normative Temporal binding profiles: the shared operate-tier wire surface (memo keys, signal/query names, payload conventions) plus the two deliberately divergent execution ABIs (python-versioned-type, ts-plan-argument). Per-SDK conformance tests assert exported constants against this document."
+    },
+    {
+      "name": "controlplane",
+      "issue": 616,
+      "document": "controlplane/openapi.v1.json",
+      "conformance": "controlplane/conformance/fixtures/_suite.json",
+      "description": "Normative control-plane HTTP API (OpenAPI 3.1). Servers conform to it; clients are generated from it. Unlike areas, an interface is a surface document, not a golden-reproduction fixture. Conformer status lives in controlplane/README.md."
+    }
+  ]
+}

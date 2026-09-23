@@ -1,0 +1,458 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "TS-native schema identity (hash/json_schema shape, #644) and the #496 `decide` dialect divergence: Python's `decide` is a plain Temporal MODULE activity (kind temporal, definition_source.kind python, no prompt_ref), while the TS fixture declares it inline-prompted (kind ai, yaml source, a prompt_ref) so the workflow graph resolves without importlib. Every other field (prompt_ref/provider_params/artifact_inputs/definition_source/task_queue) matches the Python contract.",
+      "response": {
+        "body": {
+          "activities": [
+            {
+              "artifact_inputs": [],
+              "compatible_next": [],
+              "definition_source": {
+                "kind": "yaml",
+                "yaml_name": "conformance_demo",
+                "yaml_project": "conformance_project"
+              },
+              "input_schema": {
+                "hash": "b8c38e6b11ca2a13efd1b9f8b9dea43ecb368c280d328099f63e9e0a6910cfb2",
+                "json_schema": {
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "name": "ClaimItem"
+              },
+              "kind": "ai",
+              "name": "assess_item",
+              "output_schema": {
+                "hash": "12ed9447fbbb261381b19f521a226cefef9dd3f6250b42a14873a051886c18e7",
+                "json_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "name": "ItemAssessment"
+              },
+              "prompt_ref": {
+                "label": null,
+                "name": "assess",
+                "version": null
+              },
+              "provider_params": {},
+              "start_to_close_timeout_seconds": null,
+              "task_queue": null,
+              "used_by_steps": [
+                "assess_items"
+              ],
+              "validation_retries": 1
+            },
+            {
+              "artifact_inputs": [],
+              "compatible_next": [],
+              "definition_source": {
+                "kind": "yaml",
+                "yaml_name": "conformance_demo",
+                "yaml_project": "conformance_project"
+              },
+              "input_schema": {
+                "hash": "18b82bcfb1717b67f1d7b0e1dd877e66954f980ef7fff542dbbfef3b0155ec7d",
+                "json_schema": {
+                  "properties": {
+                    "reviews": {
+                      "items": {
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "reviews"
+                  ],
+                  "type": "object"
+                },
+                "name": "AssessmentBatch"
+              },
+              "kind": "ai",
+              "name": "decide",
+              "output_schema": {
+                "hash": "12ed9447fbbb261381b19f521a226cefef9dd3f6250b42a14873a051886c18e7",
+                "json_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "name": "Decision"
+              },
+              "prompt_ref": {
+                "label": null,
+                "name": "decide",
+                "version": null
+              },
+              "provider_params": {},
+              "start_to_close_timeout_seconds": null,
+              "task_queue": null,
+              "used_by_steps": [
+                "decide"
+              ],
+              "validation_retries": 1
+            },
+            {
+              "artifact_inputs": [],
+              "compatible_next": [
+                "decide"
+              ],
+              "definition_source": {
+                "kind": "yaml",
+                "yaml_name": "conformance_demo",
+                "yaml_project": "conformance_project"
+              },
+              "input_schema": {
+                "hash": "18b82bcfb1717b67f1d7b0e1dd877e66954f980ef7fff542dbbfef3b0155ec7d",
+                "json_schema": {
+                  "properties": {
+                    "reviews": {
+                      "items": {
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "reviews"
+                  ],
+                  "type": "object"
+                },
+                "name": "AssessmentBatch"
+              },
+              "kind": "ai",
+              "name": "summarize",
+              "output_schema": {
+                "hash": "45506dfe37af8a874c9cfb83440eba377ba53e938d7a4e5a57b1f96a8f501a11",
+                "json_schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reviews": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "reviews"
+                  ],
+                  "type": "object"
+                },
+                "name": "AssessmentBatch"
+              },
+              "prompt_ref": {
+                "label": null,
+                "name": "summarize",
+                "version": null
+              },
+              "provider_params": {},
+              "start_to_close_timeout_seconds": null,
+              "task_queue": null,
+              "used_by_steps": [
+                "summarize"
+              ],
+              "validation_retries": 1
+            }
+          ],
+          "catalog_version": "1",
+          "environment_id": "local",
+          "project": "conformance-fixture",
+          "workflow_id": "workflow"
+        },
+        "status": 200
+      }
+    }
+  },
+  "name": "catalog-workflow-local",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/workflow/catalog",
+    "query": {
+      "environment_id": "local"
+    }
+  },
+  "response": {
+    "body": {
+      "activities": [
+        {
+          "artifact_inputs": [],
+          "compatible_next": [],
+          "definition_source": {
+            "kind": "yaml",
+            "yaml_name": "conformance_demo",
+            "yaml_project": "conformance_project"
+          },
+          "input_schema": {
+            "hash": "87207679752eb05f23bc37d973a38f64e1e334fcd96871a748cf23abbb1df102",
+            "json_schema": {
+              "properties": {
+                "value": {
+                  "title": "Value",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "title": "ClaimItem",
+              "type": "object"
+            },
+            "name": "ClaimItem"
+          },
+          "kind": "ai",
+          "name": "assess_item",
+          "output_schema": {
+            "hash": "87d1e9bc2786f4b9adc9a806d2ee87bb3095d48175cce7482bc5f3800aa51903",
+            "json_schema": {
+              "properties": {
+                "value": {
+                  "title": "Value",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "title": "ItemAssessment",
+              "type": "object"
+            },
+            "name": "ItemAssessment"
+          },
+          "prompt_ref": {
+            "label": null,
+            "name": "assess",
+            "version": null
+          },
+          "provider_params": {},
+          "start_to_close_timeout_seconds": null,
+          "task_queue": null,
+          "used_by_steps": [
+            "assess_items"
+          ],
+          "validation_retries": 1
+        },
+        {
+          "artifact_inputs": [],
+          "compatible_next": [],
+          "definition_source": {
+            "export": "module_values",
+            "kind": "python",
+            "module": "conformance_project.activities"
+          },
+          "input_schema": {
+            "hash": "4c85112ab11f388b58022d234d3e34fb3f6f57519507f233e48dd8e38d98e490",
+            "json_schema": {
+              "$defs": {
+                "ItemAssessment": {
+                  "properties": {
+                    "value": {
+                      "title": "Value",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "ItemAssessment",
+                  "type": "object"
+                }
+              },
+              "properties": {
+                "reviews": {
+                  "items": {
+                    "$ref": "#/$defs/ItemAssessment"
+                  },
+                  "title": "Reviews",
+                  "type": "array"
+                }
+              },
+              "required": [
+                "reviews"
+              ],
+              "title": "AssessmentBatch",
+              "type": "object"
+            },
+            "name": "AssessmentBatch"
+          },
+          "kind": "temporal",
+          "name": "decide",
+          "output_schema": {
+            "hash": "d08c95ef3bb4b5e4ee8327d48563c03849a6f6b20d92fbdfe98738fd63d4cc2e",
+            "json_schema": {
+              "properties": {
+                "value": {
+                  "title": "Value",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "title": "Decision",
+              "type": "object"
+            },
+            "name": "Decision"
+          },
+          "prompt_ref": null,
+          "provider_params": {},
+          "start_to_close_timeout_seconds": null,
+          "task_queue": null,
+          "used_by_steps": [
+            "decide"
+          ],
+          "validation_retries": null
+        },
+        {
+          "artifact_inputs": [],
+          "compatible_next": [
+            "decide"
+          ],
+          "definition_source": {
+            "kind": "yaml",
+            "yaml_name": "conformance_demo",
+            "yaml_project": "conformance_project"
+          },
+          "input_schema": {
+            "hash": "4c85112ab11f388b58022d234d3e34fb3f6f57519507f233e48dd8e38d98e490",
+            "json_schema": {
+              "$defs": {
+                "ItemAssessment": {
+                  "properties": {
+                    "value": {
+                      "title": "Value",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "ItemAssessment",
+                  "type": "object"
+                }
+              },
+              "properties": {
+                "reviews": {
+                  "items": {
+                    "$ref": "#/$defs/ItemAssessment"
+                  },
+                  "title": "Reviews",
+                  "type": "array"
+                }
+              },
+              "required": [
+                "reviews"
+              ],
+              "title": "AssessmentBatch",
+              "type": "object"
+            },
+            "name": "AssessmentBatch"
+          },
+          "kind": "ai",
+          "name": "summarize",
+          "output_schema": {
+            "hash": "4c85112ab11f388b58022d234d3e34fb3f6f57519507f233e48dd8e38d98e490",
+            "json_schema": {
+              "$defs": {
+                "ItemAssessment": {
+                  "properties": {
+                    "value": {
+                      "title": "Value",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "ItemAssessment",
+                  "type": "object"
+                }
+              },
+              "properties": {
+                "reviews": {
+                  "items": {
+                    "$ref": "#/$defs/ItemAssessment"
+                  },
+                  "title": "Reviews",
+                  "type": "array"
+                }
+              },
+              "required": [
+                "reviews"
+              ],
+              "title": "AssessmentBatch",
+              "type": "object"
+            },
+            "name": "AssessmentBatch"
+          },
+          "prompt_ref": {
+            "label": null,
+            "name": "summarize",
+            "version": null
+          },
+          "provider_params": {},
+          "start_to_close_timeout_seconds": null,
+          "task_queue": null,
+          "used_by_steps": [
+            "summarize"
+          ],
+          "validation_retries": 1
+        }
+      ],
+      "catalog_version": "1",
+      "environment_id": "local",
+      "project": "conformance-fixture",
+      "workflow_id": "workflow"
+    },
+    "status": 200
+  }
+}

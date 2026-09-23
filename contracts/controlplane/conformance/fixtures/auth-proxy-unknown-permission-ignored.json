@@ -1,0 +1,59 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "bob's tolerantly-parsed grants (inspect only) yield the same permission-gated capability flags as the base golden; enforcement_events follows resolvable (true) now the feed lands (#723 slice 2), also matching. The one by-design divergence is /runtime (typescript). github_provenance is false on BOTH editions here: the conformance project is a local mount (ProjectRegistry.single) with no recorded git source, so there is no GitHub repo provenance to serve (capability false, #727), and the TS edition now implements the endpoint (#727 slice 2) but its registry records no git source (local checkouts only), so `github_provenance` is `resolvable AND githubRepoPresent` = false there too \u2014 matching the base golden.",
+      "response": {
+        "body": {
+          "api_version": "1",
+          "bundle_version": "1",
+          "caller_identity": "bob",
+          "capabilities": {
+            "can_cancel": false,
+            "can_refresh_project": false,
+            "can_resolve": true,
+            "can_review": false,
+            "can_start": false,
+            "enforcement_events": true,
+            "github_provenance": false
+          },
+          "catalog_version": "1",
+          "manifest_path": "<normalized>",
+          "project": "conformance-fixture",
+          "runtime": "typescript"
+        },
+        "status": 200
+      }
+    }
+  },
+  "name": "auth-proxy-unknown-permission-ignored",
+  "profile": "proxy",
+  "request": {
+    "headers": {
+      "X-Typeflux-Actor": "bob",
+      "X-Typeflux-Permissions": "inspect banana"
+    },
+    "method": "GET",
+    "path": "/api/v1/meta"
+  },
+  "response": {
+    "body": {
+      "api_version": "1",
+      "bundle_version": "1",
+      "caller_identity": "bob",
+      "capabilities": {
+        "can_cancel": false,
+        "can_refresh_project": false,
+        "can_resolve": true,
+        "can_review": false,
+        "can_start": false,
+        "enforcement_events": true,
+        "github_provenance": false
+      },
+      "catalog_version": "1",
+      "manifest_path": "<normalized>",
+      "project": "conformance-fixture",
+      "runtime": "python"
+    },
+    "status": 200
+  }
+}

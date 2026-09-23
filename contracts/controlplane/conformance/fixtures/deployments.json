@@ -1,0 +1,11 @@
+{
+  "name": "deployments",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/deployments"
+  },
+  "response": {
+    "body": [],
+    "status": 200
+  }
+}

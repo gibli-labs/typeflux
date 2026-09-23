@@ -1,0 +1,14 @@
+{
+  "name": "enforcement-events",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/enforcement-events"
+  },
+  "response": {
+    "body": {
+      "error": "InvalidRequest",
+      "message": "enforcement-events requires environment_id: admission verdicts resolve per environment, and an unscoped call cannot be resolved (it would answer an empty, not_configured feed indistinguishable from a quiet one)"
+    },
+    "status": 422
+  }
+}

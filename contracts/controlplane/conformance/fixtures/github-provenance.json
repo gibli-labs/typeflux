@@ -1,0 +1,16 @@
+{
+  "name": "github-provenance",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/github-provenance"
+  },
+  "response": {
+    "body": {
+      "partial": {
+        "github": "not_configured"
+      },
+      "plans": []
+    },
+    "status": 200
+  }
+}

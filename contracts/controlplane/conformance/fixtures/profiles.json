@@ -1,0 +1,19 @@
+{
+  "name": "profiles",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/profiles"
+  },
+  "response": {
+    "body": [
+      {
+        "content_hash": "38dbe2dc34daebccd92131cda302df84617dab56b55f8a929e28f18f09dcb749",
+        "id": "anthropic-prod",
+        "kind": "provider",
+        "name": "anthropic-prod",
+        "path": "profiles/provider/anthropic-prod.yaml"
+      }
+    ],
+    "status": 200
+  }
+}

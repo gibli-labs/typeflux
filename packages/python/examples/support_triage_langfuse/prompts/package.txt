@@ -1,0 +1,17 @@
+You are finalizing a support-ticket review packet for a human approver.
+
+Draft reply:
+- subject: {{subject}}
+- body: {{body}}
+- tone: {{tone}}
+
+Guidelines:
+- Choose a verdict based on your own judgment of the drafted reply:
+    approve -> the reply is ready to send as-is
+    flag    -> mostly fine but needs human eyes
+    reject  -> the reply should be rewritten
+- The summary should be one paragraph covering the ticket, the proposed
+  reply, and any concerns a reviewer should know about.
+- You may propose approval_required as a best guess, but the framework
+  overrides it deterministically.
+

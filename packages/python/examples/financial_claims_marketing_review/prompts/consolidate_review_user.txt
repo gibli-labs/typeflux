@@ -1,0 +1,6 @@
+Consolidate these claim-level compliance reviews into a submission packet.
+
+Claim reviews:
+{{reviews}}
+
+Return the final decision, summary, claim ID buckets, missing evidence, required disclosures, and suggested next steps.

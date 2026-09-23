@@ -1,0 +1,147 @@
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+# The sdist is the buildable source of the PACKAGE — not a repo snapshot.
+# Tests and examples stay in the repository (some examples are excluded from
+# the public tree entirely; scripts/verify_python_dist.py gates the contents).
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "LICENSE", "README.md"]
+
+[project]
+name = "typeflux"
+version = "0.1.0"
+description = "Temporal-native typed AI Activities."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+dependencies = [
+  # AES-256-GCM Temporal payload codec (#188) — a first-class runtime feature, so the
+  # crypto backend is a core dependency (present in every environment, incl. non-live CI).
+  "cryptography>=42",
+  "pydantic>=2,<3",
+  "python-dotenv>=1,<2",
+  "pyyaml>=6,<7",
+  "temporalio>=1.8,<2",
+]
+
+[project.urls]
+Homepage = "https://github.com/gibli-labs/typeflux"
+Repository = "https://github.com/gibli-labs/typeflux"
+Issues = "https://github.com/gibli-labs/typeflux/issues"
+
+[project.scripts]
+# The TS packages ship proper bins (typeflux-project, typeflux-yaml-worker, typeflux-mcp);
+# these are the Python mirrors (#810). `python -m typeflux.project` stays the
+# no-install-scripts fallback spelling.
+typeflux-project = "typeflux.project.__main__:main"
+typeflux-controlplane = "typeflux.controlplane.__main__:main"
+typeflux-trace = "typeflux.observability.__main__:main"
+
+[project.optional-dependencies]
+anthropic = [
+  "anthropic>=0.77,<1",
+]
+api = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.30,<1",
+  # Foreign-edition start-input validation from the bundle's JSON Schema (#673).
+  "jsonschema>=4,<5",
+]
+gemini = [
+  "google-genai>=1,<2",
+]
+langfuse = [
+  "langfuse>=4,<5",
+]
+langsmith = [
+  # Floor at 0.8.18: GHSA-f4xh-w4cj-qxq8 (TracingMiddleware arbitrary
+  # server-side file read) — keep any future resolution out of the
+  # vulnerable range.
+  "langsmith[otel]>=0.8.18,<1",
+]
+openai = [
+  "instructor>=1.15,<2",
+  "openai>=2,<3",
+]
+live = [
+  "anthropic>=0.77,<1",
+  "google-genai>=1,<2",
+  "instructor>=1.15,<2",
+  "langfuse>=4,<5",
+  # Floor at 0.8.18: GHSA-f4xh-w4cj-qxq8 (TracingMiddleware arbitrary
+  # server-side file read) — keep any future resolution out of the
+  # vulnerable range.
+  "langsmith[otel]>=0.8.18,<1",
+  "openai>=2,<3",
+]
+
+[dependency-groups]
+dev = [
+  # _coerce_input's foreign-edition validation is exercised by non-live tests (#673).
+  "jsonschema>=4,<5",
+  "build>=1.2,<2",
+  "fastapi>=0.115,<1",
+  "httpx>=0.27,<1",
+  "mypy>=1.13,<3",
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.23,<2",
+  "ruff>=0.8,<1",
+  "types-PyYAML>=6,<7",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+  "tests",
+  "examples/child_workflow_composition/tests",
+  "examples/claims_review_composition/tests",
+  "examples/compensation_saga/tests",
+  "examples/review_before_side_effect/tests",
+  "examples/contract_risk_review/tests",
+  "examples/financial_claims_marketing_review/tests",
+  "examples/insurance_claim_review/tests",
+  "examples/lifecycle_review/tests",
+  "examples/mlr_claim_substantiation/tests",
+  "examples/regulated_claims_adjudication/tests",
+  "examples/regulated_disclosure_review/tests",
+  "examples/support_triage/tests",
+  "examples/support_triage_langfuse/tests",
+  "examples/tutorial_quickstart/tests",
+]
+# "../.." puts the repo root on sys.path (paths are relative to this pyproject
+# at packages/python) so tests can import the root-level `scripts` package (the
+# auto-fix automation), which stays at the repo root because it operates with
+# repo-root cwd (.github/, git).
+pythonpath = ["src", ".", "../.."]
+markers = [
+  "live: tests that call external LLM/observability services",
+]
+# A hung test dumps every thread's stack after 5 minutes instead of riding
+# the CI job to its 10-minute kill with no diagnostics (the dump does not
+# fail the test; genuine hangs still fail via the job timeout, but with a
+# stack trace in the log).
+faulthandler_timeout = 300
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+disable_error_code = ["arg-type", "attr-defined", "union-attr", "var-annotated"]
+
+[[tool.mypy.overrides]]
+module = [
+  "typeflux.core.*",
+  "typeflux.execution.*",
+  "typeflux.yaml.*",
+]
+enable_error_code = ["arg-type", "attr-defined", "union-attr", "var-annotated"]

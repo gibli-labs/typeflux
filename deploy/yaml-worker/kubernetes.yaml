@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: typeflux-yaml-worker-config
+data:
+  TYPEFLUX_YAML_PATH: /app/examples/support_triage_langfuse/typeflux.yaml
+  # Production default: TLS-secured Temporal Cloud namespace endpoint with the
+  # API key supplied as Secret material (TEMPORAL_API_KEY below).
+  TEMPORAL_ADDRESS: your-namespace.a1b2c.tmprl.cloud:7233
+  TEMPORAL_NAMESPACE: your-namespace.a1b2c
+  TEMPORAL_TLS: "true"
+  # Local-dev only: plaintext in-cluster frontend. Never ship production traffic
+  # over a non-TLS Temporal connection.
+  # TEMPORAL_ADDRESS: temporal-frontend.default.svc.cluster.local:7233
+  # TEMPORAL_NAMESPACE: default
+  # TEMPORAL_TLS: "false"
+  TEMPORAL_TASK_QUEUE: support-triage-langfuse-typeflux
+  TYPEFLUX_ENVIRONMENT: production
+  TYPEFLUX_DEPLOYMENT_ID: typeflux-yaml-worker
+  TYPEFLUX_TEMPORAL_REGION: us-east
+  TYPEFLUX_OPENAI_MODEL: gpt-4o-mini
+  LANGFUSE_HOST: https://us.cloud.langfuse.com
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: typeflux-yaml-worker-secrets
+type: Opaque
+stringData:
+  OPENAI_API_KEY: replace-me
+  LANGFUSE_PUBLIC_KEY: replace-me
+  LANGFUSE_SECRET_KEY: replace-me
+  # Required for the Temporal Cloud default above; leave empty only for the
+  # local-dev plaintext variant.
+  TEMPORAL_API_KEY: replace-me
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: typeflux-yaml-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: typeflux-yaml-worker
+  template:
+    metadata:
+      labels:
+        app: typeflux-yaml-worker
+    spec:
+      terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          # Pin production deployments to an immutable digest, for example:
+          # ghcr.io/your-org/typeflux-yaml-worker@sha256:<digest>
+          image: ghcr.io/your-org/typeflux-yaml-worker:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          envFrom:
+            - configMapRef:
+                name: typeflux-yaml-worker-config
+            - secretRef:
+                name: typeflux-yaml-worker-secrets
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -f /tmp/typeflux-preflight-ok
+            failureThreshold: 12
+            periodSeconds: 10
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -r "$TYPEFLUX_YAML_PATH"
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -r "$TYPEFLUX_YAML_PATH"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]
+      volumes:
+        - name: tmp
+          emptyDir: {}

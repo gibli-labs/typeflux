@@ -1,0 +1,22 @@
+{
+  "key": {
+    "activity": "classify_ticket",
+    "input_hash": "7a593fa2ba113ee75af0bb7dcaed57a622eb98742c4ec4d0b009670baf93b083",
+    "scope": {
+      "company_id": "co-1",
+      "product_id": "prod-1"
+    }
+  },
+  "output": {
+    "label": "billing",
+    "score": 0.97
+  },
+  "created_at": "2026-01-01T00:00:00Z",
+  "output_schema_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "manifest_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "tokens_saved": 512,
+  "subjects": [
+    "subject-a",
+    "subject-b"
+  ]
+}

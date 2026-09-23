@@ -1,0 +1,36 @@
+# The reusable CHILD workflow of the sub-workflow conformance fixture (#55 slice 3):
+# a single-activity workflow (ClaimItem -> ItemAssessment) that the parent invokes as a
+# Temporal child. Byte-identical to the TS binding's copy — the topology projection and
+# the child's own identity must match across editions.
+project: conformance_project
+name: conformance_child_assessment
+task_queue: conformance-demo-queue
+runtime:
+  temporal:
+    address: localhost:7233
+  registry:
+    type: inline
+    prompts:
+      assess: assess {{value}}
+  provider:
+    type: anthropic
+    model: claude-sonnet-4-6
+    api_key:
+      value_from:
+        env: TYPEFLUX_CONFORMANCE_ANTHROPIC_API_KEY
+        required: false
+  observability:
+    type: none
+activities:
+  definitions:
+    - name: assess_item
+      input: schemas:ClaimItem
+      output: schemas:ItemAssessment
+      prompt: assess
+workflow:
+  name: ConformanceChildAssessment
+  input: schemas:ClaimItem
+  output: schemas:ItemAssessment
+  steps:
+    - id: assess
+      activity: assess_item

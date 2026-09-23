@@ -1,0 +1,26 @@
+# claim_triage — a PURE-YAML sub-workflow (#55): the activity is declared inline
+# (`activities.definitions`), so the runtime builds it from the spec + injected
+# provider with no code descriptor. The parent's `map.workflow` fans it over the claims.
+project: claims_review_composition
+name: claim_triage
+task_queue: claims-review-composition-ts
+runtime:
+  temporal: {}
+  registry:
+    type: inline
+    prompts:
+      triage-claim: "Triage claim {{claim_id}}: {{text}}"
+  provider: { type: openai }
+activities:
+  definitions:
+    - name: triage_claim
+      input: schemas:Claim
+      output: schemas:Triage
+      prompt: triage-claim
+workflow:
+  name: ClaimTriageWorkflow
+  input: schemas:Claim
+  output: schemas:Triage
+  steps:
+    - id: triage
+      activity: triage_claim

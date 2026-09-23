@@ -1,0 +1,5 @@
+Draft a concise customer reply.
+
+Subject: {{ subject }}
+Body: {{ body }}
+

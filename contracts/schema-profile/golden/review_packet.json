@@ -1,0 +1,80 @@
+{
+  "description": "Representative model: nested objects, optional fields, enum, list, default.",
+  "properties": {
+    "subject": {
+      "description": "the ticket subject",
+      "title": "Subject",
+      "type": "string"
+    },
+    "urgency": {
+      "enum": [
+        "low",
+        "high"
+      ],
+      "title": "Urgency",
+      "type": "string"
+    },
+    "references": {
+      "items": {
+        "properties": {
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          }
+        },
+        "required": [
+          "source",
+          "page"
+        ],
+        "title": "Reference",
+        "type": "object",
+        "additionalProperties": false
+      },
+      "title": "References",
+      "type": "array"
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Summary"
+    },
+    "escalated": {
+      "anyOf": [
+        {
+          "title": "Escalated",
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "subject",
+    "urgency",
+    "references",
+    "summary",
+    "escalated"
+  ],
+  "title": "ReviewPacket",
+  "type": "object",
+  "additionalProperties": false
+}

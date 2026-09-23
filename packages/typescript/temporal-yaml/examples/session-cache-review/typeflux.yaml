@@ -1,0 +1,63 @@
+project: examples.session_cache_review
+name: session_cache_review
+task_queue: ${TEMPORAL_TASK_QUEUE:-session-cache-review-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+
+  registry:
+    type: inline
+    prompts:
+      review/item:
+        messages:
+          # A STABLE system prefix (no {{var}}) is what the session cache caches
+          # once per fan-out — it must not vary per item, or the prefix can't be
+          # shared. Imagine this holding a long policy document or rubric.
+          - role: system
+            content: |
+              You are a meticulous reviewer. Apply the shared review policy to
+              each item and decide whether it passes. Return only the structured
+              verdict.
+          - role: user
+            content: "Review item id: {{id}} — {{text}}"
+
+  provider:
+    type: openai
+    model: fake-session-cache
+
+  # OUT OF THE BOX: buildRuntime wires the official langfuse SDK when
+  # LANGFUSE_PUBLIC_KEY/SECRET_KEY are set; degrades to an untraced run
+  # (with a notice) when absent.
+  observability:
+    type: langfuse
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+activities:
+  definitions:
+    - name: review_item
+      input: schemas:Item
+      output: schemas:Review
+      prompt: review/item
+      # Opt into the per-fan-out provider session cache (#478). The workflow
+      # brackets the map with review_item.__prepare_cache__ /
+      # review_item.__release_cache__ and threads the handle to every item.
+      cache:
+        enabled: true
+
+workflow:
+  name: SessionCacheReviewWorkflow
+  input: schemas:BatchInput
+  output: schemas:Batch
+  steps:
+    - id: review
+      map:
+        activity: review_item
+        over: input.items
+        concurrency: 3
+        collect:
+          output: schemas:Batch
+          field: reviews

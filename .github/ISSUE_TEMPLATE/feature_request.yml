@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose new behavior or an API/YAML surface change.
+labels: ["enhancement", "new-feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can't you do today, or what is harder than it should be?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed shape
+      description: Sketch the API/YAML/CLI surface you'd expect. Pseudo-code welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: editions
+    attributes:
+      label: Editions
+      description: Both SDK editions keep behavioral parity — a feature normally lands in both (or states why not).
+      options:
+        - Both editions
+        - Python-first (with a parity plan)
+        - TypeScript-first (with a parity plan)
+        - Edition-neutral (contracts/docs/tooling)
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

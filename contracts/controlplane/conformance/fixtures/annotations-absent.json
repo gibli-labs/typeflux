@@ -1,0 +1,28 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "Mirror registry identity (the documented ts-cp divergence class, not a projection gap): the absent-file stub is `ts-project` on the python-cp registry and `py-project` on the ts-cp registry (the runtimes are swapped). Only the request PATH differs; the empty-projection body is byte-identical, because the annotations read is pure-YAML and NOT resolution-bound, so it is served even for a foreign-runtime stub with no `.typeflux/annotations.yaml`.",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/projects/py-project/annotations"
+      },
+      "response": {
+        "body": {
+          "annotations": []
+        },
+        "status": 200
+      }
+    }
+  },
+  "name": "annotations-absent",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/projects/ts-project/annotations"
+  },
+  "response": {
+    "body": {
+      "annotations": []
+    },
+    "status": 200
+  }
+}

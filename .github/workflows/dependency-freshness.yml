@@ -1,0 +1,55 @@
+name: Dependency Freshness
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 10 * * 2"
+
+permissions:
+  contents: read
+
+jobs:
+  uv-upgrade-dry-run:
+    name: uv upgrade dry run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.11.8"
+          enable-cache: true
+
+      - name: Report available locked dependency updates
+        working-directory: packages/python
+        run: uv lock --upgrade --dry-run
+
+  mcp-unpublished-drift:
+    name: MCP unpublished drift sentinel
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Fail when main's clients/mcp drifted past the last release tag without a version bump
+        run: |
+          version=$(node -p 'require("./clients/mcp/package.json").version')
+          tag="mcp-v$version"
+          if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "version $version has no tag yet (unreleased staging) — nothing to compare"
+            exit 0
+          fi
+          if git diff --quiet "$tag" HEAD -- clients/mcp; then
+            echo "clients/mcp matches released $tag"
+            exit 0
+          fi
+          echo "::error::clients/mcp on main differs from released $tag but package.json still says $version — the published npx surface is stale (dependabot-exempt PRs merged without a bump?). Bump the version and release." >&2
+          exit 1

@@ -1,0 +1,196 @@
+{
+  "binding_version": "1",
+  "description": "Normative Temporal binding profiles (#618): the wire conventions a control plane relies on to operate a Typeflux execution. The `shared` surface is identical across editions; each profile pins the load-bearing divergence (#563: versioned-type vs plan-as-argument, deliberate and permanent). Divergence from this document is a bug in the SDK, not in the document.",
+  "shared": {
+    "payload_encoding": "JSON. Python serializes via temporalio's pydantic data converter, TypeScript via @temporalio's default converter; the contract is structural JSON equality of the decoded payloads, not byte equality of the wire.",
+    "memo": {
+      "typeflux_spec_digest": "sha256 hex digest of the profile's frozen artifact (see profiles[].digest); string, always present",
+      "typeflux_workflow": "the logical workflow name (spec.workflow.name), unversioned; string, always present",
+      "typeflux_project": "spec.project; string, always present; lifecycle operations verify it before dispatch and refuse with a 409 LifecycleBindingError on mismatch"
+    },
+    "signals": {
+      "request_cancel": {
+        "name": "typeflux_request_cancel",
+        "args": [
+          "reason: string | null (optional)"
+        ],
+        "semantics": "Typeflux graceful, plan-driven cancellation; distinct from Temporal's native workflow cancel. No-op when the lifecycle is disabled."
+      },
+      "submit_review": {
+        "name": "typeflux_submit_review",
+        "args": [
+          "command: ReviewCommand"
+        ],
+        "semantics": "Routes a waiting review checkpoint. Invalid user decisions are recorded per the spec's invalid_user_decision policy, never crash the workflow."
+      }
+    },
+    "queries": {
+      "lifecycle_status": {
+        "name": "typeflux_lifecycle_status",
+        "args": [],
+        "result": "WorkflowLifecycleStatus",
+        "semantics": "Always answerable in both editions: the handlers are registered unconditionally, and a workflow without a configured lifecycle answers state 'disabled' with zeroed counters; the signals are accepted as no-ops. Unified in #618 slice 2."
+      }
+    },
+    "review_command": {
+      "user_decision": "string, required",
+      "reviewer": "string | null, optional",
+      "notes": "string | null, optional",
+      "gate": "string | null, optional (#55 slice 4: which gate to decide; absent resolves the sole waiting/only gate, else recorded invalid)"
+    },
+    "workflow_lifecycle_status": {
+      "fields": [
+        "state",
+        "current_step",
+        "completed_units",
+        "total_units",
+        "cancellation_requested",
+        "cancellation_reason",
+        "waiting_checkpoint",
+        "review_user_decision",
+        "review_route_target",
+        "terminal_status",
+        "event_count",
+        "events_truncated",
+        "oldest_event_sequence",
+        "latest_event_sequence",
+        "events",
+        "waiting_gates",
+        "compensation_status"
+      ],
+      "states": [
+        "pending",
+        "running",
+        "cancelling",
+        "waiting_for_review",
+        "cancelled",
+        "completed",
+        "failed",
+        "disabled"
+      ],
+      "event_fields": [
+        "sequence",
+        "state",
+        "event",
+        "timestamp",
+        "step_id",
+        "completed_units",
+        "total_units",
+        "cancellation_requested",
+        "cancellation_reason",
+        "waiting_checkpoint",
+        "review_user_decision",
+        "review_route_target",
+        "terminal_status",
+        "condition",
+        "gate_id",
+        "compensation_status"
+      ]
+    },
+    "search_attribute": {
+      "type": "keyword",
+      "name_source": "runtime.temporal.workflow_search_attribute (opt-in; no default)",
+      "value": "spec.workflow.name (the logical, unversioned name — one visibility query spans every version)",
+      "conflict_rule": "the Typeflux-configured key wins over caller-supplied pairs"
+    },
+    "subject_search_attribute": {
+      "note": "OPTIONAL (#715 slice 1): stamped ONLY when an execution has subject id(s). The erasure subject->execution index; both editions stamp it identically.",
+      "name": "TypefluxSubjectIds",
+      "type": "keyword_list",
+      "value": "the union of subject id(s) resolved at start — explicit subject_ids override, else the spec `subjects: [{ from: input.X }]` selectors extracted off the validated input; non-empty strings, order-preserving de-dup (primary = first)",
+      "always_on": "unlike the opt-in workflow_search_attribute, this fixed name is stamped whenever subjects are present, independent of workflow_search_attribute; missing/registered as a KeywordList on the namespace before use (deploy-time step)",
+      "inheritance": "a sub-workflow inherits the PARENT's subject ids into its own TypefluxSubjectIds (children of a subject's review are that subject's data); the parent reads its own value off search attributes at start (deterministic in the sandbox)",
+      "enumeration": "TypefluxSubjectIds = '<id>' (keyword-list membership) enumerates every execution touching a subject, via the same list_workflows path drain/runs use",
+      "conflict_rule": "the Typeflux-configured key wins over caller-supplied pairs",
+      "carriers": "the same resolved subject ids fan to the Langfuse native userId (primary) + typeflux.subject:{id} tags (full list), the OTel enduser.id span attribute, and to the cross-run cache RECORD's subjects field (never the cache key/digest); inside a run the workflow threads them to activities via the per-call context envelope (Python MapActivityContext.subject_ids; TS third activity argument)",
+      "opacity_requirement": "NORMATIVE: subject id values are stored in PLAINTEXT in every carrier — search attributes are visibility-API/UI readable and untouched by the payload codec, and the observer identity fields are set after redaction — so a subject id MUST be an opaque pseudonymous handle (an internal surrogate key), never an MRN, name, email, or other raw PHI/PII"
+    },
+    "payload_codec": {
+      "note": "OPTIONAL (#188): OFF unless runtime.temporal.payload_codec.type = aes is DECLARED. When on, the SAME wire format is implemented byte-for-byte in both editions, so a payload encrypted by one edition decrypts in the other under the same key. Runtime-only — no control-plane contract or digest change.",
+      "algorithm": "AES-256-GCM (authenticated), no associated data",
+      "encrypts": "the WHOLE serialized inner temporal.api.common.v1.Payload proto (its metadata AND data), Temporal's reference-codec pattern",
+      "encrypted_payload": {
+        "metadata": {
+          "encoding": "binary/encrypted (utf-8 bytes)",
+          "typeflux-key-id": "the encrypting key's id (utf-8 bytes) — read on decode to select the key"
+        },
+        "data": "nonce || ciphertext || tag",
+        "data_layout": {
+          "nonce": "12 bytes, a fresh CSPRNG value per encrypt (never reused)",
+          "ciphertext": "AES-256-GCM ciphertext of the serialized inner Payload proto",
+          "tag": "16-byte GCM authentication tag, trailing"
+        }
+      },
+      "key": "AES-256 (exactly 32 bytes); keyed map {id -> value}, `current` selects the encrypt key; resolved from runtime.temporal.payload_codec.keys[*].value_from (env|file) — the value never appears in a bundle/plan (source_kind/source_name only)",
+      "fail_closed": "an unknown key id or an authentication-tag failure (tampered ciphertext / wrong key) is a hard error — the codec NEVER passes ciphertext through as plaintext; a declared-but-unresolvable/wrong-length key fails startup",
+      "passthrough": "a payload with no binary/encrypted encoding marker passes decode through untouched, so a codec reading pre-codec (or mixed) history does not choke",
+      "subject_key_scheme": {
+        "note": "OPTIONAL (#715 slice 4): the per-subject crypto-shred scheme layered on the codec above, enabled by declaring runtime.temporal.payload_codec.subject_scope. A subject-scoped execution seals under a per-subject data key so destroying the key record (the erasure primitive) renders that subject's history permanently unreadable. The owning execution's subject set is resolved per operation from the SDK serialization context's workflow id via the start-path registry + a visibility-describe fallback over TypefluxSubjectIds; an unresolvable binding FAILS CLOSED (never a silent shared-key seal). An execution with NO subject ids keeps the shared-key behavior above BYTE-FOR-BYTE (proved by the shared conformance vectors reproducing under the subject-scoped codec's fallback path). Same wire scheme both editions, so a record shredded by one edition is unreadable in the other. Conformance vectors: payload-codec-vectors.json 'subject_scoped'.",
+        "kid_scheme_marker": "tfsubj1",
+        "kid_format": "tfsubj1:<b64url(subject_id)>,<b64url(subject_id)>,... — the scheme marker, ':' , then each subject id base64url-encoded (RFC 4648 url-safe alphabet, NO '=' padding, so delimiter-safe), comma-joined in the execution's resolved subject order (primary first)",
+        "reserved_prefix": "a configured shared-key codec key id (runtime.temporal.payload_codec.keys[].id) MUST NOT start with 'tfsubj1:' — the two kid namespaces are kept disjoint so decode routes unambiguously on the prefix; a violating configured id is rejected at spec-validation and codec-construction time",
+        "key_record": "AES-256 (exactly 32 bytes) minted per subject on first use and held in a SubjectKeystore (subject_id -> 32-byte record). Destroying a record drops the key bytes and leaves a PERMANENT tombstone",
+        "combine": "the AES-256 sealing key for an execution = SHA-256( record_key(s1) || record_key(s2) || ... ) over the 32-byte per-subject record keys in kid order; a single-subject execution is the degenerate SHA-256(record_key(s1)). The inputs are real keystore records (not a re-derivable master), so destroying ANY member subject's record permanently removes a SHA-256 input and the sealing key is unreconstructable — a mixed-subject execution is shredded by erasing any one member",
+        "seal": "identical to the shared-key codec above (AES-256-GCM, nonce(12)||ciphertext||tag(16), no associated data); ONLY the key (the combine output) and the typeflux-key-id (the tfsubj1 kid) differ",
+        "fail_closed": "encode for a DESTROYED subject raises (the keystore never mints a fresh key — a shred is permanent); decode of a subject-scoped payload whose record is destroyed raises a DISTINCT subject-key-shredded error that NAMES the shred (never a plaintext passthrough, never a silent empty); a subject-scoped payload naming a subject with no record (never created) also fails closed; subject ids MUST NOT be recycled after erasure (the tombstone is permanent)",
+        "rejected_alternative": "HKDF-derived keys HKDF(master, info=subject_id) were REJECTED: a derived key has no clean single-subject destroy (the master survives, so it is always re-derivable; 'erasing' it means rotating the master and re-encrypting every survivor). The combine here takes real destroyable keystore records as inputs, not a master, so it does NOT reintroduce that problem",
+        "non_goal": "per-payload shred WITHIN a mixed-subject execution — the codec is content-blind (a whole-Payload converter with no per-payload subject visibility), so a mixed execution seals every payload under the whole subject set's combined key; erasing any member subject shreds them all, and finer granularity is a documented non-goal"
+      }
+    },
+    "binding_verification": "An obligation on the OPERATOR (any control plane / binding driver), not on the worker: before any lifecycle signal/query dispatch, verify the execution belongs to the routed workflow+project (profile-specific type/memo checks plus the shared typeflux_project memo); a mismatch is a 409 LifecycleBindingError, fail closed, no memo-less fallback. Today the Python runtime implements this check (yaml/runtime._verify_execution_binding); a driver operating any profile must implement it per that profile's rules."
+  },
+  "profiles": {
+    "python-versioned-type": {
+      "workflow_type": {
+        "rule": "{workflow.name}.{workflow.version | spec_digest[:12]}",
+        "separator": ".",
+        "digest_prefix_length": 12,
+        "note": "One generated workflow class per spec, registered under the versioned type; the version label is frozen in the type name."
+      },
+      "start_args": [
+        "input"
+      ],
+      "start_args_note": "A single positional argument: the workflow input payload. The plan is baked into the registered class at generation time.",
+      "version_identity": "type-name",
+      "memo_extra": {},
+      "digest": {
+        "algorithm": "typeflux-yaml-graph-v1",
+        "version_field": "generator_version",
+        "version_value": "5",
+        "hashed_artifact": "a canonical graph struct: {algorithm, generator_version, project, yaml_name, workflow_name, input, output, steps, lifecycle}"
+      },
+      "frozen_version_enforcement": {
+        "when": "runtime build time, after the Temporal client connects; only when workflow.version is set",
+        "mechanism": "visibility query WorkflowType = '{workflow_type}' (limit 1), compare memo typeflux_spec_digest"
+      },
+      "binding_verification_extra": "describe().workflow_type must equal the routed versioned type — Temporal itself pins identity+version."
+    },
+    "ts-plan-argument": {
+      "workflow_type": {
+        "constant": "typefluxYamlWorkflow",
+        "note": "One generic workflow function for every spec; a single worker on a task queue serves any plan."
+      },
+      "start_args": [
+        "plan",
+        "input"
+      ],
+      "start_args_note": "Exactly two positional arguments, order fixed: the resolved WorkflowPlan first, the workflow input second. The plan travels on every start because nothing spec-specific is registered.",
+      "version_identity": "memo",
+      "memo_extra": {
+        "typeflux_workflow_version": "spec.workflow.version; string, present only when the spec declares a version label — the memo is where this profile freezes the version, since the type name cannot carry it"
+      },
+      "digest": {
+        "algorithm": "typeflux-yaml-plan-v1",
+        "version_field": "interpreter_version",
+        "version_value": 2,
+        "hashed_artifact": "the whole resolved WorkflowPlan: {algorithm, interpreter_version, plan}"
+      },
+      "frozen_version_enforcement": {
+        "when": "start time (cached once per runtime instance)",
+        "mechanism": "visibility scan over WorkflowType = 'typefluxYamlWorkflow' (bounded, optionally narrowed by the search attribute), match memo typeflux_workflow + typeflux_project + typeflux_workflow_version, compare typeflux_spec_digest"
+      },
+      "binding_verification_extra": "The generic type carries no identity: verification rests on the memo keys (typeflux_workflow, typeflux_project, and typeflux_workflow_version when routing to a version)."
+    }
+  },
+  "digest_divergence_note": "The two digests hash different artifacts by design — each profile pins exactly what its edition replays (Python: the generated command graph; TS: the interpreted plan). They are NOT cross-comparable and no unification is planned; a control plane must treat typeflux_spec_digest as opaque per profile."
+}

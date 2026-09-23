@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    "paths": {
+      "@typeflux/temporal-controlplane": [
+        "../../packages/typescript/temporal-controlplane/dist/index.d.ts"
+      ],
+      "@typeflux/control-plane-client": ["../typescript/dist/index.d.ts"]
+    }
+  },
+  "include": ["src"]
+}

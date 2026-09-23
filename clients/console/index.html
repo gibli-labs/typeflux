@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Inspect, govern, and operate Typeflux workflows from one honest control-plane view."
+    />
+    <meta name="theme-color" content="#fafafa" />
+    <script id="theme-bootstrap">
+      (() => {
+        let theme;
+        try {
+          const stored = localStorage.getItem("typeflux.theme");
+          if (stored === "light" || stored === "dark") theme = stored;
+        } catch {
+          // Storage can be unavailable in privacy-restricted browsing contexts.
+        }
+        theme ??= window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute("content", theme === "dark" ? "#101012" : "#fafafa");
+      })();
+    </script>
+    <title>Typeflux Console — Governed workflow operations</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

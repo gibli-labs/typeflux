@@ -1,0 +1,102 @@
+project: examples.insurance_claim_review
+name: insurance_claim_review
+task_queue: ${TEMPORAL_TASK_QUEUE:-insurance-claim-review-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+
+  # The Python counterpart resolves these prompts from Langfuse; this runnable
+  # example inlines the same prompt text. For the managed variant, swap in
+  # `type: langfuse` — with LANGFUSE_PUBLIC_KEY/LANGFUSE_SECRET_KEY exported it
+  # resolves out of the box over the official SDK (no registryTransport needed).
+  registry:
+    type: inline
+    prompts:
+      claims/review_evidence:
+        messages:
+          - role: system
+            content: |
+              You are an insurance claim evidence reviewer.
+
+              Review one evidence item for claim relevance, risk signals, missing context, and follow-up needs.
+          - role: user
+            content: |
+              Evidence:
+              - claim_id: {{claim_id}}
+              - evidence_id: {{evidence_id}}
+              - kind: {{kind}}
+              - source: {{source}}
+              - received_at: {{received_at}}
+              - content: {{content}}
+
+              Return a structured review. Copy claim_id and evidence_id exactly. Use risk_signals for fraud, duplicate billing, date mismatch, coverage uncertainty, or compliance concerns. Use missing_context and follow_up_questions only for concrete gaps an adjuster can resolve.
+      claims/consolidate_claim:
+        messages:
+          - role: system
+            content: |
+              You are an insurance claim review lead.
+
+              Consolidate the mapped evidence reviews into a claim-level disposition packet.
+          - role: user
+            content: |
+              Evidence reviews:
+              {{reviews}}
+
+              Return a structured packet. Set recommendation to approve, investigate, deny, or escalate. Keep the summary concise. Put only claim-level issues in risk_signals and required_follow_up.
+
+  provider:
+    type: openai
+    model: ${TYPEFLUX_OPENAI_MODEL:-gpt-4o-mini}
+
+  # OUT OF THE BOX: buildRuntime wires the official langfuse SDK when
+  # LANGFUSE_PUBLIC_KEY/SECRET_KEY are set; degrades to an untraced run
+  # (with a notice) when absent.
+  observability:
+    type: langfuse
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+  # Per-provider/per-model call admission (#529): one shared limiter per policy
+  # key bounds fan-out pressure on the upstream quota.
+  provider_limits:
+    default:
+      max_concurrent: 4
+    providers:
+      openai:
+        models:
+          gpt-4o-mini:
+            max_concurrent: 1
+            min_interval_seconds: 0.25
+
+# The Python counterpart loads AIActivity objects via `activities.modules`; the
+# TS SDK declares them in the spec (or injects descriptors via extraActivities).
+activities:
+  definitions:
+    - name: review_evidence_item
+      input: schemas:EvidenceItem
+      output: schemas:EvidenceReview
+      prompt: claims/review_evidence
+      validation_retries: 2
+    - name: consolidate_claim_review
+      input: schemas:EvidenceReviewBatch
+      output: schemas:ClaimReviewPacket
+      prompt: claims/consolidate_claim
+
+workflow:
+  name: InsuranceClaimReviewWorkflow
+  input: schemas:ClaimInput
+  output: schemas:ClaimReviewPacket
+  steps:
+    - id: review_evidence
+      map:
+        activity: review_evidence_item
+        over: input.evidence
+        concurrency: 3
+        collect:
+          output: schemas:EvidenceReviewBatch
+          field: reviews
+    - id: consolidate
+      activity: consolidate_claim_review

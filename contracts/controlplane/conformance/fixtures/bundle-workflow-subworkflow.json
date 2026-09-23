@@ -1,0 +1,430 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "TS-native schema identity (the Python-only `module` key + hash shape are edition-native, #644) and dialect-native identity (workflow_type/spec_digest/generator_version, masked in the base case too). The sub-workflow TOPOLOGY (the `workflow` node carrying the child manifest id, #55 slice 3) is cross-edition normative and must match the base golden byte-for-byte. The deployment tier is real now (#687): `deployment_preview_reference` is present (masked, the `typeflux-project deploy` command); `deployment_preview` appears only with a `deployment_image` query.",
+      "response": {
+        "body": {
+          "activities": [],
+          "bundle_version": "1",
+          "components": [],
+          "deployment_preview_reference": "<normalized>",
+          "environment": {
+            "env_files": [],
+            "id": "local",
+            "name": "local",
+            "profile_path": "<normalized>",
+            "profile_variable_names": [
+              "TYPEFLUX_ENVIRONMENT"
+            ]
+          },
+          "links": {
+            "temporal_ui": "http://localhost:8233"
+          },
+          "project": {
+            "manifest_path": "<normalized>",
+            "name": "conformance-fixture"
+          },
+          "runtime": {
+            "observability": {
+              "execution_manifest": true,
+              "redaction_enabled": true,
+              "type": "none"
+            },
+            "provider": {
+              "allow_prompt_model_override": false,
+              "api_key_configured": false,
+              "base_url_configured": false,
+              "model": "claude-sonnet-4-6",
+              "params": {
+                "model": "claude-sonnet-4-6"
+              },
+              "type": "anthropic",
+              "vertex": false
+            },
+            "registry": {
+              "host": null,
+              "label": null,
+              "type": "inline"
+            },
+            "temporal": {
+              "address": "localhost:7233",
+              "api_key_configured": false,
+              "namespace": "default",
+              "tls_enabled": false,
+              "tls_mode": "disabled"
+            }
+          },
+          "runtime_effective": [
+            {
+              "path": "provider.model",
+              "source": "engine_default",
+              "value": "claude-sonnet-4-6"
+            },
+            {
+              "path": "provider_retry.max_attempts",
+              "source": "engine_default",
+              "value": 1
+            },
+            {
+              "path": "provider_retry.initial_backoff_seconds",
+              "source": "engine_default",
+              "value": 0
+            },
+            {
+              "path": "provider_retry.max_backoff_seconds",
+              "source": "engine_default"
+            },
+            {
+              "path": "provider_retry.backoff_multiplier",
+              "source": "engine_default",
+              "value": 2
+            },
+            {
+              "path": "provider_retry.jitter_ratio",
+              "source": "engine_default",
+              "value": 0.1
+            },
+            {
+              "path": "provider_retry.retry_rate_limits",
+              "source": "engine_default",
+              "value": true
+            }
+          ],
+          "secret_references": [
+            {
+              "configured": false,
+              "runtime_path": "runtime.provider.api_key",
+              "source_kind": "env",
+              "source_name": "TYPEFLUX_CONFORMANCE_ANTHROPIC_API_KEY"
+            }
+          ],
+          "steps": [],
+          "topology": {
+            "edges": [],
+            "nodes": [
+              {
+                "id": "assess_all",
+                "kind": "workflow",
+                "workflow": "child_assessment"
+              }
+            ]
+          },
+          "validation": {
+            "checks": [],
+            "issues": [
+              {
+                "code": "duplicate_workflow_name",
+                "message": "duplicate YAML workflow name(s): ConformanceDemoWorkflow"
+              },
+              {
+                "code": "unknown_profile_reference",
+                "message": "workflow 'broken' profile selection selects unknown provider profile: missing-profile",
+                "path": "<normalized>",
+                "reference": "broken"
+              }
+            ],
+            "ok": false
+          },
+          "workflow": {
+            "generator_version": "<normalized>",
+            "id": "subworkflow",
+            "input_schema": {
+              "hash": "2c0a5dc29d4503dfdfc3c3cca649272296197d1fcbcd721716fa108d8cda1e1b",
+              "json_schema": {
+                "properties": {
+                  "claims": {
+                    "items": {
+                      "properties": {
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "claims"
+                ],
+                "type": "object"
+              },
+              "name": "ClaimInput"
+            },
+            "observability_trace_name": "TypefluxWorkflow:ConformanceSubworkflow",
+            "output_schema": {
+              "hash": "45506dfe37af8a874c9cfb83440eba377ba53e938d7a4e5a57b1f96a8f501a11",
+              "json_schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "reviews": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "reviews"
+                ],
+                "type": "object"
+              },
+              "name": "AssessmentBatch"
+            },
+            "path": "<normalized>",
+            "spec_digest": "<normalized>",
+            "spec_digest_algorithm": "<normalized>",
+            "task_queue": "conformance-demo-queue",
+            "workflow_name": "ConformanceSubworkflow",
+            "workflow_type": "<normalized>",
+            "yaml_name": "conformance_subworkflow",
+            "yaml_project": "conformance_project"
+          }
+        },
+        "status": 200
+      }
+    }
+  },
+  "mask": [
+    "/code",
+    "/validation/issues/*/path",
+    "/workflow/path",
+    "/workflow/workflow_type",
+    "/workflow/spec_digest",
+    "/workflow/spec_digest_algorithm",
+    "/workflow/generator_version",
+    "/deployment_preview_reference"
+  ],
+  "name": "bundle-workflow-subworkflow",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/subworkflow/bundle",
+    "query": {
+      "environment_id": "local"
+    }
+  },
+  "response": {
+    "body": {
+      "activities": [],
+      "bundle_version": "1",
+      "code": "<normalized>",
+      "components": [],
+      "deployment_preview_reference": "<normalized>",
+      "environment": {
+        "env_files": [],
+        "id": "local",
+        "name": "local",
+        "profile_path": "<normalized>",
+        "profile_variable_names": [
+          "TYPEFLUX_ENVIRONMENT"
+        ]
+      },
+      "links": {
+        "temporal_ui": "http://localhost:8233"
+      },
+      "project": {
+        "manifest_path": "<normalized>",
+        "name": "conformance-fixture"
+      },
+      "runtime": {
+        "observability": {
+          "execution_manifest": true,
+          "redaction_enabled": true,
+          "type": "none"
+        },
+        "provider": {
+          "allow_prompt_model_override": false,
+          "api_key_configured": false,
+          "base_url_configured": false,
+          "model": "claude-sonnet-4-6",
+          "params": {
+            "model": "claude-sonnet-4-6"
+          },
+          "type": "anthropic",
+          "vertex": false
+        },
+        "registry": {
+          "host": null,
+          "label": null,
+          "type": "inline"
+        },
+        "temporal": {
+          "address": "localhost:7233",
+          "api_key_configured": false,
+          "namespace": "default",
+          "tls_enabled": false,
+          "tls_mode": "disabled"
+        }
+      },
+      "runtime_effective": [
+        {
+          "path": "provider.model",
+          "source": "engine_default",
+          "value": "claude-sonnet-4-6"
+        },
+        {
+          "path": "provider_retry.max_attempts",
+          "source": "engine_default",
+          "value": 1
+        },
+        {
+          "path": "provider_retry.initial_backoff_seconds",
+          "source": "engine_default",
+          "value": 0.0
+        },
+        {
+          "path": "provider_retry.max_backoff_seconds",
+          "source": "engine_default"
+        },
+        {
+          "path": "provider_retry.backoff_multiplier",
+          "source": "engine_default",
+          "value": 2.0
+        },
+        {
+          "path": "provider_retry.jitter_ratio",
+          "source": "engine_default",
+          "value": 0.1
+        },
+        {
+          "path": "provider_retry.retry_rate_limits",
+          "source": "engine_default",
+          "value": true
+        }
+      ],
+      "secret_references": [
+        {
+          "configured": false,
+          "runtime_path": "runtime.provider.api_key",
+          "source_kind": "env",
+          "source_name": "TYPEFLUX_CONFORMANCE_ANTHROPIC_API_KEY"
+        }
+      ],
+      "steps": [],
+      "topology": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "assess_all",
+            "kind": "workflow",
+            "workflow": "child_assessment"
+          }
+        ]
+      },
+      "validation": {
+        "checks": [],
+        "issues": [
+          {
+            "code": "duplicate_workflow_name",
+            "message": "duplicate YAML workflow name(s): ConformanceDemoWorkflow"
+          },
+          {
+            "code": "unknown_profile_reference",
+            "message": "workflow 'broken' profile selection selects unknown provider profile: missing-profile",
+            "path": "<normalized>",
+            "reference": "broken"
+          }
+        ],
+        "ok": false
+      },
+      "workflow": {
+        "generator_version": "<normalized>",
+        "id": "subworkflow",
+        "input_schema": {
+          "hash": "176bf0f19b21fe8548e6fa481db1c1206038cc11f76518c5aedabb2e1d67a8e4",
+          "json_schema": {
+            "$defs": {
+              "ClaimItem": {
+                "properties": {
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "title": "ClaimItem",
+                "type": "object"
+              }
+            },
+            "properties": {
+              "claims": {
+                "items": {
+                  "$ref": "#/$defs/ClaimItem"
+                },
+                "title": "Claims",
+                "type": "array"
+              }
+            },
+            "required": [
+              "claims"
+            ],
+            "title": "ClaimInput",
+            "type": "object"
+          },
+          "module": "conformance_project.schemas",
+          "name": "ClaimInput"
+        },
+        "observability_trace_name": "TypefluxWorkflow:ConformanceSubworkflow",
+        "output_schema": {
+          "hash": "4c85112ab11f388b58022d234d3e34fb3f6f57519507f233e48dd8e38d98e490",
+          "json_schema": {
+            "$defs": {
+              "ItemAssessment": {
+                "properties": {
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "title": "ItemAssessment",
+                "type": "object"
+              }
+            },
+            "properties": {
+              "reviews": {
+                "items": {
+                  "$ref": "#/$defs/ItemAssessment"
+                },
+                "title": "Reviews",
+                "type": "array"
+              }
+            },
+            "required": [
+              "reviews"
+            ],
+            "title": "AssessmentBatch",
+            "type": "object"
+          },
+          "module": "conformance_project.schemas",
+          "name": "AssessmentBatch"
+        },
+        "path": "<normalized>",
+        "spec_digest": "<normalized>",
+        "spec_digest_algorithm": "<normalized>",
+        "task_queue": "conformance-demo-queue",
+        "workflow_name": "ConformanceSubworkflow",
+        "workflow_type": "<normalized>",
+        "yaml_name": "conformance_subworkflow",
+        "yaml_project": "conformance_project"
+      }
+    },
+    "status": 200
+  }
+}

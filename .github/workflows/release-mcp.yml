@@ -1,0 +1,272 @@
+name: Release typeflux-mcp
+
+# Publishes `typeflux-mcp` to PUBLIC npmjs.org (#326 Phase-0 decision: `npx -y
+# typeflux-mcp` must work unauthenticated; #730 filed the missing workflow).
+# Mirrors release-client.yml's shape: trigger by pushing an `mcp-v<version>`
+# tag or by dispatching with the version (the dispatch path pushes the tag
+# after a successful publish). The publish re-runs the full build from the
+# normative sources — the aliased monorepo dists + the generated client — and
+# the packed-artifact dependency-hygiene gate (#720), failing closed on drift.
+
+on:
+  push:
+    tags:
+      - "mcp-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version; must equal clients/mcp/package.json version (e.g. 0.4.0)"
+        required: true
+
+permissions:
+  contents: write
+  # id-token would back npm --provenance, which npm only accepts from PUBLIC
+  # source repos — kept for the day this repo goes public (harmless until then;
+  # the publish step currently runs without --provenance).
+  id-token: write
+
+concurrency:
+  group: release-mcp
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish typeflux-mcp
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Resolve release version
+        id: version
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            version="${GITHUB_REF_NAME#mcp-v}"
+          else
+            version="$DISPATCH_VERSION"
+          fi
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::release version must be MAJOR.MINOR.PATCH, got '$version'" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Assert version matches clients/mcp/package.json
+        working-directory: clients/mcp
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          pkg="$(node -p 'require("./package.json").version')"
+          if [ "$pkg" != "$RELEASE_VERSION" ]; then
+            echo "::error::release version $RELEASE_VERSION != package.json version $pkg" >&2
+            exit 1
+          fi
+
+      # Releases are cut from main history only (release policy): a dispatch
+      # from a feature branch or a tag off main must fail before any publish.
+      # On dispatch, a pre-existing release tag must already point at HEAD —
+      # otherwise the later tag push would fail AFTER the immutable publish
+      # and the artifact would not match the tagged source.
+      - name: Assert the release commit is on main
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # ^{} peels an annotated tag to its commit; ls-remote prints the
+            # peeled line last, so take the final SHA (lightweight tags print once).
+            remote_tag=$(git ls-remote --tags origin "refs/tags/mcp-v$RELEASE_VERSION" "refs/tags/mcp-v$RELEASE_VERSION^{}" | awk 'END{print $1}')
+            if [ -n "$remote_tag" ] && [ "$remote_tag" != "$GITHUB_SHA" ]; then
+              echo "::error::tag mcp-v$RELEASE_VERSION already exists at $remote_tag, not at HEAD ($GITHUB_SHA) — refusing to publish mismatched bytes" >&2
+              exit 1
+            fi
+          fi
+          # The default checkout is shallow; deepen enough for ancestry.
+          git fetch --no-tags --filter=blob:none origin main
+          git fetch --no-tags --filter=blob:none --unshallow origin main 2>/dev/null || true
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::release ref $GITHUB_SHA is not on origin/main — releases are cut from main only" >&2
+            exit 1
+          fi
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: "10"
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      # npm 10 (Node 22's default) re-packs on `npm publish <tarball>`
+      # (npm/cli#4533, fixed in 11.2.0) — that would silently break the
+      # byte-identity evidence AFTER the immutable publish. Pin a fixed npm.
+      - name: Pin npm >= 11.2.0 (exact-bytes tarball publish)
+        run: |
+          npm install -g npm@11.2.0
+          npm --version
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # The aliased dists the MCP typecheck/test/bundle resolve against
+      # (@typeflux/* via the pnpm store; the generated client via its build).
+      - name: Build the SDK packages
+        run: pnpm -r build
+
+      - name: Build the control-plane client
+        working-directory: clients/typescript
+        run: |
+          npm install
+          npm run build
+
+      - name: Install typeflux-mcp
+        working-directory: clients/mcp
+        run: npm ci
+
+      - name: Run MCP tests
+        working-directory: clients/mcp
+        run: npm test
+
+      - name: Build the MCP bundle
+        working-directory: clients/mcp
+        run: npm run build
+
+      # The public-artifact gate (#720): the packed manifest must declare no
+      # file:/workspace:/link: deps and the tarball must assemble.
+      - name: Packed-artifact dependency hygiene
+        working-directory: clients/mcp
+        run: |
+          node -e '
+            const p = require("./package.json");
+            const declared = { ...p.dependencies, ...p.optionalDependencies, ...p.peerDependencies };
+            const bad = Object.entries(declared).filter(([, v]) => /^(file:|workspace:|link:)/.test(v));
+            if (bad.length) {
+              console.error("non-registry deps would ship in the packed manifest:", bad);
+              process.exit(1);
+            }
+          '
+          npm pack --dry-run
+          npm run verify:pack
+
+      # Package the release artifact once; its hash is the evidence the
+      # GitHub Release and the post-publish verification both pin to.
+      - name: Pack the release tarball
+        id: pack
+        working-directory: clients/mcp
+        run: |
+          tarball=$(npm pack --json | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8"))[0].filename')
+          sha256=$(shasum -a 256 "$tarball" | cut -d' ' -f1)
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+          shasum -a 256 "$tarball" > "$tarball.sha256"
+
+      # Tag BEFORE publishing (release-policy invariant: every publication is
+      # cut from a tag). If the push loses a race, we fail before npm's
+      # immutable publish, not after. A GITHUB_TOKEN-credentialed tag push
+      # never re-triggers this workflow (GitHub anti-recursion), so the
+      # dispatch path cannot cause a second publish run.
+      - name: Ensure the release tag exists at HEAD (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          existing=$(git ls-remote --tags origin "refs/tags/mcp-v$RELEASE_VERSION" "refs/tags/mcp-v$RELEASE_VERSION^{}" | awk 'END{print $1}')
+          if [ -n "$existing" ]; then
+            if [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "::error::tag mcp-v$RELEASE_VERSION exists at $existing, not HEAD ($GITHUB_SHA)" >&2
+              exit 1
+            fi
+            echo "tag already at HEAD"
+            exit 0
+          fi
+          git tag "mcp-v$RELEASE_VERSION"
+          git push origin "mcp-v$RELEASE_VERSION"
+
+      - name: Publish to npmjs.org
+        working-directory: clients/mcp
+        # NODE_AUTH_TOKEN alone is not enough: npm resolves auth from an .npmrc
+        # line keyed by REGISTRY HOST, and no config maps npmjs.org here (the
+        # first dispatch failed ENEEDAUTH). Write a step-local userconfig with
+        # the npmjs auth placeholder — the project .npmrc's @gibli-labs mapping
+        # still applies but that scope is never touched during publish.
+        # No --provenance: npm rejects provenance from PRIVATE source repos
+        # (E422, "Only public source repositories are supported"). Re-add the
+        # flag — and the id-token: write permission it needs — if this repo
+        # goes public.
+        run: |
+          # Idempotent re-run: if the version is already visible, skip the
+          # publish and let the anonymous verification arbitrate the bytes.
+          if NPM_CONFIG_USERCONFIG=/dev/null npm view "typeflux-mcp@$RELEASE_VERSION" version --registry https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "typeflux-mcp@$RELEASE_VERSION already published — skipping publish; verification will compare content"
+            exit 0
+          fi
+          npmrc="$RUNNER_TEMP/publish-npmrc"
+          echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$npmrc"
+          # Publish the EXACT tarball that was hashed — a directory publish
+          # would re-pack and could upload different bytes than the evidence.
+          NPM_CONFIG_USERCONFIG="$npmrc" npm publish "$TARBALL" --registry https://registry.npmjs.org
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+
+      # Anonymous post-publish verification: fetch the registry's tarball with
+      # NO credentials and require byte-identity with what we packed — proof
+      # the unauthenticated `npx` surface serves exactly this build.
+      - name: Verify the published tarball anonymously
+        working-directory: clients/mcp
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          LOCAL_SHA256: ${{ steps.pack.outputs.sha256 }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            url=$(NPM_CONFIG_USERCONFIG=/dev/null npm view "typeflux-mcp@$RELEASE_VERSION" dist.tarball --registry https://registry.npmjs.org 2>/dev/null || true)
+            [ -n "$url" ] && break
+            echo "registry not serving $RELEASE_VERSION yet (attempt $attempt); waiting..."
+            sleep 30
+          done
+          if [ -z "$url" ]; then
+            echo "::error::typeflux-mcp@$RELEASE_VERSION not visible anonymously after 5 attempts" >&2
+            exit 1
+          fi
+          curl -fsSL "$url" -o published.tgz
+          published_sha=$(shasum -a 256 published.tgz | cut -d' ' -f1)
+          if [ "$published_sha" != "$LOCAL_SHA256" ]; then
+            echo "::error::published tarball sha256 $published_sha != this run's pack $LOCAL_SHA256 — if this is a re-run, the registry artifact predates it; inspect published.tgz before trusting the release evidence" >&2
+            exit 1
+          fi
+          tar tzf published.tgz | grep -Fx "package/LICENSE" >/dev/null
+          tar tzf published.tgz | grep -Fx "package/THIRD-PARTY-NOTICES.md" >/dev/null
+          echo "anonymous fetch verified: sha256 $published_sha; license surface present"
+
+      # Release evidence: the tarball + checksum land on a GitHub Release at
+      # the same tag the publish came from.
+      - name: Create the GitHub Release
+        working-directory: clients/mcp
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+          SHA256: ${{ steps.pack.outputs.sha256 }}
+        run: |
+          notes="Published to npmjs.org as typeflux-mcp@$RELEASE_VERSION.
+
+          Tarball sha256: $SHA256
+
+          Install: npx -y typeflux-mcp@$RELEASE_VERSION (no credentials required).
+          Third-party attribution ships in the package (THIRD-PARTY-NOTICES.md)."
+          if gh release view "mcp-v$RELEASE_VERSION" >/dev/null 2>&1; then
+            gh release upload "mcp-v$RELEASE_VERSION" "$TARBALL" "$TARBALL.sha256" --clobber
+          else
+            gh release create "mcp-v$RELEASE_VERSION" \
+              --title "typeflux-mcp $RELEASE_VERSION" \
+              --notes "$notes" \
+              "$TARBALL" "$TARBALL.sha256"
+          fi

@@ -1,0 +1,49 @@
+# Live crypto-shred fixture (#715 slice 4): the subjects workflow with the AES codec
+# AND subject_scope ON. The shared key resolves from TYPEFLUX_LIVE_CODEC_KEY; subject
+# executions seal under per-subject keystore records (tfsubj1: kids on the wire), so
+# destroying a record crypto-shreds that subject's history.
+project: replay_demo_project
+name: replay_subjects_shred
+task_queue: replay-fixture-subjects-shred-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    payload_codec:
+      type: aes
+      current: main
+      keys:
+        - id: main
+          value_from:
+            env: TYPEFLUX_LIVE_CODEC_KEY
+      subject_scope: {}
+  registry:
+    type: inline
+    prompts:
+      first: first {{value}}
+      second: second {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: ReplaySubjectsShredWorkflow
+  input: schemas:InputModel
+  output: schemas:OutputModel
+  # #715 slice 1: extract the subject id off the workflow input at submit time; slice 4
+  # additionally seals every payload of the execution under that subject's key record.
+  subjects:
+    - from: input.value
+  steps:
+    - id: first
+      activity: first
+    - id: second
+      activity: second

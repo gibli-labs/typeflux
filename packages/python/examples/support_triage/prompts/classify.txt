@@ -1,0 +1,6 @@
+Classify this support ticket.
+
+Subject: {{ subject }}
+Body: {{ body }}
+Customer tier: {{ customer_tier }}
+

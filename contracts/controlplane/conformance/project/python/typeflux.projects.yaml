@@ -1,0 +1,13 @@
+# The canonical conformance registry (#619 slice 2): the fixture project as
+# the default entry plus a typescript-runtime stub, so runtime-awareness
+# (honest capabilities, 501 UnsupportedRuntime fail-closed) is part of the
+# black-box surface. Unprefixed routes serve the default project — the
+# pre-registry goldens' responses are unchanged by construction.
+version: "1"
+default: conformance
+projects:
+  - id: conformance
+    manifest: typeflux.project.yaml
+  - id: ts-project
+    manifest: ts-stub/typeflux.project.yaml
+    runtime: typescript

@@ -1,0 +1,46 @@
+{
+  "name": "workflows",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows"
+  },
+  "response": {
+    "body": {
+      "workflows": [
+        {
+          "directory": null,
+          "id": "workflow",
+          "path": "workflow.yaml",
+          "profiles": {}
+        },
+        {
+          "directory": null,
+          "id": "broken",
+          "path": "workflow.yaml",
+          "profiles": {
+            "provider": "missing-profile"
+          }
+        },
+        {
+          "directory": null,
+          "id": "composition",
+          "path": "workflow-composition.yaml",
+          "profiles": {}
+        },
+        {
+          "directory": null,
+          "id": "child_assessment",
+          "path": "workflow-child-assessment.yaml",
+          "profiles": {}
+        },
+        {
+          "directory": null,
+          "id": "subworkflow",
+          "path": "workflow-subworkflow.yaml",
+          "profiles": {}
+        }
+      ]
+    },
+    "status": 200
+  }
+}

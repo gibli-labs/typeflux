@@ -1,0 +1,8 @@
+typeflux-mcp
+Copyright 2026 Joseph Gibli
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The published bundle inlines third-party dependencies; their licenses and
+required notices are reproduced in THIRD-PARTY-NOTICES.md, generated at
+build time from the exact set of bundled packages.

@@ -1,0 +1,51 @@
+{
+  "manifest_version": "1",
+  "manifest_hash": "0ac01a428e43a1ccd28a661b3b46dc646eac40fc3eaf90c50326501d64188788",
+  "workflow_contract_hash": "57d2ba46632fa57b47133ead6bafee0c54a4b7921ba9a1a34249b2cdbf128038",
+  "workflow_name": "SupportTriageWorkflow",
+  "workflow_id": "wf-golden",
+  "task_queue": "support-ai",
+  "activities": [
+    {
+      "activity_name": "classify_ticket",
+      "activity_manifest_hash": "f63ad75e0f00b8d2aaebffe47ae1395025f861d3b986a15edcefde9d09aa8a33",
+      "definition_source": {
+        "kind": "unknown"
+      },
+      "input_schema": {
+        "module": "typeflux_temporal_contracts_golden",
+        "name": "_Input",
+        "hash": "334aa6ac29d8e904c88d70aa1e2cd08cd1ac0e2a3fb4f0e0a59ae7b3ce5f80bb"
+      },
+      "output_schema": {
+        "module": "typeflux_temporal_contracts_golden",
+        "name": "_Output",
+        "hash": "7fbb11f7c1379b48250d3a554a201f4c517d5cdb44ad8fcc4475021c79dea6f6"
+      },
+      "prompt_ref": {
+        "name": "support/classify",
+        "version": null,
+        "label": "production"
+      },
+      "resolved_prompt_version": "commit-abc123",
+      "prompt_messages_hash": "9010add6d5d83db49e562a713eff3255a10a91ad76c552b5d70d21fe7ff64164",
+      "provider_model": "fake-model",
+      "provider_model_source": "prompt_config",
+      "provider_params": {
+        "model": "fake-model",
+        "max_tokens": 4096
+      }
+    }
+  ],
+  "code_provenance": {
+    "available": true,
+    "source": "golden",
+    "git_ref": "refs/heads/main",
+    "git_sha": "0000000000000000000000000000000000000000",
+    "dirty": false,
+    "deployment_id": "golden-deployment",
+    "environment": "golden",
+    "package_version": "0.0.0-golden"
+  },
+  "sdk_version": "0.0.0-golden"
+}

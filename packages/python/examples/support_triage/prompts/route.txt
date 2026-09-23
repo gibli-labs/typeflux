@@ -1,0 +1,5 @@
+Choose a support team and priority for this ticket.
+
+Subject: {{ subject }}
+Customer tier: {{ customer_tier }}
+

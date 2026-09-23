@@ -1,0 +1,17 @@
+{
+  "name": "bundle-broken-profile",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/broken/bundle",
+    "query": {
+      "environment_id": "local"
+    }
+  },
+  "response": {
+    "body": {
+      "error": "ProjectProfileError",
+      "message": "unknown project provider profile: missing-profile"
+    },
+    "status": 422
+  }
+}

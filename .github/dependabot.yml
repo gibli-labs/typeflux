@@ -1,0 +1,82 @@
+version: 2
+
+# The console consumes @gibli-labs/control-plane-client from GitHub Packages
+# until its public-npm migration; Dependabot needs its own credential
+# (Dependabot secret NODE_AUTH_TOKEN, read:packages) to resolve that scope.
+registries:
+  github-packages:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: ${{ secrets.NODE_AUTH_TOKEN }}
+
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-dev-tooling:
+        patterns:
+          - "build"
+          - "mypy"
+          - "pytest"
+          - "pytest-asyncio"
+          - "ruff"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # The pnpm workspace has no root package.json — target the workspace
+  # packages directly (Dependabot resolves the shared root lockfile).
+  - package-ecosystem: "npm"
+    directories:
+      - "/packages/typescript/*"
+    schedule:
+      interval: "weekly"
+    groups:
+      pnpm-workspace:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/clients/mcp"
+    schedule:
+      interval: "weekly"
+    groups:
+      mcp-deps:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/clients/typescript"
+    schedule:
+      interval: "weekly"
+    groups:
+      client-deps:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/clients/console"
+    registries:
+      - github-packages
+    schedule:
+      interval: "weekly"
+    groups:
+      console-deps:
+        update-types:
+          - "minor"
+          - "patch"

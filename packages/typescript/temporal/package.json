@@ -1,0 +1,58 @@
+{
+  "name": "@typeflux/temporal",
+  "version": "0.1.0",
+  "description": "Typeflux TypeScript SDK \u2014 typed AI activities for Temporal, conformant with the cross-SDK contracts (contracts/, CONTRACT_VERSION=1).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./composition": {
+      "types": "./dist/composition.d.ts",
+      "default": "./dist/composition.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "5.9.3",
+    "vitest": "^3.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gibli-labs/typeflux.git",
+    "directory": "packages/typescript/temporal"
+  },
+  "homepage": "https://github.com/gibli-labs/typeflux/tree/main/packages/typescript/temporal#readme",
+  "bugs": {
+    "url": "https://github.com/gibli-labs/typeflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "engines": {
+    "node": "^22"
+  }
+}

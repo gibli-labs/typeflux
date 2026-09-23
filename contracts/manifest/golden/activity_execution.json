@@ -1,0 +1,33 @@
+{
+  "manifest_version": "1",
+  "manifest_hash": "0e087da9e2690942a622a7e40cb8f79a4f71b2ae49aa45158062a54c7239a366",
+  "activity_name": "classify_ticket",
+  "activity_manifest_hash": "cd240742f679c5daf19eb3cfbb87af092e2d5faa6cfbd98afe678b5bc1aa160b",
+  "definition_source": {
+    "kind": "unknown"
+  },
+  "input_schema": {
+    "module": "typeflux_temporal_contracts_golden",
+    "name": "_Input",
+    "hash": "334aa6ac29d8e904c88d70aa1e2cd08cd1ac0e2a3fb4f0e0a59ae7b3ce5f80bb"
+  },
+  "output_schema": {
+    "module": "typeflux_temporal_contracts_golden",
+    "name": "_Output",
+    "hash": "7fbb11f7c1379b48250d3a554a201f4c517d5cdb44ad8fcc4475021c79dea6f6"
+  },
+  "prompt_ref": {
+    "name": "support/classify",
+    "version": null,
+    "label": "production"
+  },
+  "resolved_prompt_version": "commit-abc123",
+  "prompt_messages_hash": "9010add6d5d83db49e562a713eff3255a10a91ad76c552b5d70d21fe7ff64164",
+  "rendered_messages_hash": "6b4cb4cbf503c8cfbba155403777210d2ff4b27705687582ae8ba583818e6fbb",
+  "provider_model": "fake-model",
+  "provider_model_source": "prompt_config",
+  "provider_params": {
+    "model": "fake-model"
+  },
+  "validation_attempt": 0
+}

@@ -1,0 +1,1 @@
+"""Multimodal claim review example."""

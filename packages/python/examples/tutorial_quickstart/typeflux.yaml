@@ -1,0 +1,65 @@
+project: examples.tutorial_quickstart
+name: tutorial_quickstart
+task_queue: ${TEMPORAL_TASK_QUEUE:-tutorial-quickstart-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  # `inline` keeps the prompt in this file — no external prompt registry needed
+  # to run your first workflow. Section 2 shows moving it to Langfuse/LangSmith.
+  registry:
+    type: inline
+    prompts:
+      triage_ticket:
+        model: ${TYPEFLUX_OPENAI_MODEL:-gpt-4o-mini}
+        temperature: 0
+        messages:
+          - role: system
+            content: >
+              You triage inbound support tickets. Choose the best-fit category
+              and urgency, and write a one-sentence summary. Answer only from the
+              ticket text; do not invent account details.
+          - role: user
+            content: |
+              Subject: {{ subject }}
+
+              {{ body }}
+
+  # The provider reads its key from the environment (OPENAI_API_KEY). Never put
+  # secret values in YAML — only the env-var name.
+  provider:
+    type: openai
+    model: ${TYPEFLUX_OPENAI_MODEL:-gpt-4o-mini}
+    structured_mode: json_schema
+    api_key:
+      value_from:
+        env: OPENAI_API_KEY
+
+  # No tracing backend for the first run. Section 5 turns on Langfuse.
+  observability:
+    type: none
+
+activities:
+  definitions:
+    - name: triage_ticket
+      input: schemas:TicketInput
+      output: schemas:Triage
+      prompt:
+        name: triage_ticket
+        type: chat
+      validation_retries: 1
+
+workflow:
+  name: TutorialQuickstartWorkflow
+  input: schemas:TicketInput
+  output: schemas:Triage
+  steps:
+    - id: triage
+      activity: triage_ticket

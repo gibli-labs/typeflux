@@ -1,0 +1,31 @@
+# Local smoke-test compose file only. Do not use this file as a production
+# deployment template; use the Kubernetes manifest (kubernetes.yaml, or the
+# `typeflux-project deploy --output` renderer) or your platform equivalent.
+services:
+  temporal:
+    image: temporalio/temporal@sha256:18667097470f91f31042a646926f84b8672693dc94f0e7384d22595ce356b55c
+    command: server start-dev --ip 0.0.0.0
+    ports:
+      - "${TEMPORAL_HOST_PORT:-7233}:7233"
+      - "${TEMPORAL_UI_HOST_PORT:-8233}:8233"
+    labels:
+      com.typeflux.scope: dev-only
+
+  ts-yaml-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/ts-yaml-worker/Dockerfile
+    environment:
+      # Single-spec mode (the default CMD): the bundled offline reference spec +
+      # scripted provider. Point TYPEFLUX_WORKER_BINDINGS/TYPEFLUX_YAML_PATH at your
+      # own spec + bindings to run a real workflow.
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TLS: "false"
+      TEMPORAL_TASK_QUEUE: ts-yaml-worker-reference
+    depends_on:
+      - temporal
+    restart: unless-stopped
+    stop_grace_period: 45s
+    labels:
+      com.typeflux.scope: dev-only

@@ -1,0 +1,19 @@
+version: "1"
+name: composition
+description: >-
+  Composition ceilings for the #55 composition showcase (#298 Phase A). Extends the
+  common `base` guardrails with graph-shape bounds a sensible operator would set for
+  the claims-review parents and their sub-workflow closure — active but comfortably
+  above the example's real shape, so it demonstrates the dimension while staying green.
+extends:
+  - base
+
+composition:
+  # Per-workflow ceilings (each closure member individually):
+  max_steps: 12
+  max_parallel_width: 3
+  max_parallel_nesting: 2
+  # Tree-wide ceilings (the whole composed program, via the closure walk):
+  max_total_steps: 20
+  max_subworkflow_depth: 2
+  allow_map_over_workflow: true

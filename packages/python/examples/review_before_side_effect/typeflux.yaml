@@ -1,0 +1,76 @@
+project: examples.review_before_side_effect
+name: review_before_side_effect
+task_queue: ${TEMPORAL_TASK_QUEUE:-review-before-side-effect-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  registry:
+    type: inline
+    prompts:
+      rbse-assess: Assess claim {{claim_id}} for {{claimant}} requesting {{amount}}.
+      rbse-disburse: Disburse the approved payment for claim {{claim_id}}.
+      rbse-reverse: Reverse the disbursement for claim {{claim_id}}.
+
+  provider:
+    type: custom
+    class: examples.review_before_side_effect.fakes:ReviewBeforeSideEffectProvider
+
+  imports:
+    allow_provider_class: true
+
+  observability:
+    type: ${TYPEFLUX_RBSE_OBSERVABILITY:-none}
+    execution_manifest: true
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+activities:
+  definitions:
+    - name: assess_claim
+      input: schemas:ClaimInput
+      output: schemas:Assessment
+      prompt: rbse-assess
+    # The disbursement is the irreversible external action: gated BEHIND a human review
+    # (prevention) AND backed by a compensate (the recovery net for failures no gate can
+    # foresee). It is idempotency-keyed so a retry never double-pays.
+    - name: disburse_payment
+      input: schemas:Assessment
+      output: schemas:Disbursement
+      prompt: rbse-disburse
+      side_effecting: true
+    - name: reverse_payment
+      input: schemas:Disbursement
+      output: schemas:Reversal
+      prompt: rbse-reverse
+      side_effecting: true
+
+workflow:
+  name: ReviewBeforeSideEffectWorkflow
+  input: schemas:ClaimInput
+  output: schemas:Disbursement
+  risk_tier: human_gated
+  # The safest pattern (#299): a human approves BEFORE the side-effecting disbursement,
+  # not after. Compensation is only the recovery net for failures the gate can't foresee.
+  lifecycle:
+    enabled: true
+    review:
+      after_step: assess
+      user_decisions:
+        approve:
+          route: disburse
+  steps:
+    - id: assess
+      activity: assess_claim
+    - id: disburse
+      activity: disburse_payment
+      compensate:
+        activity: reverse_payment

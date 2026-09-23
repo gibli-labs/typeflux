@@ -1,0 +1,126 @@
+project: examples.lifecycle_review
+name: lifecycle_review
+task_queue: ${TEMPORAL_TASK_QUEUE:-lifecycle-review-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+
+  # The Python counterpart resolves these from a registry; inlined here so the
+  # example runs without one (the TS SDK injects registries).
+  registry:
+    type: inline
+    prompts:
+      lifecycle-review-assess:
+        messages:
+          - role: user
+            content: |
+              Assess case {{case_id}} for lifecycle review.
+              Customer: {{customer_name}}
+              Request: {{request}}
+              Risk notes: {{risk_notes}}
+      lifecycle-review-package:
+        messages:
+          - role: user
+            content: |
+              Package case {{case_id}} for human review.
+              Risk level: {{risk_level}}
+              Summary: {{summary}}
+              Flags: {{flags}}
+      lifecycle-review-prepare-submission:
+        messages:
+          - role: user
+            content: |
+              Prepare case {{case_id}} for submission after human review.
+              Recommendation: {{recommendation}}
+              Summary: {{summary}}
+      lifecycle-review-route-department:
+        messages:
+          - role: user
+            content: |
+              Route case {{case_id}} to the appropriate department after human review.
+              Recommendation: {{recommendation}}
+              Summary: {{summary}}
+      lifecycle-review-send-email:
+        messages:
+          - role: user
+            content: |
+              Send case {{case_id}} email after human review.
+              Recommendation: {{recommendation}}
+              Summary: {{summary}}
+
+  # Python injects a custom provider CLASS; TS injects the instance (main.ts /
+  # the test pass a scripted provider). The declared type is a placeholder the
+  # runtime never builds from, since a provider is always supplied.
+  provider:
+    type: openai
+    model: fake-lifecycle-review
+
+  # OUT OF THE BOX: buildRuntime wires the official langfuse SDK when
+  # LANGFUSE_PUBLIC_KEY/SECRET_KEY are set; degrades to an untraced run
+  # (with a notice) when absent.
+  observability:
+    type: langfuse
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+activities:
+  definitions:
+    - name: assess_case
+      input: schemas:CaseInput
+      output: schemas:RiskAssessment
+      prompt: lifecycle-review-assess
+    - name: package_for_review
+      input: schemas:RiskAssessment
+      output: schemas:ReviewPacket
+      prompt: lifecycle-review-package
+    - name: prepare_submission
+      input: schemas:ReviewPacket
+      output: schemas:ReviewPacket
+      prompt: lifecycle-review-prepare-submission
+    - name: route_to_department
+      input: schemas:ReviewPacket
+      output: schemas:ReviewPacket
+      prompt: lifecycle-review-route-department
+    - name: send_email
+      input: schemas:ReviewPacket
+      output: schemas:FinalDecision
+      prompt: lifecycle-review-send-email
+
+workflow:
+  name: LifecycleReviewWorkflow
+  input: schemas:CaseInput
+  output: schemas:FinalDecision
+  lifecycle:
+    enabled: true
+    progress: true
+    cancellation: true
+    history:
+      status_event_limit: 50
+    # After `package_for_review`, the workflow WAITS for a human decision
+    # (`typeflux_submit_review` signal) and jumps FORWARD to the chosen route;
+    # skipped route steps never run. Every path ends at `send_email`, whose
+    # output is the FinalDecision.
+    review:
+      after_step: package_for_review
+      invalid_user_decision: warn
+      user_decisions:
+        prepare_submission:
+          route: prepare_submission
+        route_department:
+          route: route_to_department
+        send_email:
+          route: send_email
+  steps:
+    - id: assess_case
+      activity: assess_case
+    - id: package_for_review
+      activity: package_for_review
+    - id: prepare_submission
+      activity: prepare_submission
+    - id: route_to_department
+      activity: route_to_department
+    - id: send_email
+      activity: send_email

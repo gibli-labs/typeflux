@@ -1,0 +1,93 @@
+project: examples.compensation_saga
+name: compensation_saga
+task_queue: ${TEMPORAL_TASK_QUEUE:-compensation-saga-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  registry:
+    type: inline
+    prompts:
+      saga-book: Book {{room}} for order {{order_id}} with key {{idempotency_key}}.
+      saga-cancel: Cancel booking for order {{order_id}}.
+      saga-charge: Charge order {{order_id}} with key {{idempotency_key}}.
+      saga-refund: Refund the charge for order {{order_id}}.
+      saga-fulfill: Fulfill order {{order_id}}.
+
+  provider:
+    type: custom
+    class: examples.compensation_saga.fakes:CompensationSagaProvider
+
+  imports:
+    allow_provider_class: true
+
+  observability:
+    type: ${TYPEFLUX_SAGA_OBSERVABILITY:-none}
+    execution_manifest: true
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+# Inline (pure-YAML) definitions so the `side_effecting` governance declaration lives
+# in the spec. Each external write is marked `side_effecting: true` and threads the
+# caller's idempotency_key, so a retry or a best-effort compensation retry is a no-op.
+activities:
+  definitions:
+    - name: book_room
+      input: schemas:OrderRequest
+      output: schemas:Booking
+      prompt: saga-book
+      side_effecting: true
+    - name: cancel_room
+      input: schemas:Booking
+      output: schemas:CancelResult
+      prompt: saga-cancel
+      side_effecting: true
+    - name: charge_card
+      input: schemas:Booking
+      output: schemas:ChargeResult
+      prompt: saga-charge
+      side_effecting: true
+    - name: refund_card
+      input: schemas:ChargeResult
+      output: schemas:RefundResult
+      prompt: saga-refund
+      side_effecting: true
+    # The terminal finalizer is NOT side-effecting (it assembles the result, it does not
+    # write to the world), so require_compensation does not demand a compensate on it.
+    - name: fulfill_order
+      input: schemas:ChargeResult
+      output: schemas:Fulfillment
+      prompt: saga-fulfill
+
+workflow:
+  name: CompensationSagaWorkflow
+  input: schemas:OrderRequest
+  output: schemas:Fulfillment
+  # Declares the tier the require_compensation policy governs (examples/policies/saga.yaml).
+  risk_tier: human_gated
+  lifecycle:
+    enabled: true
+  steps:
+    # A saga (#299): each side-effecting step declares how to undo itself. If a later
+    # step fails, the interpreter runs the recorded compensations in REVERSE (refund
+    # then cancel) inside the failure path, then re-raises the original failure.
+    - id: book
+      activity: book_room
+      compensate:
+        activity: cancel_room       # input defaults to book's own output (the Booking)
+    - id: charge
+      activity: charge_card
+      compensate:
+        activity: refund_card       # input defaults to charge's own output (the ChargeResult)
+    # The finalizer is not side-effecting, so it needs no compensate to satisfy the
+    # require_compensation policy. If IT fails, `charge` then `book` unwind in reverse.
+    - id: fulfill
+      activity: fulfill_order

@@ -1,0 +1,66 @@
+project: examples.policy_governed_review
+name: policy_governed_review
+task_queue: ${TEMPORAL_TASK_QUEUE:-policy-governed-review-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+
+  registry:
+    type: inline
+    prompts:
+      review/assess_content:
+        messages:
+          - role: system
+            content: |
+              You are a content-safety reviewer. Classify one message and flag risk.
+          - role: user
+            content: |
+              Message id: {{id}}
+              Body: {{body}}
+
+              Return a structured assessment: category is safe, review, or block;
+              risk_score is 0..1; notes are a one-line reviewer rationale.
+
+  provider:
+    type: openai
+    # Composed policy (org ∩ tenant) allows ONLY openai/gpt-4o-mini.
+    model: ${TYPEFLUX_OPENAI_MODEL:-gpt-4o-mini}
+
+  # The org policy REQUIRES an observability backend with redaction on, so the
+  # spec declares it — and the runtime fail-closes (#756) unless an observer actually
+  # resolves: export LANGFUSE_PUBLIC_KEY/LANGFUSE_SECRET_KEY for the real backend, or
+  # inject an `observer` explicitly (this offline example injects one; see main.ts).
+  observability:
+    type: langfuse
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+  # Within the composed default bound (max_concurrent 2); the per-model tier only tightens further.
+  provider_limits:
+    default:
+      max_concurrent: 2
+    providers:
+      openai:
+        models:
+          gpt-4o-mini:
+            max_concurrent: 1
+            min_interval_seconds: 0.25
+
+activities:
+  definitions:
+    - name: assess_content
+      input: schemas:ContentItem
+      output: schemas:Assessment
+      prompt: review/assess_content
+      validation_retries: 2
+
+workflow:
+  name: PolicyGovernedReviewWorkflow
+  input: schemas:ContentItem
+  output: schemas:Assessment
+  steps:
+    - id: assess
+      activity: assess_content

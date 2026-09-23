@@ -1,0 +1,24 @@
+name: Documentation
+description: A gap, error, or unclear passage in the docs.
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Which page/section?
+      description: Path or URL, e.g. docs/yaml.md, "YAML Runtime > cache" — or "missing entirely".
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+      description: Quote the current text if it exists.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested wording (optional)
+    validations:
+      required: false

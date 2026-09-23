@@ -1,0 +1,98 @@
+{
+ "cases": [
+  "annotations-absent.json",
+  "annotations.json",
+  "auth-proxy-meta-actor.json",
+  "auth-proxy-meta-empty-actor.json",
+  "auth-proxy-meta-whitespace-actor.json",
+  "auth-proxy-no-headers-forbidden.json",
+  "auth-proxy-unknown-permission-ignored.json",
+  "auth-token-meta-operator.json",
+  "auth-token-meta-reader.json",
+  "auth-token-meta-spoofed-proxy-headers.json",
+  "auth-token-meta-starter-implies-inspect.json",
+  "auth-token-missing-forbidden.json",
+  "auth-token-reader-cannot-migrate.json",
+  "auth-token-reader-cannot-start.json",
+  "auth-token-unknown-forbidden.json",
+  "bundle-broken-profile.json",
+  "bundle-unknown-workflow.json",
+  "bundle-workflow-composition.json",
+  "bundle-workflow-local.json",
+  "bundle-workflow-subworkflow.json",
+  "cancel-temporal-unreachable.json",
+  "catalog-workflow-local.json",
+  "connections-workflow-local.json",
+  "correlation-observer-none.json",
+  "deployment-unknown.json",
+  "deployments.json",
+  "enforcement-events-invalid-verdict.json",
+  "enforcement-events-scoped.json",
+  "enforcement-events.json",
+  "environment-local.json",
+  "environment-unknown.json",
+  "environments.json",
+  "executions-temporal-unreachable.json",
+  "github-provenance.json",
+  "meta.json",
+  "migrate-temporal-unreachable.json",
+  "policies.json",
+  "policy-base.json",
+  "policy-unknown.json",
+  "profile-provider-anthropic-prod.json",
+  "profile-unknown.json",
+  "profiles.json",
+  "project-ts-bundle-unsupported-runtime.json",
+  "project-ts-deployments-unsupported-runtime.json",
+  "project-ts-meta.json",
+  "projects.json",
+  "prompt-status-workflow-local.json",
+  "request-validation-error.json",
+  "review-gate-temporal-unreachable.json",
+  "review-temporal-unreachable.json",
+  "start-policy-unknown.json",
+  "start-temporal-unreachable.json",
+  "status-temporal-unreachable.json",
+  "validate.json",
+  "versions-temporal-unreachable.json",
+  "workers-temporal-unreachable.json",
+  "workflows.json"
+ ],
+ "description": "HTTP-level conformance cases for the control-plane read tier (#617). Any control plane serving the canonical conformance fixture project must reproduce these normalized responses. Run: python ../runner.py --base-url <url>.",
+ "editions": {
+  "python-cp": {
+   "description": "The Python control plane (packages/python, serve-python.sh) \u2014 the baseline recorder; the shared goldens are its responses."
+  },
+  "ts-cp": {
+   "description": "The TypeScript control plane (packages/typescript/temporal-controlplane, serve-typescript.sh). Cases with an editions.ts-cp variant diverge BY DESIGN (mirror registry identity, capability honesty until the operate tier, dialect artifacts); skips point at live projection-gap issues."
+  }
+ },
+ "normalize": {
+  "mask_keys": [
+   "environment_profile_path",
+   "generated_at",
+   "manifest_path",
+   "pinned_at",
+   "profile_path",
+   "workflow_path"
+  ],
+  "note": "Values of these fields are machine/run-specific (absolute paths, timestamps) and compare as <normalized>; per-case 'mask' JSON Pointers (with * wildcards) handle structural cases like bundle git provenance (/code) and absolute file paths inside arrays. The bundle case additionally masks the workflow-binding-opaque identity fields (/workflow/workflow_type, /workflow/spec_digest, /workflow/spec_digest_algorithm, /workflow/generator_version): these differ BY DESIGN across runtime bindings (per contracts/temporal-binding) \u2014 the Python and TypeScript control planes derive them from their own binding, so they are not cross-runtime comparable. Schema-identity decision (#644): a slot's `name` is the LOGICAL type name both editions agree on (the contract requires it; the TS `schemas:` ref prefix was a loader artifact, fixed); `hash`/`json_schema` shape and the Python-only `module` key (an untyped-dict recording detail, not contract surface) are edition-native by design \u2014 the same class as the binding digests."
+ },
+ "profiles": {
+  "open": {
+   "description": "Default open authorizer: every caller holds all permissions."
+  },
+  "proxy": {
+   "description": "Proxy-header authorizer (trust-proxy-auth): actor + permissions from X-Typeflux-Actor / X-Typeflux-Permissions."
+  },
+  "token": {
+   "description": "Bearer-token authorizer with the canonical conformance grants (NAME:PERMS:TOKEN syntax).",
+   "grants": [
+    "reader:inspect:conformance-reader-token",
+    "operator:*:conformance-operator-token",
+    "starter:start:conformance-starter-token"
+   ]
+  }
+ },
+ "suite_version": "1"
+}

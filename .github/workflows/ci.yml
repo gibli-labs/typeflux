@@ -1,0 +1,472 @@
+name: CI
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+
+    # The Python SDK lives at packages/python (polyglot monorepo). uv steps run
+    # there; uses: actions (checkout, setup-uv) are unaffected by this default.
+    defaults:
+      run:
+        working-directory: packages/python
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          version: "0.11.8"
+          enable-cache: true
+
+      - name: Install package
+        run: uv sync --frozen --extra live --group dev
+
+      - name: Run non-live tests
+        run: uv run pytest -q -m "not live"
+
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: "3.12"
+          version: "0.11.8"
+          enable-cache: true
+
+      - name: Check uv lockfile
+        working-directory: packages/python
+        run: uv lock --check
+
+      - name: Install package
+        working-directory: packages/python
+        run: uv sync --frozen --extra live --group dev
+
+      - name: Run Ruff lint
+        working-directory: packages/python
+        run: uv run ruff check . ../../scripts
+
+      - name: Run Ruff format check
+        working-directory: packages/python
+        run: uv run ruff format --check . ../../scripts
+
+      - name: Run mypy
+        working-directory: packages/python
+        run: uv run mypy src/typeflux
+
+      # The contract (contracts/controlplane/openapi.v1.json) is normative
+      # (#616): the FastAPI-emitted schema must match it. Divergence fails
+      # here with a structured path-by-path report, never a silent regen.
+      - name: Control-plane contract conformance
+        working-directory: packages/python
+        run: uv run python -m typeflux.controlplane conformance
+
+      - name: Build package
+        working-directory: packages/python
+        run: uv run python -m build
+
+      - name: Run Gitleaks secret scan
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo" \
+            -w /repo \
+            ghcr.io/gitleaks/gitleaks:v8.30.0 \
+            detect --source . --redact --verbose
+
+      - name: Minimal install smoke test (no extras)
+        working-directory: packages/python
+        run: |
+          uv sync --frozen --no-dev
+          uv run python -c "import typeflux"
+
+  web:
+    name: Web (client + console)
+    runs-on: ubuntu-latest
+    # The console installs @gibli-labs/control-plane-client from the GitHub
+    # Packages registry (#616 slice 4); the workflow-level permissions block
+    # would otherwise drop the default packages read access.
+    permissions:
+      contents: read
+      packages: read
+    # 30 (was 25): the split Playwright steps let a slow-but-progressing apt run
+    # to completion instead of being killed (#351). Sized above the sequential
+    # worst case (deps 12m + browser-retry 10m caps + ~2m setup/e2e, plus the
+    # ts-cp lane's pnpm install/build ~4m + second e2e run ~1m, #621) so the
+    # job cap never preempts a legit retry; a genuinely stuck run still fails.
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: "3.12"
+          version: "0.11.8"
+          enable-cache: true
+
+      - name: Install package with the api extra (console e2e backend)
+        working-directory: packages/python
+        run: uv sync --frozen --extra api
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            clients/typescript/package-lock.json
+            clients/console/package-lock.json
+
+      # Nothing in-tree consumes the client's dist since the console moved to
+      # the published release (#616 slice 4) — typecheck keeps compile
+      # coverage for the generated types without emitting a dead artifact.
+      - name: Install, regenerate, and type-check the client
+        run: npm ci && npm run generate && npm run typecheck
+        working-directory: clients/typescript
+
+      - name: Fail on drift between spec and generated client
+        run: git diff --exit-code -- clients/typescript/src/schema.ts
+
+      # The client's major version is locked to the contract's API major
+      # (#616 slice 3): a contract major bump without a client major bump
+      # (or vice versa) fails here, not at release time.
+      - name: Assert client major tracks the contract major
+        working-directory: clients/typescript
+        run: node ../../scripts/assert_client_contract_lockstep.mjs
+
+      # Installs the *published* client from GitHub Packages — console CI
+      # deliberately does not see in-PR client changes. The flow is:
+      # contract PR → client release → console bump PR (#616 slice 4).
+      - name: Install console dependencies
+        run: npm ci
+        working-directory: clients/console
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Type-check the console
+        run: npm run typecheck
+        working-directory: clients/console
+
+      - name: Run console engine tests
+        run: npm run test
+        working-directory: clients/console
+
+      - name: Build the console
+        run: npm run build
+        working-directory: clients/console
+
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+        working-directory: clients/console
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
+
+      # Playwright setup is split in two (#351). The OS deps (apt) and the
+      # browser binary fail in different ways and must be handled differently.
+      #
+      # 1) System deps via apt: run ONCE, never timeout-killed. Killing a slow
+      #    (but progressing) apt orphans the sudo'd `apt-get` holding the dpkg
+      #    lock, so every retry then dies with "Could not get lock" — the earlier
+      #    retry-with-`timeout` fix was defeated exactly this way. Let apt run to
+      #    completion; the step/job timeout is the only backstop.
+      - name: Install Playwright system deps
+        run: npx playwright install-deps chromium
+        working-directory: clients/console
+        timeout-minutes: 12
+
+      # 2) Browser binary: this is what the cache above covers, so a cache hit is
+      #    instant. The download is small and involves no apt lock, so a hung
+      #    attempt is safe to kill and retry. Per-attempt `timeout` (a healthy
+      #    download is ~1-2 min); a whole-step timeout-minutes can't retry.
+      - name: Install Playwright browser (cached + retried)
+        run: |
+          for attempt in 1 2 3; do
+            timeout 180 npx playwright install chromium && exit 0
+            echo "::warning::playwright browser install attempt $attempt failed/timed out; retrying" >&2
+            sleep 5
+          done
+          echo "::error::playwright browser install failed after retries" >&2
+          exit 1
+        working-directory: clients/console
+        # Must exceed the loop's worst case (3 × 180s + 2 × 5s sleeps ≈ 550s) so
+        # the cap never preempts the final retry's full budget.
+        timeout-minutes: 10
+
+      - name: Run the console e2e smoke (non-live, python-cp lane)
+        run: npm run test:e2e
+        working-directory: clients/console
+
+      # The same suite against the TypeScript control plane (#621 slice 2): the
+      # ts-cp lane serves the conformance fixture project's TS binding; a failure
+      # on one lane only is a contract/conformance gap, not flake.
+      - name: Set up pnpm (ts-cp e2e lane)
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: "10"
+
+      - name: Build the TypeScript control plane (ts-cp e2e lane)
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -r build
+
+      - name: Run the console e2e smoke (non-live, ts-cp lane)
+        run: npm run test:e2e
+        working-directory: clients/console
+        env:
+          E2E_SERVER: ts-cp
+
+  # The executable control-plane conformance suite (#617): black-box golden
+  # request/response cases against a spawned server, one server per auth
+  # profile. Parameterized by server-under-test — a new edition (the TS
+  # control plane, #563/#620) is a new matrix entry pointing at its own
+  # launcher (plus its toolchain step if needed), never a new harness.
+  conformance:
+    name: Control-plane conformance (${{ matrix.server }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - server: python-cp
+            launcher: ./serve-python.sh
+            # The baseline recorder — the shared goldens ARE its responses; no edition lane.
+            edition_flag: ""
+          - server: ts-cp
+            launcher: ./serve-typescript.sh
+            # The TS lane applies the cases' editions.ts-cp variants/skips (#620 slice 4):
+            # by-design divergences are explicit fixture artifacts, gaps are issue-pointed skips.
+            edition_flag: "--edition ts-cp"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up uv
+        # python-cp only: the ts-cp lane needs no uv (runner.py + serve-typescript.sh are
+        # stdlib-python3, preinstalled on the runner), and setup-uv's post-cache step fails
+        # when no uv cache was ever populated.
+        if: matrix.server == 'python-cp'
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: "3.12"
+          version: "0.11.8"
+          enable-cache: true
+
+      - name: Install the control plane (api + live extras)
+        if: matrix.server == 'python-cp'
+        working-directory: packages/python
+        # `live` too (#563 operate fixtures): the canonical fixture project declares an anthropic
+        # provider, and Python's operate routes BUILD the runtime (provider constructed) before
+        # the bounded Temporal call — without the SDK the 503 fixtures answer 500 (the classic
+        # green-local/red-CI extras trap).
+        run: uv sync --frozen --extra api --extra live
+
+      - name: Set up pnpm
+        if: matrix.server == 'ts-cp'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: "10"
+
+      - name: Set up Node
+        if: matrix.server == 'ts-cp'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install and build the TypeScript workspace
+        if: matrix.server == 'ts-cp'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -r build
+
+      - name: Run the conformance suite
+        working-directory: contracts/controlplane/conformance
+        run: python3 runner.py --server-cmd '${{ matrix.launcher }} {profile} {port}' --port 8411 ${{ matrix.edition_flag }}
+
+  sdk-typescript:
+    name: TypeScript SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: "10"
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # Workspace-wide across all packages/typescript/* projects, in dependency
+      # order. Build first so companion packages (e.g. @typeflux/temporal-worker)
+      # type-check against the core's emitted declarations.
+      - name: Build the SDK packages
+        run: pnpm -r build
+
+      - name: Type-check the SDK packages
+        run: pnpm -r typecheck
+
+      - name: Run SDK tests
+        run: pnpm -r test
+
+  mcp:
+    name: MCP server (typeflux-mcp)
+    runs-on: ubuntu-latest
+    # clients/mcp lives OUTSIDE the pnpm workspace (#326) and aliases
+    # @typeflux/temporal-controlplane / @typeflux/temporal-yaml / the generated
+    # @typeflux/control-plane-client to their BUILT dists in the monorepo (see
+    # clients/mcp/vitest.config.ts and scripts/bundle.mjs), so those build first.
+    # Every installed dependency is public npm (#893 removed the GH-Packages
+    # scope mapping from clients/mcp/.npmrc).
+    permissions:
+      contents: read
+    # Healthy runs take ~12-13m; a slow registry day (7m in pnpm setup alone) pushed two runs past
+    # a 15m wall, cancelling the install mid-flight. 25 gives real headroom without masking a hang.
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # #867: `npx typeflux-mcp` serves whatever was last PUBLISHED — a clients/mcp change that
+      # ships without a version bump leaves the public schema/tools stale (0.4.0 sat 32 schema
+      # properties behind main). Any PR touching clients/mcp must move package.json's version.
+      - name: Version-bump guard
+        if: github.event_name == 'pull_request'
+        env:
+          # The event's IMMUTABLE base snapshot — comparing the live branch tip races a
+          # concurrently-merged bump and lets an unbumped PR through (codex).
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          if git diff --quiet "$BASE_SHA" -- clients/mcp; then
+            echo "clients/mcp untouched — guard not applicable"
+            exit 0
+          fi
+          # Dependabot dependency PRs are exempt: they cannot bump our version,
+          # and the scheduled unpublished-drift sentinel (dependency-freshness)
+          # catches any resulting main-vs-published lag instead.
+          if [ "${{ github.event.pull_request.user.login }}" = "dependabot[bot]" ]; then
+            echo "dependabot PR — version guard delegated to the drift sentinel"
+            exit 0
+          fi
+          base_version=$(git show "$BASE_SHA":clients/mcp/package.json | jq -r .version)
+          head_version=$(jq -r .version clients/mcp/package.json)
+          # release-mcp.yml publishes only stable MAJOR.MINOR.PATCH — a prerelease or a
+          # rollback would pass a bare inequality and still be unpublishable/stale.
+          if ! echo "$head_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::clients/mcp version '$head_version' is not stable MAJOR.MINOR.PATCH — release-mcp.yml cannot publish it (#867)"
+            exit 1
+          fi
+          if [ "$base_version" = "$head_version" ] || [ "$(printf '%s\n%s\n' "$base_version" "$head_version" | sort -V | tail -1)" != "$head_version" ]; then
+            echo "::error::clients/mcp changed but the version ($head_version) does not move past the base ($base_version) — bump it so the published npx surface can't go stale (#867)"
+            exit 1
+          fi
+          echo "version moves $base_version -> $head_version"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: "10"
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # The aliased dists the MCP tests/typecheck/bundle resolve against.
+      - name: Build the SDK packages
+        run: pnpm -r build
+
+      - name: Build the control-plane client
+        working-directory: clients/typescript
+        run: |
+          npm install
+          npm run build
+
+      - name: Install typeflux-mcp
+        working-directory: clients/mcp
+        run: npm ci
+
+      # `pretest` regenerates the bundled assets; vitest runs against the aliased dists.
+      - name: Run MCP tests
+        working-directory: clients/mcp
+        run: npm test
+
+      # `prebuild` = generate schemas/assets + typecheck; `build` = the esbuild bundle.
+      - name: Build the MCP bundle
+        working-directory: clients/mcp
+        run: npm run build
+
+      # Dependency hygiene for the PUBLIC npm artifact (#326 Phase 0): the packed
+      # manifest must declare no file:/workspace:/link: deps (the CP client and
+      # @typeflux/* are inlined at build time, never registry deps), and the
+      # tarball must assemble cleanly.
+      - name: Packed-artifact dependency hygiene
+        working-directory: clients/mcp
+        run: |
+          node -e '
+            const p = require("./package.json");
+            const declared = { ...p.dependencies, ...p.optionalDependencies, ...p.peerDependencies };
+            const bad = Object.entries(declared).filter(([, v]) => /^(file:|workspace:|link:)/.test(v));
+            if (bad.length) {
+              console.error("non-registry deps would ship in the packed manifest:", bad);
+              process.exit(1);
+            }
+          '
+          npm pack --dry-run
+          npm run verify:pack

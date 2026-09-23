@@ -1,0 +1,947 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "TS-native schema identity (the Python-only `module` key + hash shape are edition-native, #644) and dialect-native identity (workflow_type/spec_digest/generator_version, masked in the base case too). The composition TOPOLOGY (parallel node, branch/collect/conditional edges, rendered when conditions) is cross-edition normative and must match the base golden byte-for-byte (#55 slice 2). The deployment tier is real now (#687): `deployment_preview_reference` is present (masked, the `typeflux-project deploy` command); `deployment_preview` appears only with a `deployment_image` query.",
+      "response": {
+        "body": {
+          "activities": [
+            {
+              "artifact_inputs": [],
+              "definition_source": {
+                "kind": "yaml",
+                "yaml_name": "conformance_composition",
+                "yaml_project": "conformance_project"
+              },
+              "input_schema": {
+                "hash": "b8c38e6b11ca2a13efd1b9f8b9dea43ecb368c280d328099f63e9e0a6910cfb2",
+                "name": "ClaimItem"
+              },
+              "kind": "ai",
+              "name": "assess_item",
+              "output_schema": {
+                "hash": "12ed9447fbbb261381b19f521a226cefef9dd3f6250b42a14873a051886c18e7",
+                "name": "ItemAssessment"
+              },
+              "prompt_ref": {
+                "label": null,
+                "name": "assess",
+                "version": null
+              },
+              "used_by_steps": [
+                "assess_items"
+              ],
+              "validation_retries": 1
+            },
+            {
+              "artifact_inputs": [],
+              "definition_source": {
+                "kind": "yaml",
+                "yaml_name": "conformance_composition",
+                "yaml_project": "conformance_project"
+              },
+              "input_schema": {
+                "hash": "2c0a5dc29d4503dfdfc3c3cca649272296197d1fcbcd721716fa108d8cda1e1b",
+                "name": "ClaimInput"
+              },
+              "kind": "ai",
+              "name": "classify_claims",
+              "output_schema": {
+                "hash": "f7e75beddd34cbd6470e620978addf65b8cd8e5cf2439830107bd4279ad09caf",
+                "name": "Classification"
+              },
+              "prompt_ref": {
+                "label": null,
+                "name": "classify",
+                "version": null
+              },
+              "used_by_steps": [
+                "classify"
+              ],
+              "validation_retries": 1
+            },
+            {
+              "artifact_inputs": [],
+              "definition_source": {
+                "kind": "yaml",
+                "yaml_name": "conformance_composition",
+                "yaml_project": "conformance_project"
+              },
+              "input_schema": {
+                "hash": "b8c38e6b11ca2a13efd1b9f8b9dea43ecb368c280d328099f63e9e0a6910cfb2",
+                "name": "Decision"
+              },
+              "kind": "ai",
+              "name": "escalate_decision",
+              "output_schema": {
+                "hash": "12ed9447fbbb261381b19f521a226cefef9dd3f6250b42a14873a051886c18e7",
+                "name": "Decision"
+              },
+              "prompt_ref": {
+                "label": null,
+                "name": "escalate",
+                "version": null
+              },
+              "used_by_steps": [
+                "escalate"
+              ],
+              "validation_retries": 1
+            },
+            {
+              "artifact_inputs": [],
+              "definition_source": {
+                "kind": "yaml",
+                "yaml_name": "conformance_composition",
+                "yaml_project": "conformance_project"
+              },
+              "input_schema": {
+                "hash": "a6e1dcb3cc3d51254d2275ea7c0bc552e132e472bc228ad586a71c1a4ebdf7ff",
+                "name": "ReviewFanout"
+              },
+              "kind": "ai",
+              "name": "merge_reviews",
+              "output_schema": {
+                "hash": "12ed9447fbbb261381b19f521a226cefef9dd3f6250b42a14873a051886c18e7",
+                "name": "Decision"
+              },
+              "prompt_ref": {
+                "label": null,
+                "name": "merge",
+                "version": null
+              },
+              "used_by_steps": [
+                "merge"
+              ],
+              "validation_retries": 1
+            },
+            {
+              "artifact_inputs": [],
+              "definition_source": {
+                "kind": "yaml",
+                "yaml_name": "conformance_composition",
+                "yaml_project": "conformance_project"
+              },
+              "input_schema": {
+                "hash": "33740baa571728082f9bc6079cfc44ce838de8fc9841ea0da71c371e05643b04",
+                "name": "Classification"
+              },
+              "kind": "ai",
+              "name": "summarize_deep",
+              "output_schema": {
+                "hash": "45506dfe37af8a874c9cfb83440eba377ba53e938d7a4e5a57b1f96a8f501a11",
+                "name": "AssessmentBatch"
+              },
+              "prompt_ref": {
+                "label": null,
+                "name": "summarize",
+                "version": null
+              },
+              "used_by_steps": [
+                "summarize_claims"
+              ],
+              "validation_retries": 1
+            }
+          ],
+          "bundle_version": "1",
+          "components": [],
+          "deployment_preview_reference": "<normalized>",
+          "environment": {
+            "env_files": [],
+            "id": "local",
+            "name": "local",
+            "profile_path": "<normalized>",
+            "profile_variable_names": [
+              "TYPEFLUX_ENVIRONMENT"
+            ]
+          },
+          "links": {
+            "temporal_ui": "http://localhost:8233"
+          },
+          "project": {
+            "manifest_path": "<normalized>",
+            "name": "conformance-fixture"
+          },
+          "runtime": {
+            "observability": {
+              "execution_manifest": true,
+              "redaction_enabled": true,
+              "type": "none"
+            },
+            "provider": {
+              "allow_prompt_model_override": false,
+              "api_key_configured": false,
+              "base_url_configured": false,
+              "model": "claude-sonnet-4-6",
+              "params": {
+                "model": "claude-sonnet-4-6"
+              },
+              "type": "anthropic",
+              "vertex": false
+            },
+            "registry": {
+              "host": null,
+              "label": null,
+              "type": "inline"
+            },
+            "temporal": {
+              "address": "localhost:7233",
+              "api_key_configured": false,
+              "namespace": "default",
+              "tls_enabled": false,
+              "tls_mode": "disabled"
+            }
+          },
+          "runtime_effective": [
+            {
+              "path": "provider.model",
+              "source": "engine_default",
+              "value": "claude-sonnet-4-6"
+            },
+            {
+              "path": "provider_retry.max_attempts",
+              "source": "engine_default",
+              "value": 1
+            },
+            {
+              "path": "provider_retry.initial_backoff_seconds",
+              "source": "engine_default",
+              "value": 0
+            },
+            {
+              "path": "provider_retry.max_backoff_seconds",
+              "source": "engine_default"
+            },
+            {
+              "path": "provider_retry.backoff_multiplier",
+              "source": "engine_default",
+              "value": 2
+            },
+            {
+              "path": "provider_retry.jitter_ratio",
+              "source": "engine_default",
+              "value": 0.1
+            },
+            {
+              "path": "provider_retry.retry_rate_limits",
+              "source": "engine_default",
+              "value": true
+            }
+          ],
+          "secret_references": [
+            {
+              "configured": false,
+              "runtime_path": "runtime.provider.api_key",
+              "source_kind": "env",
+              "source_name": "TYPEFLUX_CONFORMANCE_ANTHROPIC_API_KEY"
+            }
+          ],
+          "steps": [
+            {
+              "activity": "classify_claims",
+              "effective_retry": {
+                "backoff_coefficient": 2,
+                "initial_interval_seconds": 1,
+                "maximum_attempts": 5,
+                "maximum_interval_seconds": 60
+              },
+              "effective_start_to_close_timeout_seconds": 120,
+              "id": "classify",
+              "kind": "activity"
+            },
+            {
+              "activity": "assess_item",
+              "effective_retry": {
+                "backoff_coefficient": 2,
+                "initial_interval_seconds": 1,
+                "maximum_attempts": 5,
+                "maximum_interval_seconds": 60
+              },
+              "effective_start_to_close_timeout_seconds": 120,
+              "id": "assess_items",
+              "kind": "map",
+              "map": {
+                "collect_field": "reviews",
+                "collect_output_schema": {
+                  "hash": "45506dfe37af8a874c9cfb83440eba377ba53e938d7a4e5a57b1f96a8f501a11",
+                  "name": "AssessmentBatch"
+                },
+                "concurrency": 2,
+                "over": "input.claims"
+              }
+            },
+            {
+              "activity": "summarize_deep",
+              "effective_retry": {
+                "backoff_coefficient": 2,
+                "initial_interval_seconds": 1,
+                "maximum_attempts": 5,
+                "maximum_interval_seconds": 60
+              },
+              "effective_start_to_close_timeout_seconds": 120,
+              "id": "summarize_claims",
+              "kind": "activity"
+            },
+            {
+              "activity": "merge_reviews",
+              "effective_retry": {
+                "backoff_coefficient": 2,
+                "initial_interval_seconds": 1,
+                "maximum_attempts": 5,
+                "maximum_interval_seconds": 60
+              },
+              "effective_start_to_close_timeout_seconds": 120,
+              "id": "merge",
+              "kind": "activity"
+            },
+            {
+              "activity": "escalate_decision",
+              "effective_retry": {
+                "backoff_coefficient": 2,
+                "initial_interval_seconds": 1,
+                "maximum_attempts": 5,
+                "maximum_interval_seconds": 60
+              },
+              "effective_start_to_close_timeout_seconds": 120,
+              "id": "escalate",
+              "kind": "activity"
+            }
+          ],
+          "topology": {
+            "edges": [
+              {
+                "kind": "sequential",
+                "source": "classify",
+                "target": "reviews"
+              },
+              {
+                "kind": "branch",
+                "source": "reviews",
+                "target": "assess_items"
+              },
+              {
+                "kind": "collect",
+                "source": "assess_items",
+                "target": "reviews"
+              },
+              {
+                "condition": "classify.deep_review == true",
+                "kind": "branch",
+                "source": "reviews",
+                "target": "summarize_claims"
+              },
+              {
+                "kind": "collect",
+                "source": "summarize_claims",
+                "target": "reviews"
+              },
+              {
+                "kind": "sequential",
+                "source": "reviews",
+                "target": "merge"
+              },
+              {
+                "condition": "classify.deep_review == true",
+                "kind": "conditional",
+                "source": "merge",
+                "target": "escalate"
+              }
+            ],
+            "nodes": [
+              {
+                "activity": "classify_claims",
+                "id": "classify",
+                "kind": "activity"
+              },
+              {
+                "id": "reviews",
+                "kind": "parallel"
+              },
+              {
+                "activity": "assess_item",
+                "id": "assess_items",
+                "kind": "map"
+              },
+              {
+                "activity": "summarize_deep",
+                "id": "summarize_claims",
+                "kind": "activity"
+              },
+              {
+                "activity": "merge_reviews",
+                "id": "merge",
+                "kind": "activity"
+              },
+              {
+                "activity": "escalate_decision",
+                "id": "escalate",
+                "kind": "activity"
+              }
+            ]
+          },
+          "validation": {
+            "checks": [],
+            "issues": [
+              {
+                "code": "duplicate_workflow_name",
+                "message": "duplicate YAML workflow name(s): ConformanceDemoWorkflow"
+              },
+              {
+                "code": "unknown_profile_reference",
+                "message": "workflow 'broken' profile selection selects unknown provider profile: missing-profile",
+                "path": "<normalized>",
+                "reference": "broken"
+              }
+            ],
+            "ok": false
+          },
+          "workflow": {
+            "generator_version": "<normalized>",
+            "id": "composition",
+            "input_schema": {
+              "hash": "2c0a5dc29d4503dfdfc3c3cca649272296197d1fcbcd721716fa108d8cda1e1b",
+              "json_schema": {
+                "properties": {
+                  "claims": {
+                    "items": {
+                      "properties": {
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "claims"
+                ],
+                "type": "object"
+              },
+              "name": "ClaimInput"
+            },
+            "observability_trace_name": "TypefluxWorkflow:ConformanceCompositionWorkflow",
+            "output_schema": {
+              "hash": "12ed9447fbbb261381b19f521a226cefef9dd3f6250b42a14873a051886c18e7",
+              "json_schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "type": "object"
+              },
+              "name": "Decision"
+            },
+            "path": "<normalized>",
+            "spec_digest": "<normalized>",
+            "spec_digest_algorithm": "<normalized>",
+            "task_queue": "conformance-demo-queue",
+            "workflow_name": "ConformanceCompositionWorkflow",
+            "workflow_type": "<normalized>",
+            "yaml_name": "conformance_composition",
+            "yaml_project": "conformance_project"
+          }
+        },
+        "status": 200
+      }
+    }
+  },
+  "mask": [
+    "/code",
+    "/validation/issues/*/path",
+    "/workflow/path",
+    "/workflow/workflow_type",
+    "/workflow/spec_digest",
+    "/workflow/spec_digest_algorithm",
+    "/workflow/generator_version",
+    "/deployment_preview_reference"
+  ],
+  "name": "bundle-workflow-composition",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/composition/bundle",
+    "query": {
+      "environment_id": "local"
+    }
+  },
+  "response": {
+    "body": {
+      "activities": [
+        {
+          "artifact_inputs": [],
+          "definition_source": {
+            "kind": "yaml",
+            "yaml_name": "conformance_composition",
+            "yaml_project": "conformance_project"
+          },
+          "input_schema": {
+            "hash": "87207679752eb05f23bc37d973a38f64e1e334fcd96871a748cf23abbb1df102",
+            "module": "conformance_project.schemas",
+            "name": "ClaimItem"
+          },
+          "kind": "ai",
+          "name": "assess_item",
+          "output_schema": {
+            "hash": "87d1e9bc2786f4b9adc9a806d2ee87bb3095d48175cce7482bc5f3800aa51903",
+            "module": "conformance_project.schemas",
+            "name": "ItemAssessment"
+          },
+          "prompt_ref": {
+            "label": null,
+            "name": "assess",
+            "version": null
+          },
+          "used_by_steps": [
+            "assess_items"
+          ],
+          "validation_retries": 1
+        },
+        {
+          "artifact_inputs": [],
+          "definition_source": {
+            "kind": "yaml",
+            "yaml_name": "conformance_composition",
+            "yaml_project": "conformance_project"
+          },
+          "input_schema": {
+            "hash": "176bf0f19b21fe8548e6fa481db1c1206038cc11f76518c5aedabb2e1d67a8e4",
+            "module": "conformance_project.schemas",
+            "name": "ClaimInput"
+          },
+          "kind": "ai",
+          "name": "classify_claims",
+          "output_schema": {
+            "hash": "cdb8ab928c39a7b9a3542a514121a7dc7c99ac5cde1d5e01b3f847acff5c1bdc",
+            "module": "conformance_project.schemas",
+            "name": "Classification"
+          },
+          "prompt_ref": {
+            "label": null,
+            "name": "classify",
+            "version": null
+          },
+          "used_by_steps": [
+            "classify"
+          ],
+          "validation_retries": 1
+        },
+        {
+          "artifact_inputs": [],
+          "definition_source": {
+            "kind": "yaml",
+            "yaml_name": "conformance_composition",
+            "yaml_project": "conformance_project"
+          },
+          "input_schema": {
+            "hash": "d08c95ef3bb4b5e4ee8327d48563c03849a6f6b20d92fbdfe98738fd63d4cc2e",
+            "module": "conformance_project.schemas",
+            "name": "Decision"
+          },
+          "kind": "ai",
+          "name": "escalate_decision",
+          "output_schema": {
+            "hash": "d08c95ef3bb4b5e4ee8327d48563c03849a6f6b20d92fbdfe98738fd63d4cc2e",
+            "module": "conformance_project.schemas",
+            "name": "Decision"
+          },
+          "prompt_ref": {
+            "label": null,
+            "name": "escalate",
+            "version": null
+          },
+          "used_by_steps": [
+            "escalate"
+          ],
+          "validation_retries": 1
+        },
+        {
+          "artifact_inputs": [],
+          "definition_source": {
+            "kind": "yaml",
+            "yaml_name": "conformance_composition",
+            "yaml_project": "conformance_project"
+          },
+          "input_schema": {
+            "hash": "5e12bb3089ede641d5e5284bbf5b2a3ec86b960e88ebedf852d15bd7fd013db7",
+            "module": "conformance_project.schemas",
+            "name": "ReviewFanout"
+          },
+          "kind": "ai",
+          "name": "merge_reviews",
+          "output_schema": {
+            "hash": "d08c95ef3bb4b5e4ee8327d48563c03849a6f6b20d92fbdfe98738fd63d4cc2e",
+            "module": "conformance_project.schemas",
+            "name": "Decision"
+          },
+          "prompt_ref": {
+            "label": null,
+            "name": "merge",
+            "version": null
+          },
+          "used_by_steps": [
+            "merge"
+          ],
+          "validation_retries": 1
+        },
+        {
+          "artifact_inputs": [],
+          "definition_source": {
+            "kind": "yaml",
+            "yaml_name": "conformance_composition",
+            "yaml_project": "conformance_project"
+          },
+          "input_schema": {
+            "hash": "cdb8ab928c39a7b9a3542a514121a7dc7c99ac5cde1d5e01b3f847acff5c1bdc",
+            "module": "conformance_project.schemas",
+            "name": "Classification"
+          },
+          "kind": "ai",
+          "name": "summarize_deep",
+          "output_schema": {
+            "hash": "4c85112ab11f388b58022d234d3e34fb3f6f57519507f233e48dd8e38d98e490",
+            "module": "conformance_project.schemas",
+            "name": "AssessmentBatch"
+          },
+          "prompt_ref": {
+            "label": null,
+            "name": "summarize",
+            "version": null
+          },
+          "used_by_steps": [
+            "summarize_claims"
+          ],
+          "validation_retries": 1
+        }
+      ],
+      "bundle_version": "1",
+      "code": "<normalized>",
+      "components": [],
+      "deployment_preview_reference": "<normalized>",
+      "environment": {
+        "env_files": [],
+        "id": "local",
+        "name": "local",
+        "profile_path": "<normalized>",
+        "profile_variable_names": [
+          "TYPEFLUX_ENVIRONMENT"
+        ]
+      },
+      "links": {
+        "temporal_ui": "http://localhost:8233"
+      },
+      "project": {
+        "manifest_path": "<normalized>",
+        "name": "conformance-fixture"
+      },
+      "runtime": {
+        "observability": {
+          "execution_manifest": true,
+          "redaction_enabled": true,
+          "type": "none"
+        },
+        "provider": {
+          "allow_prompt_model_override": false,
+          "api_key_configured": false,
+          "base_url_configured": false,
+          "model": "claude-sonnet-4-6",
+          "params": {
+            "model": "claude-sonnet-4-6"
+          },
+          "type": "anthropic",
+          "vertex": false
+        },
+        "registry": {
+          "host": null,
+          "label": null,
+          "type": "inline"
+        },
+        "temporal": {
+          "address": "localhost:7233",
+          "api_key_configured": false,
+          "namespace": "default",
+          "tls_enabled": false,
+          "tls_mode": "disabled"
+        }
+      },
+      "runtime_effective": [
+        {
+          "path": "provider.model",
+          "source": "engine_default",
+          "value": "claude-sonnet-4-6"
+        },
+        {
+          "path": "provider_retry.max_attempts",
+          "source": "engine_default",
+          "value": 1
+        },
+        {
+          "path": "provider_retry.initial_backoff_seconds",
+          "source": "engine_default",
+          "value": 0.0
+        },
+        {
+          "path": "provider_retry.max_backoff_seconds",
+          "source": "engine_default"
+        },
+        {
+          "path": "provider_retry.backoff_multiplier",
+          "source": "engine_default",
+          "value": 2.0
+        },
+        {
+          "path": "provider_retry.jitter_ratio",
+          "source": "engine_default",
+          "value": 0.1
+        },
+        {
+          "path": "provider_retry.retry_rate_limits",
+          "source": "engine_default",
+          "value": true
+        }
+      ],
+      "secret_references": [
+        {
+          "configured": false,
+          "runtime_path": "runtime.provider.api_key",
+          "source_kind": "env",
+          "source_name": "TYPEFLUX_CONFORMANCE_ANTHROPIC_API_KEY"
+        }
+      ],
+      "steps": [
+        {
+          "activity": "classify_claims",
+          "effective_retry": {
+            "backoff_coefficient": 2.0,
+            "initial_interval_seconds": 1.0,
+            "maximum_attempts": 5,
+            "maximum_interval_seconds": 60.0
+          },
+          "effective_start_to_close_timeout_seconds": 120.0,
+          "id": "classify",
+          "kind": "activity"
+        },
+        {
+          "activity": "assess_item",
+          "effective_retry": {
+            "backoff_coefficient": 2.0,
+            "initial_interval_seconds": 1.0,
+            "maximum_attempts": 5,
+            "maximum_interval_seconds": 60.0
+          },
+          "effective_start_to_close_timeout_seconds": 120.0,
+          "id": "assess_items",
+          "kind": "map",
+          "map": {
+            "collect_field": "reviews",
+            "collect_output_schema": {
+              "hash": "4c85112ab11f388b58022d234d3e34fb3f6f57519507f233e48dd8e38d98e490",
+              "module": "conformance_project.schemas",
+              "name": "AssessmentBatch"
+            },
+            "concurrency": 2,
+            "over": "input.claims"
+          }
+        },
+        {
+          "activity": "summarize_deep",
+          "effective_retry": {
+            "backoff_coefficient": 2.0,
+            "initial_interval_seconds": 1.0,
+            "maximum_attempts": 5,
+            "maximum_interval_seconds": 60.0
+          },
+          "effective_start_to_close_timeout_seconds": 120.0,
+          "id": "summarize_claims",
+          "kind": "activity"
+        },
+        {
+          "activity": "merge_reviews",
+          "effective_retry": {
+            "backoff_coefficient": 2.0,
+            "initial_interval_seconds": 1.0,
+            "maximum_attempts": 5,
+            "maximum_interval_seconds": 60.0
+          },
+          "effective_start_to_close_timeout_seconds": 120.0,
+          "id": "merge",
+          "kind": "activity"
+        },
+        {
+          "activity": "escalate_decision",
+          "effective_retry": {
+            "backoff_coefficient": 2.0,
+            "initial_interval_seconds": 1.0,
+            "maximum_attempts": 5,
+            "maximum_interval_seconds": 60.0
+          },
+          "effective_start_to_close_timeout_seconds": 120.0,
+          "id": "escalate",
+          "kind": "activity"
+        }
+      ],
+      "topology": {
+        "edges": [
+          {
+            "kind": "sequential",
+            "source": "classify",
+            "target": "reviews"
+          },
+          {
+            "kind": "branch",
+            "source": "reviews",
+            "target": "assess_items"
+          },
+          {
+            "kind": "collect",
+            "source": "assess_items",
+            "target": "reviews"
+          },
+          {
+            "condition": "classify.deep_review == true",
+            "kind": "branch",
+            "source": "reviews",
+            "target": "summarize_claims"
+          },
+          {
+            "kind": "collect",
+            "source": "summarize_claims",
+            "target": "reviews"
+          },
+          {
+            "kind": "sequential",
+            "source": "reviews",
+            "target": "merge"
+          },
+          {
+            "condition": "classify.deep_review == true",
+            "kind": "conditional",
+            "source": "merge",
+            "target": "escalate"
+          }
+        ],
+        "nodes": [
+          {
+            "activity": "classify_claims",
+            "id": "classify",
+            "kind": "activity"
+          },
+          {
+            "id": "reviews",
+            "kind": "parallel"
+          },
+          {
+            "activity": "assess_item",
+            "id": "assess_items",
+            "kind": "map"
+          },
+          {
+            "activity": "summarize_deep",
+            "id": "summarize_claims",
+            "kind": "activity"
+          },
+          {
+            "activity": "merge_reviews",
+            "id": "merge",
+            "kind": "activity"
+          },
+          {
+            "activity": "escalate_decision",
+            "id": "escalate",
+            "kind": "activity"
+          }
+        ]
+      },
+      "validation": {
+        "checks": [],
+        "issues": [
+          {
+            "code": "duplicate_workflow_name",
+            "message": "duplicate YAML workflow name(s): ConformanceDemoWorkflow"
+          },
+          {
+            "code": "unknown_profile_reference",
+            "message": "workflow 'broken' profile selection selects unknown provider profile: missing-profile",
+            "path": "<normalized>",
+            "reference": "broken"
+          }
+        ],
+        "ok": false
+      },
+      "workflow": {
+        "generator_version": "<normalized>",
+        "id": "composition",
+        "input_schema": {
+          "hash": "176bf0f19b21fe8548e6fa481db1c1206038cc11f76518c5aedabb2e1d67a8e4",
+          "json_schema": {
+            "$defs": {
+              "ClaimItem": {
+                "properties": {
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "title": "ClaimItem",
+                "type": "object"
+              }
+            },
+            "properties": {
+              "claims": {
+                "items": {
+                  "$ref": "#/$defs/ClaimItem"
+                },
+                "title": "Claims",
+                "type": "array"
+              }
+            },
+            "required": [
+              "claims"
+            ],
+            "title": "ClaimInput",
+            "type": "object"
+          },
+          "module": "conformance_project.schemas",
+          "name": "ClaimInput"
+        },
+        "observability_trace_name": "TypefluxWorkflow:ConformanceCompositionWorkflow",
+        "output_schema": {
+          "hash": "d08c95ef3bb4b5e4ee8327d48563c03849a6f6b20d92fbdfe98738fd63d4cc2e",
+          "json_schema": {
+            "properties": {
+              "value": {
+                "title": "Value",
+                "type": "string"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "title": "Decision",
+            "type": "object"
+          },
+          "module": "conformance_project.schemas",
+          "name": "Decision"
+        },
+        "path": "<normalized>",
+        "spec_digest": "<normalized>",
+        "spec_digest_algorithm": "<normalized>",
+        "task_queue": "conformance-demo-queue",
+        "workflow_name": "ConformanceCompositionWorkflow",
+        "workflow_type": "<normalized>",
+        "yaml_name": "conformance_composition",
+        "yaml_project": "conformance_project"
+      }
+    },
+    "status": 200
+  }
+}

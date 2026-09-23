@@ -1,0 +1,14 @@
+{
+  "name": "request-validation-error",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/workflow/bundle"
+  },
+  "response": {
+    "body": {
+      "error": "RequestValidationError",
+      "message": "1 validation error: query.environment_id: Field required"
+    },
+    "status": 422
+  }
+}

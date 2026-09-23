@@ -1,0 +1,121 @@
+# Hand-written reference manifest for the ts-yaml-worker image (the TS twin of
+# deploy/yaml-worker/kubernetes.yaml). For a PROJECT deployment, prefer the
+# generated artifacts from `typeflux-project deploy --output <dir>`, which stamp
+# the per-workflow ConfigMap/Deployment + Secret scaffold with the same probe /
+# security-context / naming rules. This file shows the single-spec shape.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ts-yaml-worker-config
+data:
+  # The bundled offline reference spec + bindings ship inside the image. Point
+  # these at your own mounted spec + compiled bindings module for a real workflow.
+  TYPEFLUX_YAML_PATH: /app/packages/typescript/temporal-yaml/deploy-reference/typeflux.yaml
+  TYPEFLUX_WORKER_BINDINGS: /app/packages/typescript/temporal-yaml/deploy-reference/bindings.mjs
+  # Production default: TLS-secured Temporal Cloud namespace endpoint with the
+  # API key supplied as Secret material (TEMPORAL_API_KEY below).
+  TEMPORAL_ADDRESS: your-namespace.a1b2c.tmprl.cloud:7233
+  TEMPORAL_NAMESPACE: your-namespace.a1b2c
+  TEMPORAL_TLS: "true"
+  # Local-dev only: plaintext in-cluster frontend. Never ship production traffic
+  # over a non-TLS Temporal connection.
+  # TEMPORAL_ADDRESS: temporal-frontend.default.svc.cluster.local:7233
+  # TEMPORAL_NAMESPACE: default
+  # TEMPORAL_TLS: "false"
+  TEMPORAL_TASK_QUEUE: ts-yaml-worker-reference
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ts-yaml-worker-secrets
+type: Opaque
+stringData:
+  # Required for the Temporal Cloud default above; leave empty only for the
+  # local-dev plaintext variant. Provider api keys go here too for a real fork.
+  TEMPORAL_API_KEY: replace-me
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ts-yaml-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ts-yaml-worker
+  template:
+    metadata:
+      labels:
+        app: ts-yaml-worker
+    spec:
+      terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          # Pin production deployments to an immutable digest, for example:
+          # ghcr.io/your-org/ts-yaml-worker@sha256:<digest>
+          image: ghcr.io/your-org/ts-yaml-worker:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          envFrom:
+            - configMapRef:
+                name: ts-yaml-worker-config
+            - secretRef:
+                name: ts-yaml-worker-secrets
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          # All three probes gate on the preflight marker the CMD writes after a
+          # successful runtime assembly and before it starts polling.
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -f /tmp/typeflux-preflight-ok
+            failureThreshold: 12
+            periodSeconds: 10
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -f /tmp/typeflux-preflight-ok
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -f /tmp/typeflux-preflight-ok
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]
+      volumes:
+        - name: tmp
+          emptyDir: {}

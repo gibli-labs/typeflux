@@ -1,0 +1,61 @@
+{
+  "name": "@typeflux/temporal-worker",
+  "version": "0.1.0",
+  "description": "Opt-in Temporal worker integration for the Typeflux TypeScript SDK \u2014 registers typed AI activities and bootstraps a @temporalio worker + client. Keeps @typeflux/temporal dependency-light.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "example:code-defined": "tsx examples/code-defined-review/main.ts"
+  },
+  "dependencies": {
+    "@temporalio/activity": "^1.18.1",
+    "@temporalio/common": "^1.18.1",
+    "@temporalio/client": "^1.18.1",
+    "@temporalio/worker": "^1.18.1",
+    "@temporalio/workflow": "^1.18.1",
+    "@typeflux/temporal": "workspace:*"
+  },
+  "peerDependencies": {
+    "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "5.9.3",
+    "vitest": "^3.0.5",
+    "zod": "^4.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gibli-labs/typeflux.git",
+    "directory": "packages/typescript/temporal-worker"
+  },
+  "homepage": "https://github.com/gibli-labs/typeflux/tree/main/packages/typescript/temporal-worker#readme",
+  "bugs": {
+    "url": "https://github.com/gibli-labs/typeflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "engines": {
+    "node": "^22"
+  }
+}

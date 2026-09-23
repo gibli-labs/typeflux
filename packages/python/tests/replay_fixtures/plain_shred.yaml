@@ -1,0 +1,45 @@
+# Live crypto-shred CONTROL fixture (#715 slice 4): the SAME codec + subject_scope
+# stack as subjects_shred.yaml but with NO subjects block — a no-subject execution on
+# the wired stack must keep the ordinary shared-key wire (kid = main) and stay readable
+# before AND after any subject's key record is destroyed.
+project: replay_demo_project
+name: replay_plain_shred
+task_queue: replay-fixture-plain-shred-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    payload_codec:
+      type: aes
+      current: main
+      keys:
+        - id: main
+          value_from:
+            env: TYPEFLUX_LIVE_CODEC_KEY
+      subject_scope: {}
+  registry:
+    type: inline
+    prompts:
+      first: first {{value}}
+      second: second {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: ReplayPlainShredWorkflow
+  input: schemas:InputModel
+  output: schemas:OutputModel
+  steps:
+    - id: first
+      activity: first
+    - id: second
+      activity: second

@@ -1,0 +1,378 @@
+name: Release @typeflux TS SDK (npm)
+
+# Publishes the four TypeScript SDK packages as a VERSION TRAIN per
+# docs/release-policy.md: one ts-vX.Y.Z tag, all four packages at that
+# version, tag-after-gates-before-publish, exact-tarball publish (pinned
+# npm >= 11.2), per-package anonymous byte-identity verification, and a
+# GitHub Release carrying all four tarballs + checksums. The production
+# publish sits behind the protected `npm` environment. --provenance is
+# enabled once the source repository is public.
+
+on:
+  push:
+    tags:
+      - "ts-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Train version; must equal every packages/typescript/* package.json version (e.g. 0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-typescript
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build, gate, and pack the train
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Resolve release version
+        id: version
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            version="${GITHUB_REF_NAME#ts-v}"
+          else
+            version="$DISPATCH_VERSION"
+          fi
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::release version must be MAJOR.MINOR.PATCH, got '$version'" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Assert the version train
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          for pkg in temporal temporal-yaml temporal-worker temporal-controlplane; do
+            v=$(node -p "require('./packages/typescript/$pkg/package.json').version")
+            if [ "$v" != "$RELEASE_VERSION" ]; then
+              echo "::error::@typeflux/$pkg is $v, train is $RELEASE_VERSION — all four release together" >&2
+              exit 1
+            fi
+          done
+
+      - name: Assert the release commit is on main
+        run: |
+          git fetch --no-tags --filter=blob:none origin main
+          git fetch --no-tags --filter=blob:none --unshallow origin main 2>/dev/null || true
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::release ref $GITHUB_SHA is not on origin/main — releases are cut from main only" >&2
+            exit 1
+          fi
+
+      - name: Refuse a mismatched pre-existing tag (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          existing=$(git ls-remote --tags origin "refs/tags/ts-v$RELEASE_VERSION" "refs/tags/ts-v$RELEASE_VERSION^{}" | awk 'END{print $1}')
+          if [ -n "$existing" ] && [ "$existing" != "$GITHUB_SHA" ]; then
+            echo "::error::tag ts-v$RELEASE_VERSION exists at $existing, not HEAD ($GITHUB_SHA)" >&2
+            exit 1
+          fi
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: "10"
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Build, typecheck, test
+        run: |
+          pnpm -r build
+          pnpm -r typecheck
+          pnpm -r test
+
+      - name: Pack and gate the tarballs
+        run: |
+          mkdir -p dist-train
+          node scripts/verify-ts-pack.mjs dist-train | tee dist-train/MANIFEST
+          (cd dist-train && shasum -a 256 -- *.tgz > SHA256SUMS)
+          cat dist-train/SHA256SUMS
+
+      # Changelog gate runs BEFORE tagging/publishing: an immutable release
+      # must never exist without its documented changes (release policy).
+      - name: Extract the version's changelog section
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Exact token match: split the heading into words and compare
+          # literally — "0.1.1" must not match "0.1.10", and dots are not
+          # regex wildcards.
+          changelog_section=$(awk -v ver="$RELEASE_VERSION" '
+            /^## / {
+              found = 0
+              for (i = 1; i <= NF; i++) {
+                w = $i
+                gsub(/^[\[(]+|[\])]+$/, "", w)
+                if (w == ver || w == "v" ver) found = 1
+              }
+              if (grab) exit
+              if (found) { grab = 1 }
+              next
+            }
+            grab {print}
+          ' CHANGELOG.md)
+          if [ -z "$changelog_section" ]; then
+            case "$RELEASE_VERSION" in
+              *.*.0)
+                echo "::error::no CHANGELOG.md section found for $RELEASE_VERSION — 0.x minors may carry breaking changes and must document them (release policy)" >&2
+                exit 1 ;;
+              *)
+                changelog_section="(patch release; no dedicated changelog section)" ;;
+            esac
+          fi
+          printf '%s\n' "$changelog_section" > dist-train/CHANGELOG_SECTION
+
+      # Tag-after-gates, before any registry upload (release policy).
+      - name: Ensure the release tag exists at HEAD (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          existing=$(git ls-remote --tags origin "refs/tags/ts-v$RELEASE_VERSION" "refs/tags/ts-v$RELEASE_VERSION^{}" | awk 'END{print $1}')
+          if [ -n "$existing" ]; then
+            if [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "::error::tag ts-v$RELEASE_VERSION exists at $existing, not HEAD ($GITHUB_SHA)" >&2
+              exit 1
+            fi
+            echo "tag already at HEAD"
+            exit 0
+          fi
+          git tag "ts-v$RELEASE_VERSION"
+          git push origin "ts-v$RELEASE_VERSION"
+
+      - name: Upload the train
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ts-train
+          path: dist-train/
+          if-no-files-found: error
+
+  publish:
+    name: Publish the train (protected)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: npm
+    permissions:
+      contents: write
+      # id-token backs npm --provenance (launch-coupled: public-repo only).
+      id-token: write
+    steps:
+      - name: Check out repository (release notes source)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+
+      # npm 10 re-packs on `npm publish <tarball>` (npm/cli#4533, fixed in
+      # 11.2.0) — pin so the hashed bytes are the published bytes.
+      - name: Pin npm >= 11.2.0 (exact-bytes tarball publish)
+        run: |
+          npm install -g npm@11.2.0
+          npm --version
+
+      - name: Download the train
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ts-train
+          path: dist-train/
+
+      - name: Publish each package (idempotent, exact tarballs)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          npmrc="$RUNNER_TEMP/publish-npmrc"
+          echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$npmrc"
+          # Registry presence probe that distinguishes ABSENT (E404) from
+          # transient/other failures — the latter must never read as absence,
+          # or a 429/5xx could weld a partial train. Retries, then aborts.
+          # Returns 0=present, 1=absent.
+          probe() {
+            for attempt in 1 2 3 4 5; do
+              out=$(NPM_CONFIG_USERCONFIG=/dev/null npm view "$1@$2" version --registry https://registry.npmjs.org 2>&1) && return 0
+              if printf '%s' "$out" | grep -q 'E404'; then
+                return 1
+              fi
+              echo "registry probe for $1@$2 failed (attempt $attempt): $out" >&2
+              sleep 15
+            done
+            echo "::error::registry probe for $1@$2 kept failing with non-404 errors — aborting before any upload" >&2
+            exit 2
+          }
+          # Phase 1: any ALREADY-published member must be byte-identical to
+          # this run's build BEFORE anything missing is published — otherwise
+          # a rerun could weld a mixed, unrecoverable train (versions are
+          # immutable).
+          while read -r name version tarball; do
+            tarball_file="dist-train/$(basename "$tarball")"
+            if ! probe "$name" "$version"; then
+              echo "$name absent at phase-1 check" >> /tmp/phase1-absent
+              continue
+            fi
+            url=$(NPM_CONFIG_USERCONFIG=/dev/null npm view "$name@$version" dist.tarball --registry https://registry.npmjs.org)
+            curl -fsSL "$url" -o /tmp/existing.tgz
+            # Canonical digests: pnpm pack serializes rewritten workspace deps
+            # nondeterministically, so raw bytes differ across identical packs.
+            local_dig=$(node scripts/ts-tarball-digest.mjs "$tarball_file")
+            remote_dig=$(node scripts/ts-tarball-digest.mjs /tmp/existing.tgz)
+            if [ "$local_dig" != "$remote_dig" ]; then
+              echo "::error::$name@$version already on the registry with different content ($remote_dig != $local_dig) — refusing to publish a mixed train" >&2
+              exit 1
+            fi
+            echo "$name" >> /tmp/phase1-verified
+            echo "$name@$version already published and content-identical"
+          done < dist-train/MANIFEST
+          touch /tmp/phase1-verified /tmp/phase1-absent
+          # Phase 2a: re-check EVERY member's presence before the first
+          # upload. Any member that exists now but was not digest-verified in
+          # phase 1 aborts the whole run — otherwise earlier members could be
+          # irreversibly published before a later mismatch is discovered.
+          # (This run's concurrency group serializes it against other runs of
+          # this workflow; a foreign publisher racing the same names is
+          # outside our control and would be caught by verification.)
+          : > /tmp/to-publish
+          while read -r name version tarball; do
+            if probe "$name" "$version"; then
+              if ! grep -Fxq "$name" /tmp/phase1-verified; then
+                echo "::error::$name@$version appeared on the registry after phase 1 without a digest check — re-run the workflow" >&2
+                exit 1
+              fi
+            else
+              printf '%s %s %s\n' "$name" "$version" "$tarball" >> /tmp/to-publish
+            fi
+          done < dist-train/MANIFEST
+          # Phase 2b: publish the missing members (exact tarballs). Members
+          # published by THIS run are recorded — their verification demands
+          # RAW byte identity (we uploaded those exact bytes).
+          : > dist-train/PUBLISHED_NOW
+          while read -r name version tarball; do
+            tarball_file="dist-train/$(basename "$tarball")"
+            # --provenance: this pipeline is LAUNCH-COUPLED (owner decision,
+            # 2026-09-19) — it dispatches only from the public repository, so
+            # every published artifact carries a provenance attestation from
+            # its first release. A private-repo dispatch fails here (E422),
+            # which is the intended guard.
+            NPM_CONFIG_USERCONFIG="$npmrc" npm publish "$tarball_file" --provenance --registry https://registry.npmjs.org
+            echo "$name" >> dist-train/PUBLISHED_NOW
+          done < /tmp/to-publish
+
+      - name: Verify every published tarball anonymously
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          verify_one() {
+            # $1 = name, $2 = version, $3 = local tarball path
+            url=$(NPM_CONFIG_USERCONFIG=/dev/null npm view "$1@$2" dist.tarball --registry https://registry.npmjs.org 2>/dev/null || true)
+            [ -n "$url" ] || return 1
+            rm -f /tmp/published.tgz
+            curl -fsSL "$url" -o /tmp/published.tgz || return 1
+            if grep -Fxq "$1" dist-train/PUBLISHED_NOW; then
+              # Published by THIS run: npm must serve the exact uploaded
+              # bytes — any deviation is an integrity failure, not pack noise.
+              local_sha=$(shasum -a 256 "$3" | cut -d' ' -f1)
+              remote_sha=$(shasum -a 256 /tmp/published.tgz | cut -d' ' -f1)
+              if [ "$local_sha" != "$remote_sha" ]; then
+                echo "::error::$1@$2: registry sha256 $remote_sha != uploaded $local_sha" >&2
+                exit 1
+              fi
+              echo "$1@$2 verified (raw): $remote_sha"
+            else
+              # Pre-existing member (rerun): pnpm re-packs are byte-noisy, so
+              # compare canonical content, then adopt the SERVED bytes as the
+              # release evidence.
+              local_dig=$(node scripts/ts-tarball-digest.mjs "$3")
+              remote_dig=$(node scripts/ts-tarball-digest.mjs /tmp/published.tgz)
+              if [ "$local_dig" != "$remote_dig" ]; then
+                echo "::error::$1@$2: registry canonical digest $remote_dig != packed $local_dig" >&2
+                exit 1
+              fi
+              cp /tmp/published.tgz "$3"
+              echo "$1@$2 verified (canonical): $remote_dig"
+            fi
+          }
+          while read -r name version tarball; do
+            tarball_file="dist-train/$(basename "$tarball")"
+            ok=""
+            for attempt in 1 2 3 4 5 6 7 8; do
+              if verify_one "$name" "$version" "$tarball_file"; then ok=1; break; fi
+              echo "$name@$version not visible yet (attempt $attempt); waiting..."
+              sleep 60
+            done
+            if [ -z "$ok" ]; then
+              echo "::error::$name@$version failed anonymous verification" >&2
+              exit 1
+            fi
+          done < dist-train/MANIFEST
+
+      - name: Anonymous install smoke
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          mkdir -p /tmp/install-smoke && cd /tmp/install-smoke
+          npm init -y >/dev/null
+          NPM_CONFIG_USERCONFIG=/dev/null npm install --registry https://registry.npmjs.org \
+            "@typeflux/temporal@$RELEASE_VERSION" \
+            "@typeflux/temporal-yaml@$RELEASE_VERSION" \
+            "@typeflux/temporal-worker@$RELEASE_VERSION" \
+            "@typeflux/temporal-controlplane@$RELEASE_VERSION"
+          node -e "for (const m of ['@typeflux/temporal','@typeflux/temporal-yaml','@typeflux/temporal-worker','@typeflux/temporal-controlplane']) { require.resolve(m); console.log(m, 'resolves'); }"
+
+      # Checksums are recomputed AFTER verification swapped in the served
+      # registry bytes — the release evidence describes exactly what npm serves.
+      - name: Recompute checksums over the served bytes
+        run: |
+          (cd dist-train && shasum -a 256 -- *.tgz > SHA256SUMS)
+          cat dist-train/SHA256SUMS
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          # The changelog section was gated and persisted by the BUILD job,
+          # before the tag and any publish.
+          changelog_section=$(cat dist-train/CHANGELOG_SECTION)
+          notes="Published the @typeflux TypeScript SDK train to npmjs.org at $RELEASE_VERSION.
+
+          Packages: @typeflux/temporal, @typeflux/temporal-yaml, @typeflux/temporal-worker, @typeflux/temporal-controlplane.
+          Install: npm install @typeflux/temporal@$RELEASE_VERSION (no credentials required).
+          SHA-256 checksums attached.
+
+          ## Changes
+
+          $changelog_section"
+          if gh release view "ts-v$RELEASE_VERSION" >/dev/null 2>&1; then
+            gh release upload "ts-v$RELEASE_VERSION" dist-train/*.tgz dist-train/SHA256SUMS --clobber
+          else
+            gh release create "ts-v$RELEASE_VERSION" \
+              --title "@typeflux TS SDK $RELEASE_VERSION" \
+              --notes "$notes" \
+              dist-train/*.tgz dist-train/SHA256SUMS
+          fi

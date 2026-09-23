@@ -1,0 +1,33 @@
+version: "1"
+name: local
+
+env_files:
+  - path: ../../.env
+    required: false
+
+variables:
+  TYPEFLUX_ENVIRONMENT: local
+  TYPEFLUX_DEPLOYMENT_ID: examples-local
+  TYPEFLUX_TEMPORAL_REGION: local
+
+overrides:
+  runtime:
+    temporal:
+      address: localhost:7233
+      namespace: default
+      tls: false
+      api_key: ""
+    observability:
+      # The common dev loop is local Temporal + traces in your own Langfuse
+      # project, so local traces to Langfuse by default. It degrades cleanly
+      # when Langfuse keys are absent (the console shows the observer
+      # unreachable); set TYPEFLUX_LOCAL_OBSERVABILITY=none for pure-offline.
+      type: ${TYPEFLUX_LOCAL_OBSERVABILITY:-langfuse}
+
+workflows:
+  lifecycle_review:
+    overrides:
+      task_queue: lifecycle-review-local-typeflux
+  contract_risk_review:
+    overrides:
+      task_queue: contract-risk-review-local-typeflux

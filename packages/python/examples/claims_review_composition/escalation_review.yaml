@@ -1,0 +1,54 @@
+# escalation_review — a PURE-YAML sub-workflow (#55) invoked by the parent's
+# `workflow:` step (a single child execution). It keeps the parent's `Consolidated`
+# type, so the parent's schema chain flows through the child transparently.
+project: examples.claims_review_composition
+name: escalation_review
+task_queue: ${TEMPORAL_TASK_QUEUE:-claims-review-composition-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  registry:
+    type: inline
+    prompts:
+      escalate-review: |
+        A reviewer escalated this intake. Re-summarize for the compliance desk.
+        Current summary: {{summary}}
+
+  provider:
+    type: openai
+    model: ${TYPEFLUX_OPENAI_MODEL:-gpt-4o-mini}
+    structured_mode: json_schema
+    api_key:
+      value_from:
+        env: OPENAI_API_KEY
+        required: false
+
+  observability:
+    type: langfuse
+    execution_manifest: true
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+activities:
+  definitions:
+    - name: escalate_review
+      input: schemas:Consolidated
+      output: schemas:Consolidated
+      prompt: escalate-review
+
+workflow:
+  name: EscalationReviewWorkflow
+  input: schemas:Consolidated
+  output: schemas:Consolidated
+  steps:
+    - id: escalate
+      activity: escalate_review

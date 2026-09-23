@@ -1,0 +1,36 @@
+{
+  "name": "environment-local",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/environments/local"
+  },
+  "response": {
+    "body": {
+      "env_files": [],
+      "id": "local",
+      "name": "local",
+      "overrides": {
+        "runtime": {
+          "observability": {
+            "type": "none"
+          },
+          "temporal": {
+            "address": "localhost:7233",
+            "api_key": "",
+            "namespace": "default",
+            "tls": false
+          }
+        }
+      },
+      "profile_path": "<normalized>",
+      "used_by": [
+        "workflow"
+      ],
+      "variable_names": [
+        "TYPEFLUX_ENVIRONMENT"
+      ],
+      "workflow_profiles": {}
+    },
+    "status": 200
+  }
+}

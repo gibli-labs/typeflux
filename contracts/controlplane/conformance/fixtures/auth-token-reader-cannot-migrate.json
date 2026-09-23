@@ -1,0 +1,22 @@
+{
+  "name": "auth-token-reader-cannot-migrate",
+  "profile": "token",
+  "request": {
+    "body": {
+      "environment_id": "local",
+      "execution_id": "conf-403"
+    },
+    "headers": {
+      "Authorization": "Bearer conformance-reader-token"
+    },
+    "method": "POST",
+    "path": "/api/v1/workflows/workflow/migrate"
+  },
+  "response": {
+    "body": {
+      "error": "Forbidden",
+      "message": "operation requires the 'start' permission"
+    },
+    "status": 403
+  }
+}

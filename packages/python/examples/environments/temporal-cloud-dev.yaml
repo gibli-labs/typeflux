@@ -1,0 +1,35 @@
+version: "1"
+name: temporal-cloud-dev
+
+env_files:
+  - path: ../../.env.temporal-cloud
+    required: false
+
+variables:
+  TYPEFLUX_ENVIRONMENT: temporal-cloud
+  TYPEFLUX_DEPLOYMENT_ID: quickstart-cloud-smoke
+  TYPEFLUX_TEMPORAL_REGION: us-east
+
+overrides:
+  runtime:
+    temporal:
+      address: ${TEMPORAL_ADDRESS}
+      namespace: ${TEMPORAL_NAMESPACE}
+      tls: true
+      api_key:
+        value_from:
+          env: TEMPORAL_API_KEY
+    observability:
+      type: langfuse
+
+workflows:
+  lifecycle_review:
+    overrides:
+      task_queue: lifecycle-review-cloud-typeflux
+  contract_risk_review:
+    overrides:
+      task_queue: contract-risk-review-cloud-typeflux
+      runtime:
+        registry:
+          type: langfuse
+          label: ${LANGFUSE_PROMPT_LABEL:-production}

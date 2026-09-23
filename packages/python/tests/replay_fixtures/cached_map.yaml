@@ -1,0 +1,44 @@
+project: replay_demo_project
+name: replay_cached_map
+task_queue: replay-fixture-cached-map-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      review_item:
+        messages:
+          # A stable system prefix: without one the prep activity fails soft to
+          # an unengaged handle (no cache_id) and the release command is never
+          # scheduled — the bracket this fixture exists to record.
+          - role: system
+            content: You review replay fixture items.
+          - role: user
+            content: review {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureReferenceProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - cached_activities
+
+workflow:
+  name: ReplayCachedMapWorkflow
+  input: schemas:BatchInputModel
+  output: schemas:BatchModel
+  steps:
+    - id: mapped
+      map:
+        activity: review_item
+        over: input.items
+        concurrency: 2
+        collect:
+          output: schemas:BatchModel
+          field: results

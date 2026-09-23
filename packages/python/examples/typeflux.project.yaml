@@ -1,0 +1,109 @@
+version: "1"
+name: typeflux-examples
+
+defaults:
+  workflow_filename: typeflux.yaml
+  # Project-wide runtime defaults sit beneath every workflow YAML; the
+  # console's Runtime section tags each effective value engine/project/
+  # configured so operators see what unset knobs resolve to.
+  runtime:
+    provider_retry:
+      max_attempts: 3
+
+workflows:
+  # The docs/tutorial.md Section-1 quickstart: the smallest useful spec (one inline-prompt
+  # AI activity, OpenAI provider, tracing off).
+  - id: tutorial_quickstart
+    directory: tutorial_quickstart
+  - id: support_triage_langfuse
+    directory: support_triage_langfuse
+  - id: support_triage_langfuse_anthropic
+    path: support_triage_langfuse/typeflux.anthropic.yaml
+  - id: insurance_claim_review
+    directory: insurance_claim_review
+  - id: financial_claims_marketing_review
+    directory: financial_claims_marketing_review
+  - id: lifecycle_review
+    directory: lifecycle_review
+  - id: contract_risk_review
+    directory: contract_risk_review
+  - id: contract_risk_review_anthropic
+    path: contract_risk_review/typeflux.anthropic.yaml
+  - id: regulated_claims_adjudication
+    path: regulated_claims_adjudication/typeflux.anthropic.yaml
+  - id: regulated_disclosure_review
+    directory: regulated_disclosure_review
+  # #55 composition showcase (parallel + when + sub-workflows + map.workflow + gates).
+  # Two parents demonstrate BOTH authoring modes over the same pure-YAML children:
+  # claims_review is YAML+code (activities.modules); claims_review_pure is pure-YAML.
+  - id: claim_triage
+    path: claims_review_composition/claim_triage.yaml
+  - id: escalation_review
+    path: claims_review_composition/escalation_review.yaml
+  - id: claims_review
+    path: claims_review_composition/claims_review.yaml
+  - id: claims_review_pure
+    path: claims_review_composition/claims_review_pure.yaml
+
+environments:
+  local: environments/local.yaml
+  temporal_cloud_dev: environments/temporal-cloud-dev.yaml
+
+policies:
+  base: policies/base.yaml
+  regulated: policies/regulated.yaml
+  composition: policies/composition.yaml
+
+validation:
+  targets:
+    local:
+      workflows:
+        - tutorial_quickstart
+        - support_triage_langfuse
+        - support_triage_langfuse_anthropic
+        - insurance_claim_review
+        - financial_claims_marketing_review
+        - lifecycle_review
+        - contract_risk_review
+        - contract_risk_review_anthropic
+        - regulated_claims_adjudication
+        - regulated_disclosure_review
+        - claim_triage
+        - escalation_review
+        - claims_review
+        - claims_review_pure
+      environment: local
+      policies:
+        - base
+    temporal_cloud_dev:
+      workflows:
+        - support_triage_langfuse
+        - support_triage_langfuse_anthropic
+        - insurance_claim_review
+        - financial_claims_marketing_review
+        - lifecycle_review
+        - contract_risk_review
+        - contract_risk_review_anthropic
+        - regulated_claims_adjudication
+        - regulated_disclosure_review
+      environment: temporal_cloud_dev
+      policies:
+        - base
+    temporal_cloud_regulated:
+      workflows:
+        - regulated_disclosure_review
+      environment: temporal_cloud_dev
+      policies:
+        - regulated
+    # #298 composition ceilings for the #55 showcase parents + their sub-workflow
+    # closure. Overlaps the `local` target (which binds `base`), so these workflows
+    # compose base ∩ composition ceilings — graph-shape bounds enforced alongside.
+    local_composition:
+      workflows:
+        - claim_triage
+        - escalation_review
+        - claims_review
+        - claims_review_pure
+      environment: local
+      policies:
+        - composition

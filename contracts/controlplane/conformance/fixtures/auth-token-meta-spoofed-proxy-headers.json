@@ -1,0 +1,60 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "Identical behavior to the base golden apart from /runtime (typescript vs python), the standing token-profile meta divergence. The spoofed X-Typeflux-Actor/X-Typeflux-Permissions headers are ignored on BOTH editions: the token authorizer is active, so the proxy headers are untrusted client input \u2014 caller_identity is null (identity comes only from a ProxyHeaderAuthorizer, never from header presence, #577) and the capabilities are the reader grant's (inspect-only), not the smuggled '*'. enforcement_events follows resolvable (true); github_provenance is false on both (local mount, no recorded git source, #727).",
+      "response": {
+        "body": {
+          "api_version": "1",
+          "bundle_version": "1",
+          "caller_identity": null,
+          "capabilities": {
+            "can_cancel": false,
+            "can_refresh_project": false,
+            "can_resolve": true,
+            "can_review": false,
+            "can_start": false,
+            "enforcement_events": true,
+            "github_provenance": false
+          },
+          "catalog_version": "1",
+          "manifest_path": "<normalized>",
+          "project": "conformance-fixture",
+          "runtime": "typescript"
+        },
+        "status": 200
+      }
+    }
+  },
+  "name": "auth-token-meta-spoofed-proxy-headers",
+  "profile": "token",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer conformance-reader-token",
+      "X-Typeflux-Actor": "mallory",
+      "X-Typeflux-Permissions": "*"
+    },
+    "method": "GET",
+    "path": "/api/v1/meta"
+  },
+  "response": {
+    "body": {
+      "api_version": "1",
+      "bundle_version": "1",
+      "caller_identity": null,
+      "capabilities": {
+        "can_cancel": false,
+        "can_refresh_project": false,
+        "can_resolve": true,
+        "can_review": false,
+        "can_start": false,
+        "enforcement_events": true,
+        "github_provenance": false
+      },
+      "catalog_version": "1",
+      "manifest_path": "<normalized>",
+      "project": "conformance-fixture",
+      "runtime": "python"
+    },
+    "status": 200
+  }
+}

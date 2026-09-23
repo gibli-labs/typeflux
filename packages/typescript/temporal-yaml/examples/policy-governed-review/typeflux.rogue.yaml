@@ -1,0 +1,57 @@
+# The SAME workflow, but non-compliant on two dimensions — the governance
+# pre-flight refuses to build it (fail-closed), so it never starts:
+#   1. provider.model gpt-4o    → composed policy allows only gpt-4o-mini
+#   2. redaction.enabled false  → composed policy REQUIRES redaction
+project: examples.policy_governed_review
+name: policy_governed_review_rogue
+task_queue: ${TEMPORAL_TASK_QUEUE:-policy-governed-review-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+
+  registry:
+    type: inline
+    prompts:
+      review/assess_content:
+        messages:
+          - role: system
+            content: |
+              You are a content-safety reviewer. Classify one message and flag risk.
+          - role: user
+            content: |
+              Message id: {{id}}
+              Body: {{body}}
+
+              Return a structured assessment: category is safe, review, or block;
+              risk_score is 0..1; notes are a one-line reviewer rationale.
+
+  provider:
+    type: openai
+    model: gpt-4o # ✗ not allowed by the composed policy
+
+  observability:
+    type: langfuse
+    redaction:
+      enabled: false # ✗ policy requires redaction
+
+  provider_limits:
+    default:
+      max_concurrent: 2
+
+activities:
+  definitions:
+    - name: assess_content
+      input: schemas:ContentItem
+      output: schemas:Assessment
+      prompt: review/assess_content
+      validation_retries: 2
+
+workflow:
+  name: PolicyGovernedReviewWorkflow
+  input: schemas:ContentItem
+  output: schemas:Assessment
+  steps:
+    - id: assess
+      activity: assess_content

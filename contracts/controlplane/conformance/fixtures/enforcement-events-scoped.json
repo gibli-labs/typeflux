@@ -1,0 +1,27 @@
+{
+  "mask": [
+    "/since",
+    "/until"
+  ],
+  "name": "enforcement-events-scoped",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/enforcement-events",
+    "query": {
+      "environment_id": "local",
+      "policy_id": "base",
+      "workflow_id": "workflow"
+    }
+  },
+  "response": {
+    "body": {
+      "events": [],
+      "partial": {
+        "langfuse": "not_configured"
+      },
+      "since": "<normalized>",
+      "until": "<normalized>"
+    },
+    "status": 200
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "mask": [
+    "/message"
+  ],
+  "name": "review-gate-temporal-unreachable",
+  "note": "#55 slice 4: the review command's optional `gate` field (which gate to decide) is accepted by both control planes and passed through to the signal; against the unreachable environment the operation still bounds to 503 TemporalUnavailable, proving the field is contract-valid (not a 422).",
+  "request": {
+    "body": {
+      "command": {
+        "gate": "screen_gate",
+        "user_decision": "approve"
+      },
+      "environment_id": "unreachable",
+      "execution_id": "conf-unreachable-review-gate"
+    },
+    "method": "POST",
+    "path": "/api/v1/workflows/workflow/review"
+  },
+  "response": {
+    "body": {
+      "error": "TemporalUnavailable",
+      "message": "<normalized>"
+    },
+    "status": 503
+  }
+}

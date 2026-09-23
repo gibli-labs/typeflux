@@ -1,0 +1,13 @@
+# Polyglot monorepo — pnpm workspace for the TypeScript SDK packages.
+# The Python SDK lives at packages/python (its own uv project).
+# The existing control-plane clients under clients/* use npm and are not part
+# of this pnpm workspace.
+packages:
+  - "packages/typescript/*"
+
+# Force protobufjs off the version pulled transitively by @temporalio/proto
+# (7.5.8) that is vulnerable to GHSA-wcpc-wj8m-hjx6 (DoS via unbounded Any
+# expansion in JSON conversion; patched in 7.6.1). Stays on 7.x for @temporalio
+# compatibility.
+overrides:
+  protobufjs@<7.6.1: ">=7.6.1 <8"

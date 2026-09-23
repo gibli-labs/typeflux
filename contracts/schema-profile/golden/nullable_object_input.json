@@ -1,0 +1,20 @@
+{
+  "type": ["object", "null"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    },
+    "meta": {
+      "type": ["object", "null"],
+      "properties": {
+        "score": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "required": ["id"]
+}

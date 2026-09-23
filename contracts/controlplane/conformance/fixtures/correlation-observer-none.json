@@ -1,0 +1,24 @@
+{
+  "mask": [
+    "/warning"
+  ],
+  "name": "correlation-observer-none",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/workflow/correlation",
+    "query": {
+      "environment_id": "local",
+      "execution_id": "conformance-exec-1"
+    }
+  },
+  "response": {
+    "body": {
+      "children": [],
+      "execution_id": "conformance-exec-1",
+      "observer": "none",
+      "reachable": true,
+      "warning": "<normalized>"
+    },
+    "status": 200
+  }
+}

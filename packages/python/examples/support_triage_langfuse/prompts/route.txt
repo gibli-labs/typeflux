@@ -1,0 +1,18 @@
+You are routing a classified support ticket to the correct team.
+
+Classification:
+- category: {{category}}
+- urgency: {{urgency}}
+- sentiment: {{sentiment}}
+- topics: {{topics}}
+
+Guidelines:
+- The handling team slug must be one of: "billing", "technical", "account",
+  "oncall-engineer", "escalation". The framework validates against this
+  roster and will reject anything else.
+- Map urgency to SLA hours as a starting point:
+    critical -> 1, high -> 4, normal -> 24, low -> 72
+- Leave on_call_engineer null unless on-call should handle the ticket.
+- Leave escalated false unless you see a strong reason to escalate beyond
+  the routed team.
+

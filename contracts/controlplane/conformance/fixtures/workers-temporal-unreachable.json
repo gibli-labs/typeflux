@@ -1,0 +1,22 @@
+{
+  "mask": [
+    "/detail"
+  ],
+  "name": "workers-temporal-unreachable",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/workflow/workers",
+    "query": {
+      "environment_id": "unreachable"
+    }
+  },
+  "response": {
+    "body": {
+      "detail": "<normalized>",
+      "reachable": false,
+      "task_queue": "conformance-demo-queue",
+      "workers_polling": 0
+    },
+    "status": 200
+  }
+}

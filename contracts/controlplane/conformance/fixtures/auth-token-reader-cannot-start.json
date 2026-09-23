@@ -1,0 +1,25 @@
+{
+  "name": "auth-token-reader-cannot-start",
+  "profile": "token",
+  "request": {
+    "body": {
+      "environment_id": "local",
+      "execution_id": "conf-403",
+      "input": {
+        "claims": []
+      }
+    },
+    "headers": {
+      "Authorization": "Bearer conformance-reader-token"
+    },
+    "method": "POST",
+    "path": "/api/v1/workflows/workflow/start"
+  },
+  "response": {
+    "body": {
+      "error": "Forbidden",
+      "message": "operation requires the 'start' permission"
+    },
+    "status": 403
+  }
+}

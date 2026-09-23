@@ -1,0 +1,18 @@
+Review this marketing claim for compliance risk.
+
+Campaign: {{campaign_id}}
+Submission: {{submission_id}}
+Claim ID: {{claim_id}}
+Product category: {{product_category}}
+Channel: {{channel}}
+Jurisdiction: {{jurisdiction}}
+Audience: {{audience}}
+Marketing owner: {{contact}}
+
+Claim text:
+{{claim_text}}
+
+Available evidence:
+{{evidence}}
+
+Return a claim-level review with a decision, risk level, risk signals, missing evidence, required disclosures, a compliant suggested revision, and a short rationale.

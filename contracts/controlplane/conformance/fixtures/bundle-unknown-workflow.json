@@ -1,0 +1,17 @@
+{
+  "name": "bundle-unknown-workflow",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/nope/bundle",
+    "query": {
+      "environment_id": "local"
+    }
+  },
+  "response": {
+    "body": {
+      "error": "NotFound",
+      "message": "unknown project workflow: nope"
+    },
+    "status": 404
+  }
+}

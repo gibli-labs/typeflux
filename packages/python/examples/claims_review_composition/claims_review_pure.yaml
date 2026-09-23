@@ -1,0 +1,126 @@
+# claims_review_pure — the PURE-YAML twin of claims_review.yaml (#55 scope addition A:
+# both authoring modes are first-class, and YAML must stand alone). The SAME full
+# composition surface — the parallel if/else pair, the `map.workflow` fan-out, the
+# `workflow:` sub-workflow step, and the two review gates with a timeout route — with
+# every activity declared inline (`activities.definitions` + the inline registry) and
+# ZERO code modules. The referenced sub-workflows are the same pure-YAML siblings.
+project: examples.claims_review_composition
+name: claims_review_pure
+task_queue: ${TEMPORAL_TASK_QUEUE:-claims-review-composition-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  registry:
+    type: inline
+    prompts:
+      # Registry composition (#748): the composed worker serves ONE registry, built as the
+      # MERGE of this parent's registry and every sub-workflow's own (claim_triage.yaml's
+      # `triage-claim`, escalation_review.yaml's `escalate-review`). Only THIS workflow's own
+      # prompts live here — the children's are pulled in automatically, no duplication.
+      acknowledge-intake: |
+        Low-priority intake with {{claims}} — acknowledge receipt.
+      consolidate-intake: |
+        Consolidate the intake fan-out into a review summary.
+        fast_track: {{fast_track}}
+        full_review: {{full_review}}
+      finalize-review: |
+        Finalize the review decision from summary {{summary}} (escalate={{escalate}}).
+
+  provider:
+    type: openai
+    model: ${TYPEFLUX_OPENAI_MODEL:-gpt-4o-mini}
+    structured_mode: json_schema
+    api_key:
+      value_from:
+        env: OPENAI_API_KEY
+        required: false
+
+  observability:
+    type: langfuse
+    execution_manifest: true
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+activities:
+  definitions:
+    - name: acknowledge
+      input: schemas:ClaimBatch
+      output: schemas:Acknowledgement
+      prompt: acknowledge-intake
+    - name: consolidate
+      input: schemas:IntakeFanout
+      output: schemas:Consolidated
+      prompt: consolidate-intake
+    - name: finalize
+      input: schemas:Consolidated
+      output: schemas:ReviewPacket
+      prompt: finalize-review
+
+workflow:
+  name: ClaimsReviewPureWorkflow
+  input: schemas:ClaimBatch
+  output: schemas:ReviewPacket
+  lifecycle:
+    enabled: true
+    progress: true
+    cancellation: true
+    history:
+      status_event_limit: 50
+    gates:
+      - id: intake_gate
+        after_step: consolidate
+        invalid_user_decision: fail
+        user_decisions:
+          escalate:
+            route: escalation
+          expedite:
+            route: finalize
+        timeout:
+          seconds: 3600
+          on_timeout: route
+          route: finalize
+      - id: compliance_gate
+        after_step: escalation
+        invalid_user_decision: fail
+        user_decisions:
+          approve:
+            route: finalize
+          reject:
+            route: finalize
+  steps:
+    - id: screen
+      parallel:
+        branches:
+          - id: fast_track
+            when: { path: input.priority, eq: low }
+            steps:
+              - id: fast_ack
+                activity: acknowledge
+          - id: full_review
+            when: { path: input.priority, neq: low }
+            steps:
+              - id: triage_all
+                map:
+                  workflow: claim_triage
+                  over: input.claims
+                  concurrency: 3
+                  collect:
+                    output: schemas:TriageBatch
+                    field: triaged
+        collect:
+          output: schemas:IntakeFanout
+    - id: consolidate
+      activity: consolidate
+    - id: escalation
+      workflow: escalation_review
+    - id: finalize
+      activity: finalize

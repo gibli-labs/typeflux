@@ -1,0 +1,67 @@
+{
+  "resolver_version": "1",
+  "description": "The Resolver interface (#619): resolution — importing a project's schema/activity modules to produce contract DTOs — is the one genuinely language-bound control-plane layer. This document names it as a transport-shaped interface: in-process implementations bind these operations directly; a subprocess or network resolver exchanges exactly these JSON messages. Responses are named references into the control-plane contract — resolution returns exactly what the API serves, never new shapes.",
+  "transport": {
+    "request": "{\"operation\": <name>, \"params\": {…}} — params per operation below; an optional \"id\" echoes back on the response for request/response pairing over a stream",
+    "response": "{\"ok\": true, \"result\": <response_schema instance>} | {\"ok\": false, \"status\": <HTTP status int>, \"error\": <ApiError>}",
+    "error_shape": "ApiError from the control-plane contract (controlplane/openapi.v1.json#/components/schemas/ApiError) PLUS the HTTP status the API would answer with: config/validation failures carry the raising exception's class name at 422, unknown ids are NotFound at 404 — a resolver failure is the same wire object (and status) the API would serve, so a control plane forwards both instead of translating.",
+    "subprocess_framing": "A subprocess resolver (#642) speaks newline-delimited JSON over stdio: one boot readiness line {\"event\": \"ready\", \"resolver_version\": \"1\", \"runtime\": <runtime>}, then one request object per stdin line and exactly one response object per stdout line, in order. The process is long-lived; every request is resolved with per-request freshness (nothing is cached across requests). Diagnostics go to stderr, never stdout."
+  },
+  "response_schemas_source": "controlplane/openapi.v1.json",
+  "operations": {
+    "resolve_bundle": {
+      "params": {
+        "manifest_path": "string, required — the project manifest the resolver runtime can import",
+        "workflow_id": "string, required",
+        "environment_id": "string, required",
+        "policy_ids": "string[], optional (default [])",
+        "deployment_image": "string | null, optional"
+      },
+      "response_schema": "ResolvedWorkflowBundle"
+    },
+    "resolve_catalog": {
+      "params": {
+        "manifest_path": "string, required",
+        "workflow_id": "string, required",
+        "environment_id": "string, required"
+      },
+      "response_schema": "ActivityCatalog"
+    },
+    "validate_project": {
+      "params": {
+        "manifest_path": "string, required",
+        "environment_id": "string | null, optional",
+        "workflow_ids": "string[], optional (default [])",
+        "policy_ids": "string[], optional (default [])"
+      },
+      "response_schema": "ProjectValidationReport"
+    },
+    "prompt_status": {
+      "params": {
+        "manifest_path": "string, required",
+        "workflow_id": "string, required",
+        "environment_id": "string, required"
+      },
+      "response_schema": "WorkflowPromptStatus"
+    },
+    "resolve_plan": {
+      "params": {
+        "manifest_path": "string, required",
+        "workflow_id": "string, required",
+        "environment_id": "string, required"
+      },
+      "response_schema": "inline (below) — the plan is a binding-profile artifact, not a control-plane read DTO",
+      "response": {
+        "plan": "object, required — the resolved WorkflowPlan exactly as the runtime's generic workflow interprets it; the control plane treats it as opaque and dispatches it verbatim",
+        "task_queue": "string, required — the resolved (environment-overlaid) task queue the execution starts on",
+        "spec_digest": "string, required — the plan digest stamped into the execution memo (typeflux_spec_digest)",
+        "workflow_name": "string, required — the workflow's logical name (memo typeflux_workflow)",
+        "version_label": "string | null — workflow.version when declared (memo typeflux_workflow_version)",
+        "search_attribute": "string | null — the keyword search attribute carrying the logical name on start, when configured"
+      },
+      "profile_note": "BINDING-PROFILE-SCOPED: this operation exists for binding profiles that dispatch the plan as a start argument (temporal-binding ts-plan-argument, start_args [plan, input]). A resolver for a runtime whose profile registers the plan into a versioned workflow type instead (python-versioned-type — its digest algorithm typeflux-yaml-graph-v1 is not even the plan's typeflux-yaml-plan-v1; the ABIs are deliberately divergent, #618) answers {ok: false, status: 422} with an ApiError explaining that its profile dispatches no plan. That rejection IS the operation's implementation for such runtimes — wired, not dead spec."
+    }
+  },
+  "coverage_note": "The four read operations plus resolve_plan are the complete language-bound resolution surface (resolve_plan added with the subprocess slice, #642: plan-as-argument dispatch needs the raw plan on the wire, which no read DTO carries). Six further routes import project modules today only to derive resolved identity or effective config — executions/versions/workers (registered workflow type, spec digest, task queue) and connections/correlation (resolved runtime/observability config, trace hints) — all of which resolve_bundle already returns (BundleWorkflowIdentity, runtime_effective, links); behind this interface they decompose into resolve_bundle output + binding-driver visibility operations (temporal-binding contract) or neutral probes, with no resolver operation of their own. Environment/policy/profile reads are pure YAML (never import project modules) and are deliberately outside this interface; deployment verification reuses resolve_bundle.",
+  "runtime_note": "A resolver resolves projects of exactly one language runtime (its own). The registry declares each project's runtime (#619 slice 2); a control plane asked to resolve a project whose runtime it has no resolver for fails closed with a structured unsupported-runtime error, never garbage. Per-runtime multiplexing (#642): a control plane may hold one resolver per runtime and dispatches by the registry entry's declared runtime; its supported-runtime set is the union of its resolvers'. A CONFIGURED resolver that is dead or unresponsive is a 500-class server fault (the operator wired a resolver that is not serving), never a silent unsupported-runtime 501."
+}

@@ -1,0 +1,32 @@
+version: "1"
+name: base
+description: Conformance-fixture guardrails.
+
+providers:
+  allowed:
+    anthropic:
+      models:
+        - claude-sonnet-4-6
+
+observability:
+  allowed_backends:
+    - none
+
+artifacts:
+  allowed_sources:
+    - local_path
+
+# Risk tiers (#300): the DEFINITION half — the `policy_gated` floor plus the
+# controls that tier expands into (review gate + built-in redaction + the same
+# provider/model allow-list as `providers.allowed`). The `workflow` fixture
+# declares `risk_tier: policy_gated` and satisfies all three, so admission stays
+# green while the bundle surfaces a populated `risk_tier`.
+risk_tiers:
+  min_tier: policy_gated
+  policy_gated:
+    require_review: true
+    require_redaction: true
+    constrain_providers:
+      anthropic:
+        models:
+          - claude-sonnet-4-6

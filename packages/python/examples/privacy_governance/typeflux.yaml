@@ -1,0 +1,79 @@
+# Privacy governance (#188 slice 2): an AES-256-GCM Temporal payload codec AND a
+# custom redaction rule, together in one spec. The codec encrypts the WHOLE payload
+# on Temporal history (workflow/activity IO, review notes, inlined artifact bytes);
+# the redaction rules mask PII on the SEPARATE observability egress path. See
+# docs/privacy.md for the key model, rotation runbook, and threat model.
+project: examples.privacy_governance
+name: privacy_governance
+task_queue: ${TEMPORAL_TASK_QUEUE:-privacy-governance-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    # Encrypt every Temporal payload at rest. Encrypt with `current`; decrypt by the
+    # per-payload `typeflux-key-id`, so rotation keeps old data readable (add a key,
+    # flip `current`, retire the old key after re-encryption / history TTL). The key
+    # VALUE resolves via value_from (env/file) and never crosses the resolver wire.
+    payload_codec:
+      type: aes
+      current: 2026-q3
+      keys:
+        - id: 2026-q3
+          value_from:
+            env: TYPEFLUX_PAYLOAD_KEY_2026_Q3
+            required: false
+        - id: 2026-q2
+          value_from:
+            env: TYPEFLUX_PAYLOAD_KEY_2026_Q2
+            required: false
+
+  registry:
+    type: inline
+    prompts:
+      privacy/assess: |
+        Assess disclosure case {{case_id}} for regulated review.
+        Body: {{body}}
+
+  provider:
+    type: openai
+    model: ${TYPEFLUX_OPENAI_MODEL:-gpt-4o-mini}
+    api_key:
+      value_from:
+        env: OPENAI_API_KEY
+        required: false
+
+  observability:
+    type: langfuse
+    execution_manifest: true
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+      # Appends to the built-in catalog (email / SSN / phone / Luhn card). Patterns are
+      # the PYTHON `re` dialect — the TS mirror parses the same YAML with JS `RegExp`
+      # (see docs/privacy.md). An invalid pattern fails startup fail-closed.
+      custom_rules:
+        - name: case_reference
+          pattern: 'CASE-\d{6}'
+          replacement: '[REDACTED_CASE]'
+        - name: uk_nino
+          pattern: '[A-CEGHJ-PR-TW-Z]{2}\d{6}[A-D]'
+          replacement: '[REDACTED_NINO]'
+
+activities:
+  definitions:
+    - name: assess
+      input: schemas:DisclosureRequest
+      output: schemas:DisclosureAssessment
+      prompt: privacy/assess
+
+workflow:
+  name: PrivacyGovernanceWorkflow
+  input: schemas:DisclosureRequest
+  output: schemas:DisclosureAssessment
+  # A regulated workflow declares its tier; the policy below makes human_gated imply
+  # require_payload_codec, so admission rejects this spec if the codec block is removed.
+  risk_tier: human_gated
+  steps:
+    - id: assess
+      activity: assess

@@ -1,0 +1,30 @@
+{
+  "name": "profile-provider-anthropic-prod",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/profiles/provider/anthropic-prod"
+  },
+  "response": {
+    "body": {
+      "content_hash": "38dbe2dc34daebccd92131cda302df84617dab56b55f8a929e28f18f09dcb749",
+      "id": "anthropic-prod",
+      "kind": "provider",
+      "name": "anthropic-prod",
+      "path": "profiles/provider/anthropic-prod.yaml",
+      "runtime": {
+        "provider": {
+          "api_key": {
+            "value_from": {
+              "env": "TYPEFLUX_CONFORMANCE_ANTHROPIC_API_KEY",
+              "required": false
+            }
+          },
+          "model": "claude-sonnet-4-6",
+          "type": "anthropic"
+        }
+      },
+      "used_by": []
+    },
+    "status": 200
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "$defs": {
+    "Reference": {
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "Reference",
+      "type": "object"
+    },
+    "Urgency": {
+      "enum": [
+        "low",
+        "high"
+      ],
+      "title": "Urgency",
+      "type": "string"
+    }
+  },
+  "description": "Representative model: nested objects, optional fields, enum, list, default.",
+  "properties": {
+    "subject": {
+      "description": "the ticket subject",
+      "title": "Subject",
+      "type": "string"
+    },
+    "urgency": {
+      "$ref": "#/$defs/Urgency"
+    },
+    "references": {
+      "items": {
+        "$ref": "#/$defs/Reference"
+      },
+      "title": "References",
+      "type": "array"
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Summary"
+    },
+    "escalated": {
+      "default": false,
+      "title": "Escalated",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "subject",
+    "urgency",
+    "references"
+  ],
+  "title": "ReviewPacket",
+  "type": "object"
+}

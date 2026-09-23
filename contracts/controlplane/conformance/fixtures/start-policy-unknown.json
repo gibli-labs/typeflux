@@ -1,0 +1,24 @@
+{
+  "name": "start-policy-unknown",
+  "request": {
+    "body": {
+      "environment_id": "local",
+      "execution_id": "conf-policy-unknown-start",
+      "input": {
+        "claims": []
+      },
+      "policy_ids": [
+        "nope"
+      ]
+    },
+    "method": "POST",
+    "path": "/api/v1/workflows/workflow/start"
+  },
+  "response": {
+    "body": {
+      "error": "ProjectPolicyError",
+      "message": "unknown project policy: nope"
+    },
+    "status": 422
+  }
+}

@@ -1,0 +1,6 @@
+# Default: every change is reviewed by the maintainer.
+* @hezkyvikend
+
+# Contract changes gate cross-edition compatibility — always maintainer-reviewed.
+/contracts/ @hezkyvikend
+/.github/workflows/ @hezkyvikend

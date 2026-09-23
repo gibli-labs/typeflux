@@ -1,0 +1,8 @@
+{
+  "activity": "classify_ticket",
+  "input_hash": "7a593fa2ba113ee75af0bb7dcaed57a622eb98742c4ec4d0b009670baf93b083",
+  "scope": {
+    "company_id": "co-1",
+    "product_id": "prod-1"
+  }
+}

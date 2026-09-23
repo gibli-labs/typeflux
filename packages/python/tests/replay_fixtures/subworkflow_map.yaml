@@ -1,0 +1,35 @@
+project: replay_demo_project
+name: replay_sub_map
+task_queue: replay-fixture-subworkflow-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      first: first {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  definitions: []
+
+workflow:
+  name: ReplaySubMapWorkflow
+  input: schemas:BatchInputModel
+  output: schemas:BatchModel
+  steps:
+    - id: fan
+      map:
+        workflow: child
+        over: input.items
+        concurrency: 2
+        collect:
+          output: schemas:BatchModel
+          field: results

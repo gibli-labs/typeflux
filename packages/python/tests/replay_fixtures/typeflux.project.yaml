@@ -1,0 +1,11 @@
+version: "1"
+name: replay-subworkflow-demo
+workflows:
+  - id: child
+    path: subworkflow_child.yaml
+  - id: plain
+    path: subworkflow_plain.yaml
+  - id: fanout
+    path: subworkflow_map.yaml
+environments:
+  local: environments/local.yaml

@@ -1,0 +1,40 @@
+project: replay_demo_project
+name: replay_lifecycle
+task_queue: replay-fixture-lifecycle-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      first: first {{value}}
+      second: second {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: ReplayLifecycleWorkflow
+  input: schemas:InputModel
+  output: schemas:OutputModel
+  lifecycle:
+    enabled: true
+    review:
+      after_step: first
+      user_decisions:
+        approve:
+          route: second
+  steps:
+    - id: first
+      activity: first
+    - id: second
+      activity: second

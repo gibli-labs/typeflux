@@ -1,0 +1,47 @@
+project: reference.ts_yaml_worker
+name: reference_worker
+# The task queue is env-driven so the rendered ConfigMap's TEMPORAL_TASK_QUEUE
+# stamps it (parity with the Python reference image / the K8s renderer).
+task_queue: ${TEMPORAL_TASK_QUEUE:-ts-yaml-worker-reference}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    # The worker dials with the spec's declared posture (fail-closed #685 mapping):
+    # the manifest's TEMPORAL_TLS/TEMPORAL_API_KEY govern the connection here.
+    # `required: false` keeps the local plaintext dev loop keyless; Temporal Cloud
+    # sets both via the ConfigMap/Secret.
+    tls: ${TEMPORAL_TLS:-false}
+    api_key: { value_from: { env: TEMPORAL_API_KEY, required: false } }
+
+  # Inline registry so the reference worker needs no external prompt backend.
+  registry:
+    type: inline
+    prompts:
+      reference/summarize:
+        messages:
+          - role: user
+            content: |
+              Summarize the note: {{text}}
+
+  # The declared provider is a placeholder the runtime never builds from: bindings.mjs
+  # injects a scripted, offline provider so the reference image runs with no API key.
+  # Fork this image and swap the injected provider for your own.
+  provider:
+    type: openai
+    model: reference-scripted
+
+activities:
+  definitions:
+    - name: summarize
+      input: schemas:Note
+      output: schemas:Summary
+      prompt: reference/summarize
+
+workflow:
+  name: ReferenceWorker
+  input: schemas:Note
+  steps:
+    - id: summarize
+      activity: summarize

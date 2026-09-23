@@ -1,0 +1,20 @@
+{
+  "mask": [
+    "/message"
+  ],
+  "name": "executions-temporal-unreachable",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/workflow/executions",
+    "query": {
+      "environment_id": "unreachable"
+    }
+  },
+  "response": {
+    "body": {
+      "error": "TemporalUnavailable",
+      "message": "<normalized>"
+    },
+    "status": 503
+  }
+}

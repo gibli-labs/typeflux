@@ -1,0 +1,74 @@
+{
+  "mask": [
+    "/issues/*/path",
+    "/workflows/*/path"
+  ],
+  "name": "validate",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/validate"
+  },
+  "response": {
+    "body": {
+      "issues": [
+        {
+          "code": "duplicate_workflow_name",
+          "message": "duplicate YAML workflow name(s): ConformanceDemoWorkflow"
+        },
+        {
+          "code": "unknown_profile_reference",
+          "message": "workflow 'broken' profile selection selects unknown provider profile: missing-profile",
+          "path": "<normalized>",
+          "reference": "broken"
+        }
+      ],
+      "manifest_path": "<normalized>",
+      "ok": false,
+      "project_name": "conformance-fixture",
+      "resolved_workflows": [],
+      "workflows": [
+        {
+          "id": "workflow",
+          "path": "<normalized>",
+          "task_queue": "conformance-demo-queue",
+          "workflow_name": "ConformanceDemoWorkflow",
+          "yaml_name": "conformance_demo",
+          "yaml_project": "conformance_project"
+        },
+        {
+          "id": "broken",
+          "path": "<normalized>",
+          "task_queue": "conformance-demo-queue",
+          "workflow_name": "ConformanceDemoWorkflow",
+          "yaml_name": "conformance_demo",
+          "yaml_project": "conformance_project"
+        },
+        {
+          "id": "composition",
+          "path": "<normalized>",
+          "task_queue": "conformance-demo-queue",
+          "workflow_name": "ConformanceCompositionWorkflow",
+          "yaml_name": "conformance_composition",
+          "yaml_project": "conformance_project"
+        },
+        {
+          "id": "child_assessment",
+          "path": "<normalized>",
+          "task_queue": "conformance-demo-queue",
+          "workflow_name": "ConformanceChildAssessment",
+          "yaml_name": "conformance_child_assessment",
+          "yaml_project": "conformance_project"
+        },
+        {
+          "id": "subworkflow",
+          "path": "<normalized>",
+          "task_queue": "conformance-demo-queue",
+          "workflow_name": "ConformanceSubworkflow",
+          "yaml_name": "conformance_subworkflow",
+          "yaml_project": "conformance_project"
+        }
+      ]
+    },
+    "status": 200
+  }
+}

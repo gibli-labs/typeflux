@@ -1,0 +1,85 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "The TS dialect has no module activities (#496): the fixture's decide step is declared as an inline-prompted AI activity, so it appears in the prompt list where Python's module-backed decide is excluded (#568).",
+      "response": {
+        "body": {
+          "environment_id": "local",
+          "prompts": [
+            {
+              "mode": "inline",
+              "name": "assess",
+              "selector": "inline",
+              "status": "in_sync",
+              "template": "assess {{value}}",
+              "used_by_activities": [
+                "assess_item"
+              ]
+            },
+            {
+              "mode": "inline",
+              "name": "decide",
+              "selector": "inline",
+              "status": "in_sync",
+              "template": "decide {{reviews}}",
+              "used_by_activities": [
+                "decide"
+              ]
+            },
+            {
+              "mode": "inline",
+              "name": "summarize",
+              "selector": "inline",
+              "status": "in_sync",
+              "template": "summarize {{reviews}}",
+              "used_by_activities": [
+                "summarize"
+              ]
+            }
+          ],
+          "registry_type": "inline",
+          "workflow_id": "workflow"
+        },
+        "status": 200
+      }
+    }
+  },
+  "name": "prompt-status-workflow-local",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/workflows/workflow/prompt-status",
+    "query": {
+      "environment_id": "local"
+    }
+  },
+  "response": {
+    "body": {
+      "environment_id": "local",
+      "prompts": [
+        {
+          "mode": "inline",
+          "name": "assess",
+          "selector": "inline",
+          "status": "in_sync",
+          "template": "assess {{value}}",
+          "used_by_activities": [
+            "assess_item"
+          ]
+        },
+        {
+          "mode": "inline",
+          "name": "summarize",
+          "selector": "inline",
+          "status": "in_sync",
+          "template": "summarize {{reviews}}",
+          "used_by_activities": [
+            "summarize"
+          ]
+        }
+      ],
+      "registry_type": "inline",
+      "workflow_id": "workflow"
+    },
+    "status": 200
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "The foreign-entry case mirrors: on the TS server the foreign project is py-project (python runtime, unresolvable and inoperable here). Only can_refresh_project stays true (refresh is not operability-gated, #563); start/review/cancel/resolve are false. enforcement_events is false too \u2014 the feed is resolution-bound (#723 slice 2), so an unresolvable project reports it unavailable on both editions, exactly like the base golden's unresolvable ts-project. github_provenance is false too on both editions: it is resolution-bound AND needs a github repo source (#727), and these stub projects are unresolvable with no recorded source, so the capability is false everywhere just like the base golden's unresolvable ts-project.",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/projects/py-project/meta"
+      },
+      "response": {
+        "body": {
+          "api_version": "1",
+          "bundle_version": "1",
+          "caller_identity": null,
+          "capabilities": {
+            "can_cancel": false,
+            "can_refresh_project": true,
+            "can_resolve": false,
+            "can_review": false,
+            "can_start": false,
+            "enforcement_events": false,
+            "github_provenance": false
+          },
+          "catalog_version": "1",
+          "manifest_path": "<normalized>",
+          "project": "conformance-py-stub",
+          "runtime": "python"
+        },
+        "status": 200
+      }
+    }
+  },
+  "name": "project-ts-meta",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/projects/ts-project/meta"
+  },
+  "response": {
+    "body": {
+      "api_version": "1",
+      "bundle_version": "1",
+      "caller_identity": null,
+      "capabilities": {
+        "can_cancel": true,
+        "can_refresh_project": true,
+        "can_resolve": false,
+        "can_review": true,
+        "can_start": false,
+        "enforcement_events": false,
+        "github_provenance": false
+      },
+      "catalog_version": "1",
+      "manifest_path": "<normalized>",
+      "project": "conformance-ts-stub",
+      "runtime": "typescript"
+    },
+    "status": 200
+  }
+}

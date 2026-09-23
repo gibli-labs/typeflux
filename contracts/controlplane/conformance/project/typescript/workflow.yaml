@@ -1,0 +1,70 @@
+project: conformance_project
+name: conformance_demo
+task_queue: conformance-demo-queue
+runtime:
+  temporal:
+    address: localhost:7233
+  registry:
+    type: inline
+    prompts:
+      assess: assess {{value}}
+      summarize: summarize {{reviews}}
+      # The Python fixture's `decide` is a plain Temporal activity loaded via
+      # `activities.modules` (no TS analogue, #496); the TS dialect declares it
+      # as an inline-prompted activity so the workflow graph resolves. Its
+      # catalog/bundle projection therefore reports kind `ai` (not `temporal`)
+      # — a recorded-later ts-cp golden difference, tracked as a #568 gap.
+      decide: decide {{reviews}}
+  provider:
+    type: anthropic
+    model: claude-sonnet-4-6
+    api_key:
+      value_from:
+        env: TYPEFLUX_CONFORMANCE_ANTHROPIC_API_KEY
+        required: false
+  observability:
+    type: none
+activities:
+  definitions:
+    - name: assess_item
+      input: schemas:ClaimItem
+      output: schemas:ItemAssessment
+      prompt: assess
+    - name: summarize
+      input: schemas:AssessmentBatch
+      output: schemas:AssessmentBatch
+      prompt: summarize
+    - name: decide
+      input: schemas:AssessmentBatch
+      output: schemas:Decision
+      prompt: decide
+workflow:
+  name: ConformanceDemoWorkflow
+  input: schemas:ClaimInput
+  output: schemas:Decision
+  # Risk tiers (#300): declared tier, gated by the `base` policy's `risk_tiers`
+  # floor. Governance metadata only — stays OUT of the spec digest.
+  risk_tier: policy_gated
+  lifecycle:
+    enabled: true
+    review:
+      after_step: assess_items
+      invalid_user_decision: warn
+      user_decisions:
+        approve:
+          route: summarize
+        fast_track:
+          route: decide
+  steps:
+    - id: assess_items
+      map:
+        activity: assess_item
+        over: input.claims
+        concurrency: 2
+        collect:
+          output: schemas:AssessmentBatch
+          field: reviews
+    - id: summarize
+      activity: summarize
+    - id: decide
+      activity: decide

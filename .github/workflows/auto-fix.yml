@@ -1,0 +1,263 @@
+name: Auto Fix Issue
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to resolve"
+        required: true
+        type: number
+      mode:
+        description: "Use plan first; run only when the runner has Codex configured"
+        required: true
+        default: "plan"
+        type: choice
+        options:
+          - plan
+          - run
+      codex_preset:
+        description: "Vetted Codex invocation (no free-text commands reach the runner)"
+        required: true
+        default: "codex-exec"
+        type: choice
+        options:
+          - codex-exec
+          - prompt-only
+      create_pr:
+        description: "Push branch and open a PR after validation"
+        required: true
+        default: true
+        type: boolean
+      draft_pr:
+        description: "Open the PR as a draft"
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: auto-fix-issue-${{ inputs.issue_number }}
+  cancel-in-progress: false
+
+# Least privilege at the job level; the workflow default is read-only.
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan issue #${{ inputs.issue_number }}
+    if: inputs.mode == 'plan'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Plan mode is read + issue-comment only — no code write surface.
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          # No later plan step needs authenticated git: keep the token off
+          # disk so issue-driven codex output can never read it.
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: "3.12"
+          version: "0.11.8"
+          enable-cache: true
+
+      # The preset resolves HERE to a fixed string — dispatch inputs never
+      # reach a shell as commands (#905: no arbitrary command execution).
+      # Planning always runs in codex's READ-ONLY sandbox.
+      - name: Resolve the vetted Codex invocation
+        id: preset
+        env:
+          PRESET: ${{ inputs.codex_preset }}
+        run: |
+          case "$PRESET" in
+            codex-exec)
+              echo 'command=codex exec --sandbox read-only {prompt_file}' >> "$GITHUB_OUTPUT" ;;
+            prompt-only)
+              echo 'command=' >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::unknown preset $PRESET" >&2; exit 1 ;;
+          esac
+
+      - name: Require the Codex credential (never exposed to install)
+        if: inputs.codex_preset != 'prompt-only'
+        env:
+          HAVE_KEY: ${{ secrets.CODEX_API_KEY != '' }}
+        run: |
+          if [ "$HAVE_KEY" != "true" ]; then
+            echo "::error::the codex-exec preset needs the CODEX_API_KEY secret (owner-configured); use the prompt-only preset otherwise" >&2
+            exit 1
+          fi
+
+      # Installation runs WITHOUT secrets: npm lifecycle scripts of the CLI
+      # and its dependencies must never see the key.
+      - name: Install the pinned Codex CLI
+        if: inputs.codex_preset != 'prompt-only'
+        run: |
+          npm install -g @openai/codex@0.155.0
+          codex --version
+
+      - name: Build auto-fix plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          AUTO_FIX_CODEX_PLAN_COMMAND: ${{ steps.preset.outputs.command }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          args=(plan "$ISSUE_NUMBER" --prompt-out "${{ runner.temp }}/auto-fix-planning-prompt.md")
+          if [[ -n "${AUTO_FIX_CODEX_PLAN_COMMAND}" ]]; then
+            args+=(--codex-plan-command "${AUTO_FIX_CODEX_PLAN_COMMAND}")
+            args+=(--plan-out "${{ runner.temp }}/auto-fix-plan.md")
+            args+=(--comment)
+          fi
+          uv run --no-project python scripts/auto_fix_issue.py "${args[@]}"
+
+      - name: Upload planning prompt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: auto-fix-planning-prompt-${{ inputs.issue_number }}
+          path: ${{ runner.temp }}/auto-fix-planning-prompt.md
+
+      - name: Upload persisted plan
+        if: inputs.codex_preset != 'prompt-only'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: auto-fix-plan-${{ inputs.issue_number }}
+          path: ${{ runner.temp }}/auto-fix-plan.md
+
+  run:
+    name: Auto-fix issue #${{ inputs.issue_number }}
+    if: inputs.mode == 'run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Write-capable automation sits behind the protected `auto-fix`
+    # environment: its required-reviewer rule (owner-configured) is the
+    # human approval gate (#905).
+    environment: auto-fix
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      # actions:read backs the run-approval assertion below.
+      actions: read
+
+    steps:
+      # Fail closed if the environment was auto-created without protection.
+      # GITHUB_TOKEN cannot read the Environments API, so assert the thing we
+      # actually require: THIS run must carry a recorded reviewer approval.
+      # An unprotected environment starts the job with zero approvals (#905).
+      - name: Assert this run was human-approved
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A re-run reuses GITHUB_RUN_ID, so a stale approval from the first
+          # attempt would satisfy the check below even if protection was since
+          # removed. Re-runs are cheap to replace — fail closed on them.
+          if [ "${GITHUB_RUN_ATTEMPT:-1}" -gt 1 ]; then
+            echo "::error::run attempt $GITHUB_RUN_ATTEMPT cannot be independently attested — dispatch a fresh run instead of re-running" >&2
+            exit 1
+          fi
+          if ! approvals=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" \
+              --jq '[.[] | select(.state == "approved")] | length' 2>&1); then
+            echo "::error::cannot read this run's approval record ($approvals) — refusing to proceed unverified" >&2
+            exit 1
+          fi
+          if [ "$approvals" -lt 1 ]; then
+            echo "::error::no reviewer approval recorded for this run — the auto-fix environment is missing its required-reviewers rule; configure it before dispatching run mode (docs/auto-fix.md, 'Privileged run mode')" >&2
+            exit 1
+          fi
+          echo "run approved by $approvals reviewer(s)"
+
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          # No on-disk credential: generated code validated later must not be
+          # able to push; the wrapper re-authenticates (gh auth setup-git)
+          # only in the trusted post-validation phase.
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: "3.12"
+          version: "0.11.8"
+          enable-cache: true
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "typeflux-auto-fix"
+          git config user.email "typeflux-auto-fix@users.noreply.github.com"
+
+      # Implementation gets workspace-write; the in-run PLANNING pass stays
+      # read-only — only the implementation phase may touch the checkout.
+      - name: Resolve the vetted Codex invocation
+        id: preset
+        env:
+          PRESET: ${{ inputs.codex_preset }}
+        run: |
+          case "$PRESET" in
+            codex-exec)
+              echo 'command=codex exec --sandbox workspace-write {prompt_file}' >> "$GITHUB_OUTPUT"
+              echo 'plan_command=codex exec --sandbox read-only {prompt_file}' >> "$GITHUB_OUTPUT" ;;
+            prompt-only)
+              echo "::error::run mode requires an implementation preset (prompt-only is plan-only)" >&2; exit 1 ;;
+            *)
+              echo "::error::unknown preset $PRESET" >&2; exit 1 ;;
+          esac
+
+      - name: Require the Codex credential (never exposed to install)
+        env:
+          HAVE_KEY: ${{ secrets.CODEX_API_KEY != '' }}
+        run: |
+          if [ "$HAVE_KEY" != "true" ]; then
+            echo "::error::run mode needs the CODEX_API_KEY secret (owner-configured on the auto-fix environment)" >&2
+            exit 1
+          fi
+
+      # Installation runs WITHOUT secrets: npm lifecycle scripts of the CLI
+      # and its dependencies must never see the key.
+      - name: Install the pinned Codex CLI
+        run: |
+          npm install -g @openai/codex@0.155.0
+          codex --version
+
+      - name: Install package for validation
+        # The project lives at packages/python (#409); cwd stays the repo root so
+        # the automation's root-relative paths keep resolving.
+        run: uv sync --frozen --extra live --group dev --project packages/python
+
+      - name: Run Codex auto-fix
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          AUTO_FIX_CODEX_COMMAND: ${{ steps.preset.outputs.command }}
+          AUTO_FIX_CODEX_PLAN_COMMAND: ${{ steps.preset.outputs.plan_command }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          args=(run "$ISSUE_NUMBER" --push)
+          args+=(--plan-out "${{ runner.temp }}/auto-fix-plan.md")
+          args+=(--prompt-out "${{ runner.temp }}/auto-fix-implementation-prompt.md")
+          args+=(--comment-plan)
+          if [[ "${{ inputs.create_pr }}" == "true" ]]; then
+            args+=(--create-pr)
+          fi
+          if [[ "${{ inputs.draft_pr }}" == "true" ]]; then
+            args+=(--draft-pr)
+          fi
+          uv run --project packages/python python scripts/auto_fix_issue.py "${args[@]}"
+
+      - name: Upload run artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: auto-fix-run-${{ inputs.issue_number }}
+          path: |
+            ${{ runner.temp }}/auto-fix-plan.md
+            ${{ runner.temp }}/auto-fix-implementation-prompt.md

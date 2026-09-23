@@ -1,0 +1,48 @@
+{
+  "name": "@typeflux/control-plane-client",
+  "version": "1.15.1",
+  "description": "Generated TypeScript client for the Typeflux control-plane HTTP API. Types are derived from the normative contract (contracts/controlplane/openapi.v1.json); never hand-edit src/schema.ts. The major version is locked to the contract's API major.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gibli-labs/typeflux.git",
+    "directory": "clients/typescript"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "generate": "openapi-typescript ../../contracts/controlplane/openapi.v1.json -o src/schema.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  },
+  "homepage": "https://github.com/gibli-labs/typeflux/tree/main/clients/typescript#readme",
+  "bugs": {
+    "url": "https://github.com/gibli-labs/typeflux/issues"
+  },
+  "engines": {
+    "node": "^22"
+  }
+}

@@ -1,0 +1,33 @@
+# ACME organization-wide governance baseline (a TypefluxProjectPolicySpec).
+# A policy declares ONLY what it governs; every other dimension is left open and
+# reported "skipped" at enforcement time.
+name: acme-org
+description: ACME organization-wide baseline governance.
+
+# Provider/model allow-list (deny-by-default): only these provider→model pairs may run.
+providers:
+  allowed:
+    openai:
+      models: [gpt-4o-mini, gpt-4o]
+    anthropic:
+      models: [claude-sonnet-5]
+
+# Require an observability backend AND PII redaction — no raw content may reach a trace backend.
+observability:
+  required: true
+  redaction:
+    required: true
+    preserve_typeflux_metadata: true
+
+# Bound provider call concurrency at the org level (a tenant may only tighten this).
+runtime:
+  provider_limits:
+    default:
+      max_concurrent: 4
+
+# A RUNTIME control (#454 slice 3): categories are enforced at the moderation output
+# checkpoint during execution, not at admission — a moderator that reports one of
+# these categories is escalated to a block even if it only "flags". Harmless to a
+# workflow with no moderator.
+semantics:
+  categories: [self_harm, violence]

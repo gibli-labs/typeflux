@@ -1,0 +1,25 @@
+{
+  "properties": {
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Score"
+    }
+  },
+  "required": [
+    "label"
+  ],
+  "title": "_Output",
+  "type": "object"
+}

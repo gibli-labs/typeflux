@@ -1,0 +1,24 @@
+{
+  "name": "annotations",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/annotations"
+  },
+  "response": {
+    "body": {
+      "annotations": [
+        {
+          "insight_id_pattern": "policy.drift.base",
+          "reason": "tracked upstream; not actionable until the provider ships the fix",
+          "tracked_in": "https://github.com/typeflux/conformance/issues/1"
+        },
+        {
+          "expires": "2026-01-01",
+          "insight_id_pattern": "runtime.pin.*",
+          "reason": "accepted for the migration window; revisit after the cutover"
+        }
+      ]
+    },
+    "status": 200
+  }
+}

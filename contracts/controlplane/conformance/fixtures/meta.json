@@ -1,0 +1,54 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "Mirror registry: the TS server's default project declares runtime typescript. The operate tier is served (#563) and the enforcement-events feed now lands (#723 slice 2), so every capability flag \u2014 including enforcement_events (resolution-bound: resolvable \u21d2 true) \u2014 MATCHES the base golden. The one by-design divergence is /runtime (typescript vs python). github_provenance is false on BOTH editions here: the conformance project is a local mount (ProjectRegistry.single) with no recorded git source, so there is no GitHub repo provenance to serve (capability false, #727), and the TS edition now implements the endpoint (#727 slice 2) but its registry records no git source (local checkouts only), so `github_provenance` is `resolvable AND githubRepoPresent` = false there too \u2014 matching the base golden.",
+      "response": {
+        "body": {
+          "api_version": "1",
+          "bundle_version": "1",
+          "caller_identity": null,
+          "capabilities": {
+            "can_cancel": true,
+            "can_refresh_project": true,
+            "can_resolve": true,
+            "can_review": true,
+            "can_start": true,
+            "enforcement_events": true,
+            "github_provenance": false
+          },
+          "catalog_version": "1",
+          "manifest_path": "<normalized>",
+          "project": "conformance-fixture",
+          "runtime": "typescript"
+        },
+        "status": 200
+      }
+    }
+  },
+  "name": "meta",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/meta"
+  },
+  "response": {
+    "body": {
+      "api_version": "1",
+      "bundle_version": "1",
+      "caller_identity": null,
+      "capabilities": {
+        "can_cancel": true,
+        "can_refresh_project": true,
+        "can_resolve": true,
+        "can_review": true,
+        "can_start": true,
+        "enforcement_events": true,
+        "github_provenance": false
+      },
+      "catalog_version": "1",
+      "manifest_path": "<normalized>",
+      "project": "conformance-fixture",
+      "runtime": "python"
+    },
+    "status": 200
+  }
+}

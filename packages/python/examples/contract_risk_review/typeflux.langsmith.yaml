@@ -1,0 +1,96 @@
+project: examples.contract_risk_review
+name: contract_risk_review_langsmith
+task_queue: ${TEMPORAL_TASK_QUEUE:-contract-risk-review-langsmith-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  artifacts:
+    local_roots:
+      - ${TYPEFLUX_CONTRACT_ARTIFACT_ROOT:-fixtures}
+    allowed_sources:
+      - local_path
+    allowed_media_types:
+      - application/pdf
+    max_bytes: 20971520
+
+  # Prompt text lives in LangSmith, not in this file. Selection mirrors the
+  # Langfuse example: `label` is the moveable pointer — a Langfuse label there, a
+  # LangSmith commit tag here — so `label: production` resolves the same way on
+  # both. `--bootstrap-langsmith` assigns the `production` commit tag; re-running
+  # moves it. The resolved commit hash is recorded as the resolved version.
+  # Provider model and inference params stay in Typeflux YAML so the same
+  # LangSmith prompt can run with OpenAI or Anthropic. The host is omitted: the
+  # registry falls back to the LANGSMITH_HOST / LANGCHAIN_ENDPOINT env vars and
+  # then the LangSmith SDK default (https://api.smith.langchain.com).
+  registry:
+    type: langsmith
+    label: ${LANGSMITH_PROMPT_TAG:-production}
+
+  provider:
+    type: openai
+    model: ${TYPEFLUX_OPENAI_MODEL:-gpt-4o-mini}
+    structured_mode: json_schema
+    api_key:
+      value_from:
+        env: OPENAI_API_KEY
+
+  provider_retry:
+    max_attempts: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 4
+    backoff_multiplier: 2
+    retry_rate_limits: true
+    retry_transient_errors: true
+
+  # Fully LangSmith: prompts resolve from LangSmith (registry above) and traces
+  # export to LangSmith too. Switching back to Langfuse is just this one line
+  # (type: langfuse) — nothing else in the spec moves.
+  observability:
+    type: langsmith
+    execution_manifest: true
+    redaction:
+      enabled: true
+      emails: true
+      phones: true
+      ssn: true
+      credit_cards: true
+      preserve_typeflux_metadata: true
+      exclude_paths: []
+
+activities:
+  definitions:
+    - name: analyze_contract
+      input: schemas:ContractAnalysisInput
+      output: schemas:ContractRiskReview
+      prompt:
+        name: typeflux-contract-risk-review
+        type: chat
+      validation_retries: 1
+      artifacts:
+        - name: contracts
+          from: input.contract_files
+          required: true
+          kind: document
+          media_types:
+            - application/pdf
+          max_count: 3
+          max_bytes: 20971520
+          attach:
+            role: user
+            text: "Contract PDFs:"
+
+workflow:
+  name: ContractRiskReviewLangSmithWorkflow
+  input: schemas:ContractAnalysisInput
+  output: schemas:ContractRiskReview
+  steps:
+    - id: analyze_contract
+      activity: analyze_contract

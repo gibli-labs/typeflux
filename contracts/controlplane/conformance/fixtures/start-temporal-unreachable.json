@@ -1,0 +1,24 @@
+{
+  "mask": [
+    "/message"
+  ],
+  "name": "start-temporal-unreachable",
+  "request": {
+    "body": {
+      "environment_id": "unreachable",
+      "execution_id": "conf-unreachable-start",
+      "input": {
+        "claims": []
+      }
+    },
+    "method": "POST",
+    "path": "/api/v1/workflows/workflow/start"
+  },
+  "response": {
+    "body": {
+      "error": "TemporalUnavailable",
+      "message": "<normalized>"
+    },
+    "status": 503
+  }
+}

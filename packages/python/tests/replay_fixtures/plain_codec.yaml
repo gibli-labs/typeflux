@@ -1,0 +1,43 @@
+# Live payload-codec fixture (#188): the plain workflow with the AES-256-GCM codec ON.
+# The key resolves from TYPEFLUX_LIVE_CODEC_KEY (a 32-byte utf-8 value). With the codec
+# on, Temporal history carries ciphertext; the worker + client decrypt transparently.
+project: replay_demo_project
+name: replay_plain_codec
+task_queue: replay-fixture-plain-codec-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    payload_codec:
+      type: aes
+      current: main
+      keys:
+        - id: main
+          value_from:
+            env: TYPEFLUX_LIVE_CODEC_KEY
+  registry:
+    type: inline
+    prompts:
+      first: first {{value}}
+      second: second {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: ReplayPlainCodecWorkflow
+  input: schemas:InputModel
+  output: schemas:OutputModel
+  steps:
+    - id: first
+      activity: first
+    - id: second
+      activity: second

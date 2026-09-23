@@ -1,0 +1,63 @@
+{
+  "name": "@typeflux/temporal-controlplane",
+  "version": "0.1.0",
+  "description": "Control-plane server for TypeScript Typeflux projects \u2014 governance reads, validation, and Temporal-backed start/status/drain operations at contract parity with the Python control plane. Hosts TS projects whose generic plan-as-argument execution model the Python control plane cannot operate.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "generate:contract": "openapi-typescript ../../../contracts/controlplane/openapi.v1.json -o src/http/contract.ts"
+  },
+  "dependencies": {
+    "@temporalio/client": "^1.18.1",
+    "@typeflux/temporal": "workspace:*",
+    "@typeflux/temporal-yaml": "workspace:*",
+    "yaml": "^2.6.0"
+  },
+  "peerDependencies": {
+    "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "5.9.3",
+    "vitest": "^3.0.5",
+    "zod": "^4.4.0",
+    "openapi-typescript": "7.10.1"
+  },
+  "bin": {
+    "typeflux-controlplane": "./dist/http/serve.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gibli-labs/typeflux.git",
+    "directory": "packages/typescript/temporal-controlplane"
+  },
+  "homepage": "https://github.com/gibli-labs/typeflux/tree/main/packages/typescript/temporal-controlplane#readme",
+  "bugs": {
+    "url": "https://github.com/gibli-labs/typeflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "engines": {
+    "node": "^22"
+  }
+}

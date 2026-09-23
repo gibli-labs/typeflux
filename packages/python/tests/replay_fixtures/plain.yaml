@@ -1,0 +1,33 @@
+project: replay_demo_project
+name: replay_plain
+task_queue: replay-fixture-plain-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      first: first {{value}}
+      second: second {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplayFixtureProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: ReplayPlainWorkflow
+  input: schemas:InputModel
+  output: schemas:OutputModel
+  steps:
+    - id: first
+      activity: first
+    - id: second
+      activity: second

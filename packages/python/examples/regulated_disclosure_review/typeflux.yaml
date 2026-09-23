@@ -1,0 +1,99 @@
+project: examples.regulated_disclosure_review
+name: regulated_disclosure_review
+task_queue: ${TEMPORAL_TASK_QUEUE:-regulated-disclosure-review-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+    tls: ${TEMPORAL_TLS:-false}
+    api_key:
+      value_from:
+        env: TEMPORAL_API_KEY
+        required: false
+
+  registry:
+    type: inline
+    prompts:
+      regulated-disclosure-assess: |
+        Assess disclosure case {{case_id}} for regulated review.
+        Customer: {{customer_name}}
+        Request: {{request}}
+        Risk notes: {{risk_notes}}
+      regulated-disclosure-package: |
+        Package disclosure case {{case_id}} for mandatory human review.
+        Risk level: {{risk_level}}
+        Summary: {{summary}}
+        Flags: {{flags}}
+      regulated-disclosure-prepare: |
+        Prepare disclosure case {{case_id}} for submission after human review.
+        Recommendation: {{recommendation}}
+        Summary: {{summary}}
+      regulated-disclosure-route: |
+        Route disclosure case {{case_id}} to compliance after human review.
+        Recommendation: {{recommendation}}
+        Summary: {{summary}}
+      regulated-disclosure-finalize: |
+        Finalize disclosure case {{case_id}} after human review.
+        Recommendation: {{recommendation}}
+        Summary: {{summary}}
+
+  provider:
+    type: openai
+    model: gpt-4.1
+    structured_mode: json_schema
+    api_key:
+      value_from:
+        env: OPENAI_API_KEY
+        required: false
+
+  artifacts:
+    allowed_sources:
+      - local_path
+    allowed_media_types:
+      - application/pdf
+      - image/*
+    max_bytes: 20971520
+
+  observability:
+    type: langfuse
+    execution_manifest: true
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+activities:
+  modules:
+    - activities
+
+workflow:
+  name: RegulatedDisclosureReviewWorkflow
+  input: schemas:DisclosureInput
+  output: schemas:FinalDecision
+  lifecycle:
+    enabled: true
+    progress: true
+    cancellation: true
+    history:
+      status_event_limit: 50
+    review:
+      after_step: package_for_review
+      invalid_user_decision: fail
+      user_decisions:
+        prepare_submission:
+          route: prepare_submission
+        route_compliance:
+          route: route_to_compliance
+        finalize:
+          route: finalize_disclosure
+  steps:
+    - id: assess_disclosure
+      activity: assess_disclosure
+    - id: package_for_review
+      activity: package_for_review
+    - id: prepare_submission
+      activity: prepare_submission
+    - id: route_to_compliance
+      activity: route_to_compliance
+    - id: finalize_disclosure
+      activity: finalize_disclosure

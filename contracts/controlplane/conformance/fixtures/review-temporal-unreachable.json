@@ -1,0 +1,24 @@
+{
+  "mask": [
+    "/message"
+  ],
+  "name": "review-temporal-unreachable",
+  "request": {
+    "body": {
+      "command": {
+        "user_decision": "approve"
+      },
+      "environment_id": "unreachable",
+      "execution_id": "conf-unreachable-review"
+    },
+    "method": "POST",
+    "path": "/api/v1/workflows/workflow/review"
+  },
+  "response": {
+    "body": {
+      "error": "TemporalUnavailable",
+      "message": "<normalized>"
+    },
+    "status": 503
+  }
+}

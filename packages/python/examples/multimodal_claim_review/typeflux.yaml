@@ -1,0 +1,94 @@
+project: examples.multimodal_claim_review
+name: multimodal_claim_review
+task_queue: multimodal-claim-review
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+  artifacts:
+    local_roots:
+      - fixtures
+    allowed_sources:
+      - local_path
+    allowed_media_types:
+      - text/plain
+      - application/pdf
+      - image/svg+xml
+    max_bytes: 1048576
+  registry:
+    type: inline
+    prompts:
+      review_claim:
+        model: gpt-4o-mini
+        temperature: 0
+        messages:
+          - role: system
+            content: >
+              Review claim evidence. Use the declared artifact groups as evidence,
+              but do not infer facts that are not present.
+          - role: user
+            content:
+              - type: text
+                text: |
+                  Claim: {{ claim_id }}
+                  Summary: {{ claimant_summary }}
+              - type: artifact_group
+                group: claim_documents
+                text: "Claim documents:"
+              - type: artifact_group
+                group: claim_photos
+                text: "Claim photos:"
+  provider:
+    type: openai
+    api_key:
+      value_from:
+        env: OPENAI_API_KEY
+
+  # Traces to Langfuse (set LANGFUSE_PUBLIC_KEY/SECRET_KEY, and LANGFUSE_HOST
+  # for self-hosted) so runs are inspectable; degrades cleanly when the keys
+  # are absent. Matches the sibling examples.
+  observability:
+    type: langfuse
+    execution_manifest: true
+    redaction:
+      enabled: true
+      emails: true
+      phones: true
+      ssn: true
+      credit_cards: true
+      preserve_typeflux_metadata: true
+
+activities:
+  definitions:
+    - name: review_claim
+      input: schemas:ClaimReviewInput
+      output: schemas:ClaimReviewOutput
+      prompt: review_claim
+      artifacts:
+        - name: claim_documents
+          from: input.documents
+          required: true
+          kind: document
+          media_types:
+            - text/plain
+            - application/pdf
+          max_count: 4
+          attach:
+            role: user
+            text: "Additional claim documents:"
+        - name: claim_photos
+          from: input.photos
+          required: false
+          kind: image
+          media_types:
+            - image/svg+xml
+          max_count: 4
+
+workflow:
+  name: MultimodalClaimReviewWorkflow
+  input: schemas:ClaimReviewInput
+  output: schemas:ClaimReviewOutput
+  steps:
+    - id: review_claim
+      activity: review_claim

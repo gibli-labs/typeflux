@@ -1,0 +1,36 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "The unsupported-runtime 501 mirrors: the TS server cannot resolve the python-runtime foreign project py-project (#620).",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/projects/py-project/workflows/flow/bundle",
+        "query": {
+          "environment_id": "local"
+        }
+      },
+      "response": {
+        "body": {
+          "error": "UnsupportedRuntime",
+          "message": "project 'py-project' declares runtime 'python', which this server cannot resolve (supported: typescript); resolution-dependent operations are unavailable for it"
+        },
+        "status": 501
+      }
+    }
+  },
+  "name": "project-ts-bundle-unsupported-runtime",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/projects/ts-project/workflows/flow/bundle",
+    "query": {
+      "environment_id": "local"
+    }
+  },
+  "response": {
+    "body": {
+      "error": "UnsupportedRuntime",
+      "message": "project 'ts-project' declares runtime 'typescript', which this server cannot resolve (supported: python); resolution-dependent operations are unavailable for it"
+    },
+    "status": 501
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "labels": {
+    "api-change": {
+      "color": "B60205",
+      "description": "Changes public API behavior or compatibility"
+    },
+    "architecture": {
+      "color": "B60205",
+      "description": "Architecture-level change requiring human review"
+    },
+    "auto-fix:allow-protected-paths": {
+      "color": "5319E7",
+      "description": "Allow auto-fix changes to protected automation/API paths"
+    },
+    "auto-fix:approved": {
+      "color": "0E8A16",
+      "description": "Approved for automated Codex resolution"
+    },
+    "auto-fix:blocked": {
+      "color": "B60205",
+      "description": "Do not run automated resolution"
+    },
+    "auto-fix:candidate": {
+      "color": "FBCA04",
+      "description": "Potentially safe for automated Codex resolution"
+    },
+    "changes-ergonomics": {
+      "color": "D93F0B",
+      "description": "Changes user-facing ergonomics or workflow"
+    },
+    "cleanup": {
+      "color": "C5DEF5",
+      "description": "Mechanical cleanup with low product impact"
+    },
+    "correctness": {
+      "color": "1D76DB",
+      "description": "Correctness-focused implementation issue"
+    },
+    "human-review": {
+      "color": "D93F0B",
+      "description": "Requires human review or approval workflow decisions"
+    },
+    "needs-design": {
+      "color": "D93F0B",
+      "description": "Needs design before implementation"
+    },
+    "new-feature": {
+      "color": "A2EEEF",
+      "description": "Feature work excluded from safe auto-fix"
+    },
+    "provider-semantics": {
+      "color": "D93F0B",
+      "description": "Changes provider behavior, retries, or model semantics"
+    },
+    "requires-design": {
+      "color": "D93F0B",
+      "description": "Needs design before implementation"
+    },
+    "stability": {
+      "color": "0052CC",
+      "description": "Stability or resilience improvement"
+    },
+    "ux-change": {
+      "color": "B60205",
+      "description": "Changes user-visible UX or CLI behavior"
+    },
+    "yaml-change": {
+      "color": "B60205",
+      "description": "Changes YAML schema or runtime ergonomics"
+    }
+  },
+  "auto_fix": {
+    "required_label": "auto-fix:approved",
+    "candidate_label": "auto-fix:candidate",
+    "protected_path_override_label": "auto-fix:allow-protected-paths",
+    "safe_signal_labels": [
+      "bug",
+      "cleanup",
+      "correctness",
+      "documentation",
+      "good first issue",
+      "stability"
+    ],
+    "blocking_labels": [
+      "api-change",
+      "architecture",
+      "auto-fix:blocked",
+      "changes-ergonomics",
+      "human-review",
+      "needs-design",
+      "new-feature",
+      "provider-semantics",
+      "requires-design",
+      "ux-change",
+      "yaml-change"
+    ],
+    "protected_path_patterns": [
+      ".github/workflows/*",
+      "pyproject.toml",
+      "src/typeflux/yaml/spec.py"
+    ]
+  }
+}

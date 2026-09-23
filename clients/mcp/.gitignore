@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.tsbuildinfo
+src/generated/
+THIRD-PARTY-NOTICES.md

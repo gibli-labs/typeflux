@@ -1,0 +1,12 @@
+Typeflux Temporal
+Copyright 2026 Joseph Gibli
+
+This product is licensed under the Apache License, Version 2.0
+(see the LICENSE file in the repository root).
+
+Components and their licenses are inventoried in docs/licensing.md.
+This distribution contains no vendored third-party source code.
+Third-party libraries are consumed as declared package-manager
+dependencies; container base images and CI actions referenced at
+build/deploy time are inventoried in docs/licensing.md. All are used
+under their respective licenses.

@@ -1,0 +1,46 @@
+project: replay_demo_project
+name: replay_saga
+task_queue: replay-fixture-saga-typeflux
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+  registry:
+    type: inline
+    prompts:
+      book_hotel: book_hotel {{value}}
+      book_flight: book_flight {{value}}
+      charge: charge {{value}}
+      cancel_hotel: cancel_hotel {{value}}
+      cancel_flight: cancel_flight {{value}}
+  provider:
+    type: custom
+    class: replay_demo_project.fakes:ReplaySagaProvider
+  imports:
+    allow_provider_class: true
+  observability:
+    type: none
+
+activities:
+  modules:
+    - saga_activities
+
+workflow:
+  name: ReplaySagaWorkflow
+  input: schemas:InputModel
+  output: schemas:FailModel
+  lifecycle:
+    enabled: true
+  steps:
+    - id: book_hotel
+      activity: book_hotel
+      compensate:
+        activity: cancel_hotel
+    - id: book_flight
+      activity: book_flight
+      compensate:
+        activity: cancel_flight
+        retry:
+          maximum_attempts: 1
+    - id: charge
+      activity: charge

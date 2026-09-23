@@ -1,0 +1,40 @@
+version: "1"
+name: conformance-fixture
+workflows:
+  - id: workflow
+    path: workflow.yaml
+  - id: broken
+    path: workflow.yaml
+    profiles:
+      provider: missing-profile
+  - id: composition
+    path: workflow-composition.yaml
+  - id: child_assessment
+    path: workflow-child-assessment.yaml
+  - id: subworkflow
+    path: workflow-subworkflow.yaml
+environments:
+  local: environments/local.yaml
+  unreachable: environments/unreachable.yaml
+policies:
+  base: policies/base.yaml
+profiles:
+  provider:
+    anthropic-prod: profiles/provider/anthropic-prod.yaml
+validation:
+  targets:
+    local:
+      workflows:
+        - workflow
+      environment: local
+      policies:
+        - base
+    # #788: the workflow declares risk_tier: policy_gated, which now fails closed when
+    # unbound — the unreachable environment's cases test Temporal unreachability, so the
+    # workflow must stay governed there too.
+    unreachable:
+      workflows:
+        - workflow
+      environment: unreachable
+      policies:
+        - base

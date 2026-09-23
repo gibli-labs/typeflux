@@ -1,0 +1,77 @@
+{
+  "note": "Cross-edition AES-256-GCM payload-codec conformance vectors (#188). A payload sealed by one edition opens in the other under the same key; the byte layout (nonce||ciphertext||tag) and metadata tags are identical. Generated from the Python edition; the TS edition MUST reproduce data_hex from key+nonce+plaintext and MUST open data_hex back to plaintext_hex.",
+  "algorithm": "AES-256-GCM",
+  "encoding_metadata_key": "encoding",
+  "encoding_metadata_value": "binary/encrypted",
+  "key_id_metadata_key": "typeflux-key-id",
+  "nonce_len": 12,
+  "tag_len": 16,
+  "key_len": 32,
+  "vectors": [
+    {
+      "name": "single-metadata-json-payload",
+      "key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "kid": "key-2026",
+      "nonce_hex": "aabbccddeeff001122334455",
+      "inner_payload": {
+        "metadata": {
+          "encoding": "json/plain"
+        },
+        "data_utf8": "{\"claim\":\"redact-me\",\"n\":42}"
+      },
+      "plaintext_hex": "0a160a08656e636f64696e67120a6a736f6e2f706c61696e121c7b22636c61696d223a227265646163742d6d65222c226e223a34327d",
+      "data_hex": "aabbccddeeff0011223344556dd958b800ace2a8eca946a408e24b88db6a8849959e5afa2afc2edc86971b665356f8de886d1c10ff21bf97a759b73a1bc5d557023a14e58415244595028f2adf8efcf3f76e",
+      "encrypted_metadata": {
+        "encoding": "binary/encrypted",
+        "typeflux-key-id": "key-2026"
+      }
+    }
+  ],
+  "subject_scoped": {
+    "note": "Subject-scoped crypto-shred vectors (#715 slice 4). A subject-scoped payload's key id is 'tfsubj1:<b64url(s1)>,<b64url(s2)>,...' and its AES key is SHA-256(record_key(s1)||record_key(s2)||...). Both editions MUST reproduce data_hex from the record keys+nonce+plaintext, MUST open data_hex back to plaintext_hex under the same combined key, and MUST route a destroyed subject to the DISTINCT shred error (never plaintext). A no-subject execution keeps the shared-key vectors above byte-for-byte, so 'no subject unchanged' is proved by the shared vectors reproducing identically under the subject-scoped codec's fallback path.",
+    "scheme": "tfsubj1",
+    "kid_format": "tfsubj1:<b64url(subject_id) no-padding, comma-joined in resolved order>",
+    "combine": "SHA-256 of the concatenated 32-byte per-subject record keys, in kid order",
+    "plaintext_hex": "0a160a08656e636f64696e67120a6a736f6e2f706c61696e121c7b22636c61696d223a227265646163742d6d65222c226e223a34327d",
+    "inner_payload": {
+      "metadata": {
+        "encoding": "json/plain"
+      },
+      "data_utf8": "{\"claim\":\"redact-me\",\"n\":42}"
+    },
+    "nonce_hex": "aabbccddeeff001122334455",
+    "vectors": [
+      {
+        "name": "single-subject-seal-unseal",
+        "subject_ids": [
+          "subject-0001"
+        ],
+        "subject_record_keys_hex": {
+          "subject-0001": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+        },
+        "kid": "tfsubj1:c3ViamVjdC0wMDAx",
+        "data_hex": "aabbccddeeff001122334455c30c9394250237bf5b5b5ce92d1f9f5e9f6a8c9c27431d0c50bdcc9d0cd51b03bd8b47fdec682d149b110188f29137fae97141147bdb88d900af4a273436c0ccf3cbbc056eed",
+        "combined_sha256_hex": "630dcd2966c4336691125448bbb25b4ff412a49c732db2c8abc1b8581bd710dd"
+      },
+      {
+        "name": "multi-subject-set-seal-unseal",
+        "subject_ids": [
+          "subject-0001",
+          "subject-0002"
+        ],
+        "subject_record_keys_hex": {
+          "subject-0001": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+          "subject-0002": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+        },
+        "kid": "tfsubj1:c3ViamVjdC0wMDAx,c3ViamVjdC0wMDAy",
+        "data_hex": "aabbccddeeff0011223344556bc26d42d3a6225808a3d6c2da0b44c4571adc76b1dabca28fb0ba00ed76e102dce1417254ae5bdf4fbe4ae85855794ef6f1d7b4f64381c21beef37698286de291b091987b3a",
+        "combined_sha256_hex": "fdeab9acf3710362bd2658cdc9a29e8f9c757fcf9811603a8c447cd1d9151108"
+      }
+    ],
+    "decode_after_shred": {
+      "note": "Using the single-subject-seal-unseal vector: destroy the record for 'subject-0001', then decode of its data_hex MUST raise the distinct subject-key-shredded error, never plaintext, never an empty result.",
+      "vector_name": "single-subject-seal-unseal",
+      "destroy_subject_id": "subject-0001"
+    }
+  }
+}

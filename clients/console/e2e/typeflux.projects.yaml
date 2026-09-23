@@ -1,0 +1,16 @@
+# E2E smoke fixture (#293): the examples project registered under two ids so
+# the smoke can exercise the project switcher + project-scoped routing. Both
+# entries point at the same local manifest — read endpoints need no Temporal.
+version: "1"
+default: examples
+projects:
+  - id: examples
+    manifest: ../../../packages/python/examples/typeflux.project.yaml
+  - id: examples_b
+    manifest: ../../../packages/python/examples/typeflux.project.yaml
+  # Foreign-runtime entry (#621 slice 3): a typescript project the PYTHON server
+  # cannot resolve — the console must degrade honestly, never error (its mirror
+  # lives in typeflux.projects.ts-cp.yaml).
+  - id: foreign
+    manifest: ../../../contracts/controlplane/conformance/project/typescript/typeflux.project.yaml
+    runtime: typescript

@@ -1,0 +1,66 @@
+# The SAME governed workflow, but its activity declares a moderator. It PASSES the
+# admission pre-flight (semantics.categories is a runtime control, not an admission
+# one), yet the moderation POLICY escalates the moderator's reported category to a
+# block at execution — demonstrating the per-call runtime guard (#454 slice 3).
+project: examples.policy_governed_review
+name: policy_governed_review_moderated
+task_queue: ${TEMPORAL_TASK_QUEUE:-policy-governed-review-typeflux}
+
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+
+  registry:
+    type: inline
+    prompts:
+      review/assess_content:
+        messages:
+          - role: system
+            content: |
+              You are a content-safety reviewer. Classify one message and flag risk.
+          - role: user
+            content: |
+              Message id: {{id}}
+              Body: {{body}}
+
+              Return a structured assessment: category is safe, review, or block;
+              risk_score is 0..1; notes are a one-line reviewer rationale.
+
+  provider:
+    type: openai
+    model: ${TYPEFLUX_OPENAI_MODEL:-gpt-4o-mini}
+
+  observability:
+    type: langfuse
+    redaction:
+      enabled: true
+      preserve_typeflux_metadata: true
+
+  provider_limits:
+    default:
+      max_concurrent: 2
+
+activities:
+  definitions:
+    - name: assess_content
+      input: schemas:ContentItem
+      output: schemas:Assessment
+      prompt: review/assess_content
+      validation_retries: 2
+      # `moderator` names INTENT (use an injected moderator, not a built-in provider
+      # one); the injection itself is keyed by ACTIVITY NAME (`assess_content`) via
+      # buildRuntime's `moderators` map, not by this string. `on_violation: flag`
+      # means the moderator alone would only flag — but the org policy's
+      # semantics.categories escalates its reported category to a block at runtime.
+      moderation:
+        moderator: content_safety
+        on_violation: flag
+
+workflow:
+  name: PolicyGovernedReviewWorkflow
+  input: schemas:ContentItem
+  output: schemas:Assessment
+  steps:
+    - id: assess
+      activity: assess_content

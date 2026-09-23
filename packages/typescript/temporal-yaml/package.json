@@ -1,0 +1,98 @@
+{
+  "name": "@typeflux/temporal-yaml",
+  "version": "0.1.0",
+  "description": "Opt-in declarative YAML runtime for the Typeflux TypeScript SDK \u2014 loads, env-interpolates, and validates a typeflux.yaml spec, and builds activities + a workflow from it. Keeps @typeflux/temporal dependency-light.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "typeflux-project": "./dist/cli.js",
+    "typeflux-yaml-worker": "./dist/worker-entry.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "example:composition": "tsx examples/claims-review-composition/main.ts",
+    "example:insurance": "tsx examples/insurance-claim-review/main.ts",
+    "example:lifecycle": "tsx examples/lifecycle-review/main.ts",
+    "example:policy": "tsx examples/policy-governed-review/main.ts",
+    "example:session-cache": "tsx examples/session-cache-review/main.ts"
+  },
+  "dependencies": {
+    "@temporalio/client": "^1.18.1",
+    "@temporalio/common": "^1.18.1",
+    "@temporalio/proto": "^1.18.1",
+    "@temporalio/worker": "^1.18.1",
+    "@temporalio/workflow": "^1.18.1",
+    "@typeflux/temporal": "workspace:*",
+    "@typeflux/temporal-worker": "workspace:*",
+    "yaml": "^2.6.0"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "@google/genai": "^2.0.0",
+    "langfuse": "^3.38.0",
+    "openai": "^6.0.0",
+    "zod": "^4.4.0",
+    "langsmith": "^0.8.0"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "@google/genai": "^2.11.0",
+    "@types/node": "^22.10.0",
+    "langfuse": "^3.38.20",
+    "langsmith": "^0.8.1",
+    "openai": "^6.46.0",
+    "tsx": "^4.19.2",
+    "typescript": "5.9.3",
+    "vitest": "^3.0.5",
+    "zod": "^4.4.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@google/genai": {
+      "optional": true
+    },
+    "langfuse": {
+      "optional": true
+    },
+    "langsmith": {
+      "optional": true
+    },
+    "openai": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gibli-labs/typeflux.git",
+    "directory": "packages/typescript/temporal-yaml"
+  },
+  "homepage": "https://github.com/gibli-labs/typeflux/tree/main/packages/typescript/temporal-yaml#readme",
+  "bugs": {
+    "url": "https://github.com/gibli-labs/typeflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "engines": {
+    "node": "^22"
+  }
+}

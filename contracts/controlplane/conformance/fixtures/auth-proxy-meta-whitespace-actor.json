@@ -1,0 +1,59 @@
+{
+  "editions": {
+    "ts-cp": {
+      "note": "Identical behavior to the base golden apart from /runtime (typescript vs python), the standing proxy-profile meta divergence. caller_identity is null on BOTH editions: a whitespace-only X-Typeflux-Actor is no identity \u2014 HTTP parsers strip optional whitespace around the field value and the authorizer additionally trims (#577), so the literal whitespace can never become a principal. enforcement_events follows resolvable (true); github_provenance is false on both (local mount, no recorded git source, #727).",
+      "response": {
+        "body": {
+          "api_version": "1",
+          "bundle_version": "1",
+          "caller_identity": null,
+          "capabilities": {
+            "can_cancel": false,
+            "can_refresh_project": false,
+            "can_resolve": true,
+            "can_review": false,
+            "can_start": false,
+            "enforcement_events": true,
+            "github_provenance": false
+          },
+          "catalog_version": "1",
+          "manifest_path": "<normalized>",
+          "project": "conformance-fixture",
+          "runtime": "typescript"
+        },
+        "status": 200
+      }
+    }
+  },
+  "name": "auth-proxy-meta-whitespace-actor",
+  "profile": "proxy",
+  "request": {
+    "headers": {
+      "X-Typeflux-Actor": "   ",
+      "X-Typeflux-Permissions": "inspect"
+    },
+    "method": "GET",
+    "path": "/api/v1/meta"
+  },
+  "response": {
+    "body": {
+      "api_version": "1",
+      "bundle_version": "1",
+      "caller_identity": null,
+      "capabilities": {
+        "can_cancel": false,
+        "can_refresh_project": false,
+        "can_resolve": true,
+        "can_review": false,
+        "can_start": false,
+        "enforcement_events": true,
+        "github_provenance": false
+      },
+      "catalog_version": "1",
+      "manifest_path": "<normalized>",
+      "project": "conformance-fixture",
+      "runtime": "python"
+    },
+    "status": 200
+  }
+}

@@ -1,0 +1,11 @@
+version: "1"
+name: anthropic-prod
+kind: provider
+runtime:
+  provider:
+    type: anthropic
+    model: claude-sonnet-4-6
+    api_key:
+      value_from:
+        env: TYPEFLUX_CONFORMANCE_ANTHROPIC_API_KEY
+        required: false

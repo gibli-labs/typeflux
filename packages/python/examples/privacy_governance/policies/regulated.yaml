@@ -1,0 +1,28 @@
+version: "1"
+name: regulated-privacy
+description: "Privacy governance policy (#188): require the Temporal payload codec and named custom redaction rules, fail-closed at admission."
+
+observability:
+  required: true
+  allowed_backends:
+    - langfuse
+  redaction:
+    required: true
+    preserve_typeflux_metadata: true
+    # Every workflow governed by this policy MUST declare these named custom rules.
+    require_custom_rules:
+      - case_reference
+      - uk_nino
+
+runtime:
+  temporal:
+    require_payload_codec: true
+
+risk_tiers:
+  # A human_gated (or prohibited) tier implies encryption-at-rest via the SAME macro
+  # mechanism as require_redaction — no parallel enforcement engine.
+  human_gated:
+    require_payload_codec: true
+    require_redaction: true
+  prohibited:
+    require_payload_codec: true

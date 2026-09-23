@@ -1,0 +1,7 @@
+version: "1"
+name: conformance-py-stub
+workflows:
+  - id: flow
+    path: workflow.yaml
+environments:
+  local: environments/local.yaml
