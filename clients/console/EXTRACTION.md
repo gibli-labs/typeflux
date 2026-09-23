@@ -9,15 +9,14 @@ already true on `main` (verified by the slice-4 bare-checkout proof).
 ## What is already true (the boundary holds today)
 
 - **Zero `file:`/`workspace:` references**: the console consumes the published
-  `@gibli-labs/control-plane-client` from GitHub Packages (`.npmrc` routes the
-  scope); the lockfile pins a release. CI verifies the client major tracks the
+  `@typeflux/control-plane-client` from the public npm registry; the
+  lockfile pins a release. CI verifies the client major tracks the
   contract major (`scripts/assert_client_contract_lockstep.mjs`).
 - **No repo-root tooling**: `npm ci && npm run typecheck && npm test && npm run
-  build` succeed in a bare checkout of this directory alone. The one external
-  requirement is registry auth for `npm ci` (`read:packages` on the scope) —
-  post-extraction CI provides it exactly like the monorepo Web job does.
-  (Local dev without a `read:packages` token: `npm link ../typescript`-style
-  symlinking of the in-repo client works but is machine-local state — never
+  build` succeed in a bare checkout of this directory alone. No registry
+  credentials are needed — the client resolves anonymously from npmjs.org.
+  (Local dev against an unreleased in-repo client: `npm link
+  ../typescript`-style symlinking works but is machine-local state — never
   commit it; the lockfile stays pinned to the registry release.)
 - **Contract-only server knowledge**: capability flags from `/meta`, honest
   degradation for `UnsupportedRuntime`, and the e2e suite runs against BOTH
@@ -66,8 +65,8 @@ decide at extraction time.
 
 3. **CI bootstrap** — translate the monorepo Web job (`.github/workflows/ci.yml`,
    `web` job) into the new repo's workflow:
-   - `actions/setup-node` (node 22, npm cache) + `npm ci` with
-     `NODE_AUTH_TOKEN` and `permissions: packages: read`;
+   - `actions/setup-node` (node 22, npm cache) + `npm ci` (the client
+     installs anonymously from public npm — no registry auth);
    - `npm run typecheck && npm test && npm run build`;
    - the split Playwright setup steps (apt deps uncapped, browser cached +
      retried — copy them verbatim, the comments explain why);
@@ -76,10 +75,10 @@ decide at extraction time.
 4. **Docker image** (the delivery target; no Dockerfile exists yet — create in
    the new repo): multi-stage `node:22` build into an nginx/static stage
    serving `dist/`, with `/api` proxying left to the deployment (the console
-   is a static SPA; the Vite dev proxy is dev-only). Registry auth for
-   `npm ci` must use a **BuildKit secret mount** (`RUN --mount=type=secret,id=npmrc
-   npm ci`), never a build ARG — args persist in image metadata/provenance and
-   cached layers.
+   is a static SPA; the Vite dev proxy is dev-only). `npm ci` needs no registry
+   credentials (public npm); if a private registry ever returns, route auth
+   through a **BuildKit secret mount**, never a build ARG — args persist in
+   image metadata/provenance and cached layers.
 
 5. **Client bump flow** (unchanged post-extraction): contract PR in the
    monorepo → client release workflow publishes → **console bump PR in the new

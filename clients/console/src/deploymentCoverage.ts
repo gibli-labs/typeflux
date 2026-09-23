@@ -8,7 +8,7 @@
  * verification against the current resolution); the page renders the output.
  */
 
-import type { components } from "@gibli-labs/control-plane-client";
+import type { components } from "@typeflux/control-plane-client";
 
 type DeploymentEntry = components["schemas"]["_DeploymentEntry"];
 type PlanMismatch = components["schemas"]["PlanMismatch"];

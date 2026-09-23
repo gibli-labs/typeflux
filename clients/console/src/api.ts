@@ -4,8 +4,8 @@
  * contract shapes by hand.
  */
 
-import { createControlPlaneClient } from "@gibli-labs/control-plane-client";
-import type { components } from "@gibli-labs/control-plane-client";
+import { createControlPlaneClient } from "@typeflux/control-plane-client";
+import type { components } from "@typeflux/control-plane-client";
 
 export type ApiMeta = components["schemas"]["ApiMeta"];
 export type Capabilities = components["schemas"]["ApiCapabilities"];
