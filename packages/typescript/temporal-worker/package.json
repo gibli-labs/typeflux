@@ -25,22 +25,22 @@
     "example:code-defined": "tsx examples/code-defined-review/main.ts"
   },
   "dependencies": {
-    "@temporalio/activity": "^1.18.1",
-    "@temporalio/common": "^1.18.1",
-    "@temporalio/client": "^1.18.1",
-    "@temporalio/worker": "^1.18.1",
-    "@temporalio/workflow": "^1.18.1",
+    "@temporalio/activity": "^1.24.0",
+    "@temporalio/common": "^1.24.0",
+    "@temporalio/client": "^1.24.0",
+    "@temporalio/worker": "^1.24.0",
+    "@temporalio/workflow": "^1.24.0",
     "@typeflux/temporal": "workspace:*"
   },
   "peerDependencies": {
-    "zod": "^4.4.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "tsx": "^4.19.2",
+    "tsx": "^4.23.15",
     "typescript": "5.9.3",
     "vitest": "^3.0.5",
-    "zod": "^4.4.0"
+    "zod": "^4.6.5"
   },
   "repository": {
     "type": "git",
