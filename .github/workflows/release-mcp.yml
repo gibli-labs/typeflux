@@ -20,9 +20,8 @@ on:
 
 permissions:
   contents: write
-  # id-token would back npm --provenance, which npm only accepts from PUBLIC
-  # source repos — kept for the day this repo goes public (harmless until then;
-  # the publish step currently runs without --provenance).
+  # id-token backs npm --provenance; this repository is public, so every
+  # publish carries the attestation.
   id-token: write
 
 concurrency:
@@ -196,10 +195,9 @@ jobs:
         # first dispatch failed ENEEDAUTH). Write a step-local userconfig with
         # the npmjs auth placeholder — the project .npmrc's @gibli-labs mapping
         # still applies but that scope is never touched during publish.
-        # No --provenance: npm rejects provenance from PRIVATE source repos
-        # (E422, "Only public source repositories are supported"). Re-add the
-        # flag — and the id-token: write permission it needs — if this repo
-        # goes public.
+        # --provenance: this repository is public, so npm accepts the
+        # attestation (id-token: write above backs it). Release policy
+        # requires provenance on every publish.
         run: |
           # Idempotent re-run: if the version is already visible, skip the
           # publish and let the anonymous verification arbitrate the bytes.
@@ -211,7 +209,7 @@ jobs:
           echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$npmrc"
           # Publish the EXACT tarball that was hashed — a directory publish
           # would re-pack and could upload different bytes than the evidence.
-          NPM_CONFIG_USERCONFIG="$npmrc" npm publish "$TARBALL" --registry https://registry.npmjs.org
+          NPM_CONFIG_USERCONFIG="$npmrc" npm publish "$TARBALL" --provenance --registry https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
