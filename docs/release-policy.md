@@ -65,8 +65,8 @@ policy update in the same PR that adds the publishing automation.
 
 | Surface | Supported |
 |---|---|
-| Python | 3.11, 3.12 (CI matrix) |
-| Node.js | 22 (the CI-tested major) |
+| Python | 3.11–3.15 (CI matrix) |
+| Node.js | 24 LTS, at least 24.15 (SDK, browser and MCP) |
 | OS | Linux (CI), macOS (development); Windows is best-effort, untested in CI |
 | Temporal | Server compatibility follows [Temporal's official SDK–server compatibility policy](https://docs.temporal.io/encyclopedia/temporal-sdks) for the pinned SDK ranges (`temporalio>=1.8,<2`, `@temporalio/*` 1.x); the project does not test servers beyond what those SDKs support |
 

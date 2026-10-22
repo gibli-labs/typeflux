@@ -58,8 +58,8 @@ def _worker_container() -> dict[str, object]:
 def test_yaml_worker_dockerfile_runs_as_non_root_locked_runtime() -> None:
     dockerfile = (DEPLOY_DIR / "Dockerfile").read_text()
 
-    assert "FROM python:3.12-slim-bookworm" in dockerfile
-    assert "ghcr.io/astral-sh/uv:0.11.8" in dockerfile
+    assert "FROM python:3.14-slim-bookworm" in dockerfile
+    assert "ghcr.io/astral-sh/uv:0.13.5" in dockerfile
     assert "useradd" in dockerfile
     assert "USER typeflux:typeflux" in dockerfile
     assert "/app/.venv/bin/python -m typeflux.yaml.run" in dockerfile

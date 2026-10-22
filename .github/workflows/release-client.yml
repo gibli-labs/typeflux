@@ -85,7 +85,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
           cache-dependency-path: clients/typescript/package-lock.json
 
@@ -93,8 +93,12 @@ jobs:
       # 11.2.0) — pin so the hashed bytes are the published bytes.
       - name: Pin npm >= 11.2.0 (exact-bytes tarball publish)
         run: |
-          npm install -g npm@11.2.0
+          npm install -g npm@12.2.1
           npm --version
+
+      - name: Install isolated contract generator
+        run: npm ci --prefix tools/openapi-generator
+        working-directory: .
 
       - name: Install dependencies
         run: npm ci
@@ -121,7 +125,7 @@ jobs:
       - name: Pack and hash the tarball
         id: pack
         run: |
-          tarball=$(npm pack --json | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8"))[0].filename')
+          tarball=$(npm pack --json | node -p 'Object.values(JSON.parse(require("fs").readFileSync(0, "utf8")))[0].filename')
           sha256=$(shasum -a 256 "$tarball" | cut -d' ' -f1)
           echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
           echo "sha256=$sha256" >> "$GITHUB_OUTPUT"

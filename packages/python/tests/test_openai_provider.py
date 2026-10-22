@@ -42,7 +42,12 @@ def _fake_usage() -> Any:
 
 def _fake_completion(finish_reason: str, *, usage: Any | None = None) -> Any:
     return types.SimpleNamespace(
-        choices=[types.SimpleNamespace(finish_reason=finish_reason)],
+        choices=[
+            types.SimpleNamespace(
+                finish_reason=finish_reason,
+                message=types.SimpleNamespace(parsed=Output(label="ok"), refusal=None),
+            )
+        ],
         usage=usage,
     )
 
@@ -57,11 +62,12 @@ class _FakeCompletions:
         self.calls.append(kwargs)
         return Output(label="ok")
 
-    def create_with_completion(self, **kwargs: Any) -> tuple[Output, Any]:
-        return self.create(**kwargs), _fake_completion(self.finish_reason, usage=self.usage)
+    def parse(self, **kwargs: Any) -> Any:
+        self.create(**kwargs)
+        return _fake_completion(self.finish_reason, usage=self.usage)
 
 
-class _FakeInstructorClient:
+class _FakeOpenAIClient:
     def __init__(self) -> None:
         completions = _FakeCompletions()
         self.completions = completions
@@ -78,11 +84,12 @@ class _AsyncFakeCompletions:
         self.calls.append(kwargs)
         return Output(label="ok")
 
-    async def create_with_completion(self, **kwargs: Any) -> tuple[Output, Any]:
-        return await self.create(**kwargs), _fake_completion(self.finish_reason, usage=self.usage)
+    async def parse(self, **kwargs: Any) -> Any:
+        await self.create(**kwargs)
+        return _fake_completion(self.finish_reason, usage=self.usage)
 
 
-class _AsyncFakeInstructorClient:
+class _AsyncFakeOpenAIClient:
     def __init__(self) -> None:
         completions = _AsyncFakeCompletions()
         self.completions = completions
@@ -99,12 +106,11 @@ def _contains_identity(value: Any, target: object) -> bool:
     return False
 
 
-def test_openai_provider_maps_typeflux_call_to_instructor() -> None:
-    client = _FakeInstructorClient()
+def test_openai_provider_maps_typeflux_call_to_native_sdk() -> None:
+    client = _FakeOpenAIClient()
     provider = OpenAIProvider(
         default_model="test-model",
-        instructor_client=client,
-        instructor_max_retries=1,
+        openai_client=client,
     )
 
     result = provider.structured_call(
@@ -129,16 +135,15 @@ def test_openai_provider_maps_typeflux_call_to_instructor() -> None:
     assert result == Output(label="ok")
     assert call["model"] == "test-model"
     assert call["messages"] == [{"role": "user", "content": "hello", "name": "tester"}]
-    assert call["response_model"] is Output
-    assert call["max_retries"] == 1
+    assert call["response_format"] is Output
     assert "metadata" not in call
     assert "name" not in call
 
 
 def test_openai_provider_reports_max_tokens_truncation() -> None:
-    client = _FakeInstructorClient()
+    client = _FakeOpenAIClient()
     client.completions.finish_reason = "length"
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
 
     with pytest.raises(ProviderConfigError, match="max_tokens was exhausted"):
         provider.structured_call(
@@ -149,9 +154,9 @@ def test_openai_provider_reports_max_tokens_truncation() -> None:
 
 @pytest.mark.asyncio
 async def test_openai_provider_reports_max_tokens_truncation_async() -> None:
-    client = _AsyncFakeInstructorClient()
+    client = _AsyncFakeOpenAIClient()
     client.completions.finish_reason = "length"
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
 
     with pytest.raises(ProviderConfigError, match="max_tokens was exhausted"):
         await provider.async_structured_call(
@@ -161,8 +166,8 @@ async def test_openai_provider_reports_max_tokens_truncation_async() -> None:
 
 
 def test_openai_provider_forwards_usage_to_sink() -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     received: list[ProviderUsage] = []
 
     provider.structured_call(
@@ -180,8 +185,8 @@ def test_openai_provider_forwards_usage_to_sink() -> None:
 
 @pytest.mark.asyncio
 async def test_openai_provider_forwards_usage_to_sink_async() -> None:
-    client = _AsyncFakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _AsyncFakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     received: list[ProviderUsage] = []
 
     await provider.async_structured_call(
@@ -198,9 +203,9 @@ async def test_openai_provider_forwards_usage_to_sink_async() -> None:
 def test_openai_provider_truncation_forwards_no_usage() -> None:
     # Usage is forwarded only after the truncation guard, mirroring Anthropic:
     # a response cut off at max_tokens reports no usage.
-    client = _FakeInstructorClient()
+    client = _FakeOpenAIClient()
     client.completions.finish_reason = "length"
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     received: list[ProviderUsage] = []
 
     with pytest.raises(ProviderConfigError, match="max_tokens was exhausted"):
@@ -214,9 +219,9 @@ def test_openai_provider_truncation_forwards_no_usage() -> None:
 
 
 def test_openai_provider_missing_usage_does_not_call_sink() -> None:
-    client = _FakeInstructorClient()
+    client = _FakeOpenAIClient()
     client.completions.usage = None  # SDK omitted usage (e.g. a streaming edge)
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     received: list[ProviderUsage] = []
 
     provider.structured_call(
@@ -229,8 +234,8 @@ def test_openai_provider_missing_usage_does_not_call_sink() -> None:
 
 
 def test_openai_provider_maps_provider_params() -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
 
     provider.structured_call(
         messages=[ChatMessage(role="user", content="hello")],
@@ -257,8 +262,8 @@ def test_openai_provider_maps_provider_params() -> None:
 
 
 def test_openai_provider_rejects_unsupported_provider_params() -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
 
     with pytest.raises(ProviderConfigError, match="top_k"):
         provider.structured_call(
@@ -269,11 +274,11 @@ def test_openai_provider_rejects_unsupported_provider_params() -> None:
 
 
 def test_openai_provider_passes_trace_name_only_when_langfuse_enabled() -> None:
-    client = _FakeInstructorClient()
+    client = _FakeOpenAIClient()
     provider = OpenAIProvider(
         default_model="test-model",
         enable_langfuse=True,
-        instructor_client=client,
+        openai_client=client,
     )
 
     provider.structured_call(
@@ -291,11 +296,11 @@ def test_openai_provider_passes_trace_name_only_when_langfuse_enabled() -> None:
 
 
 def test_openai_provider_trace_name_prefers_structured_activity_metadata() -> None:
-    client = _FakeInstructorClient()
+    client = _FakeOpenAIClient()
     provider = OpenAIProvider(
         default_model="test-model",
         enable_langfuse=True,
-        instructor_client=client,
+        openai_client=client,
     )
 
     provider.structured_call(
@@ -313,11 +318,11 @@ def test_openai_provider_trace_name_prefers_structured_activity_metadata() -> No
 
 
 def test_openai_provider_trace_name_falls_back_to_legacy_flat_key() -> None:
-    client = _FakeInstructorClient()
+    client = _FakeOpenAIClient()
     provider = OpenAIProvider(
         default_model="test-model",
         enable_langfuse=True,
-        instructor_client=client,
+        openai_client=client,
     )
 
     provider.structured_call(
@@ -349,10 +354,10 @@ def test_openai_rate_limit_captures_retry_after_header() -> None:
 def test_openai_provider_passes_langfuse_prompt_only_when_enabled() -> None:
     prompt = object()
 
-    disabled_client = _FakeInstructorClient()
+    disabled_client = _FakeOpenAIClient()
     disabled_provider = OpenAIProvider(
         default_model="test-model",
-        instructor_client=disabled_client,
+        openai_client=disabled_client,
     )
     disabled_provider.structured_call(
         messages=[ChatMessage(role="user", content="hello")],
@@ -360,11 +365,11 @@ def test_openai_provider_passes_langfuse_prompt_only_when_enabled() -> None:
         observation_context=langfuse_prompt_context(prompt),
     )
 
-    enabled_client = _FakeInstructorClient()
+    enabled_client = _FakeOpenAIClient()
     enabled_provider = OpenAIProvider(
         default_model="test-model",
         enable_langfuse=True,
-        instructor_client=enabled_client,
+        openai_client=enabled_client,
     )
     enabled_provider.structured_call(
         messages=[ChatMessage(role="user", content="hello")],
@@ -384,8 +389,8 @@ def test_openai_prefix_composition_sends_reference_before_per_item_turn(tmp_path
     # only thing that matters is ORDER. When the executor composes prefix-style, the
     # stable reference document must land ahead of the varying per-item query in the
     # serialized messages so it can enter the implicit cached prefix.
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     pdf = tmp_path / "contract.pdf"
     pdf.write_bytes(b"%PDF-1.4\ncontract")
     contract = ResolvedArtifact(
@@ -437,8 +442,8 @@ def test_openai_prefix_composition_sends_reference_before_per_item_turn(tmp_path
 
 
 def test_openai_provider_maps_content_parts_and_provider_file_artifacts() -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     artifact = ResolvedArtifact(
         group="claim_documents",
         index=0,
@@ -485,8 +490,8 @@ def test_openai_provider_maps_content_parts_and_provider_file_artifacts() -> Non
 
 
 def test_openai_provider_rejects_negative_artifact_index() -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     artifacts = tuple(
         ResolvedArtifact(
             group="claim_documents",
@@ -526,8 +531,8 @@ def test_openai_provider_rejects_negative_artifact_index() -> None:
 
 
 def test_openai_provider_maps_local_pdf_artifacts(tmp_path: Path) -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     pdf = tmp_path / "evidence.pdf"
     pdf.write_bytes(b"%PDF-1.4\nfixture")
     artifact = ResolvedArtifact(
@@ -578,8 +583,8 @@ def test_openai_provider_maps_local_pdf_artifacts(tmp_path: Path) -> None:
 
 
 def test_openai_provider_maps_image_url_artifacts() -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     artifact = ResolvedArtifact(
         group="screenshots",
         index=0,
@@ -618,8 +623,8 @@ def test_openai_provider_maps_image_url_artifacts() -> None:
 
 
 def test_openai_provider_maps_local_image_artifacts(tmp_path: Path) -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="test-model", openai_client=client)
     image = tmp_path / "diagram.png"
     image.write_bytes(b"\x89PNG\r\nfixture")
     artifact = ResolvedArtifact(
@@ -659,12 +664,11 @@ def test_openai_provider_maps_local_image_artifacts(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_openai_provider_maps_async_typeflux_call_to_instructor() -> None:
-    client = _AsyncFakeInstructorClient()
+async def test_openai_provider_maps_async_typeflux_call_to_native_sdk() -> None:
+    client = _AsyncFakeOpenAIClient()
     provider = OpenAIProvider(
         default_model="test-model",
-        instructor_client=client,
-        instructor_max_retries=1,
+        openai_client=client,
     )
 
     result = await provider.async_structured_call(
@@ -689,19 +693,18 @@ async def test_openai_provider_maps_async_typeflux_call_to_instructor() -> None:
     assert result == Output(label="ok")
     assert call["model"] == "test-model"
     assert call["messages"] == [{"role": "user", "content": "hello", "name": "tester"}]
-    assert call["response_model"] is Output
-    assert call["max_retries"] == 1
+    assert call["response_format"] is Output
     assert "metadata" not in call
     assert "name" not in call
 
 
 @pytest.mark.asyncio
 async def test_openai_provider_async_passes_trace_name_only_when_langfuse_enabled() -> None:
-    client = _AsyncFakeInstructorClient()
+    client = _AsyncFakeOpenAIClient()
     provider = OpenAIProvider(
         default_model="test-model",
         enable_langfuse=True,
-        instructor_client=client,
+        openai_client=client,
     )
 
     await provider.async_structured_call(
@@ -718,198 +721,56 @@ async def test_openai_provider_async_passes_trace_name_only_when_langfuse_enable
     assert call["name"] == "classify_ticket.openai"
 
 
-def test_openai_provider_disables_instructor_retries_by_default() -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
+@pytest.mark.parametrize("enable_langfuse", [False, True])
+def test_openai_provider_constructs_native_sdk_without_retries(monkeypatch, enable_langfuse):
+    calls = []
+    client = _FakeOpenAIClient()
 
-    provider.structured_call(messages=[], output_schema=Output)
+    def construct(**kwargs):
+        calls.append(kwargs)
+        return client
 
-    assert client.completions.calls[0]["max_retries"] == 0
-    assert provider.supports_async_structured_call is False
-
-
-@pytest.mark.asyncio
-async def test_openai_provider_async_disables_instructor_retries_by_default() -> None:
-    client = _AsyncFakeInstructorClient()
-    provider = OpenAIProvider(default_model="test-model", instructor_client=client)
-
-    await provider.async_structured_call(messages=[], output_schema=Output)
-
-    assert client.completions.calls[0]["max_retries"] == 0
-    assert provider.supports_async_structured_call is True
-
-
-def test_openai_provider_uses_plain_openai_by_default(monkeypatch) -> None:
-    calls: list[dict[str, Any]] = []
-    fake_instructor = types.SimpleNamespace(
-        Mode=types.SimpleNamespace(JSON_SCHEMA="json-schema-mode"),
-        from_openai=lambda client, **kwargs: (
-            calls.append({"client": client, **kwargs}) or _FakeInstructorClient()
-        ),
-    )
-    fake_openai_module = types.SimpleNamespace(
-        OpenAI=lambda **kwargs: {"plain_openai_kwargs": kwargs},
-    )
-    fake_langfuse_openai_module = types.SimpleNamespace(
-        OpenAI=lambda **kwargs: (_ for _ in ()).throw(
-            AssertionError("default provider construction should not import Langfuse OpenAI")
-        ),
-    )
-    fake_langfuse_module = types.SimpleNamespace(openai=fake_langfuse_openai_module)
-
-    monkeypatch.setitem(sys.modules, "instructor", fake_instructor)
-    monkeypatch.setitem(sys.modules, "openai", fake_openai_module)
-    monkeypatch.setitem(sys.modules, "langfuse", fake_langfuse_module)
-    monkeypatch.setitem(sys.modules, "langfuse.openai", fake_langfuse_openai_module)
-
-    OpenAIProvider(api_key="test-key")
-
-    assert calls == [
-        {
-            "client": {"plain_openai_kwargs": {"api_key": "test-key"}},
-            "mode": "json-schema-mode",
-        }
-    ]
+    module = "langfuse.openai" if enable_langfuse else "openai"
+    monkeypatch.setitem(sys.modules, module, types.SimpleNamespace(OpenAI=construct))
+    provider = OpenAIProvider(api_key="test-key", enable_langfuse=enable_langfuse)
+    assert provider._client is client
+    assert calls == [{"api_key": "test-key", "max_retries": 0}]
 
 
 @pytest.mark.asyncio
-async def test_openai_provider_builds_plain_async_openai_lazily(monkeypatch) -> None:
-    calls: list[dict[str, Any]] = []
+async def test_openai_provider_async_lazy_client_init_does_not_block_event_loop(monkeypatch):
+    calls = []
 
-    class FakeOpenAI:
-        def __init__(self, **kwargs: Any) -> None:
-            self.kwargs = kwargs
-            self.kind = "sync"
+    def async_client(**kwargs):
+        sleep(0.2)
+        calls.append(kwargs)
+        return _AsyncFakeOpenAIClient()
 
-    class FakeAsyncOpenAI:
-        def __init__(self, **kwargs: Any) -> None:
-            self.kwargs = kwargs
-            self.kind = "async"
-
-    def from_openai(
-        client: Any, **kwargs: Any
-    ) -> _FakeInstructorClient | _AsyncFakeInstructorClient:
-        calls.append({"client": client, **kwargs})
-        if client.kind == "async":
-            return _AsyncFakeInstructorClient()
-        return _FakeInstructorClient()
-
-    fake_instructor = types.SimpleNamespace(
-        Mode=types.SimpleNamespace(JSON_SCHEMA="json-schema-mode"),
-        from_openai=from_openai,
-    )
-    fake_openai_module = types.SimpleNamespace(OpenAI=FakeOpenAI, AsyncOpenAI=FakeAsyncOpenAI)
-    fake_langfuse_openai_module = types.SimpleNamespace(
-        OpenAI=lambda **kwargs: (_ for _ in ()).throw(
-            AssertionError("default provider construction should not import Langfuse OpenAI")
-        ),
-        AsyncOpenAI=lambda **kwargs: (_ for _ in ()).throw(
-            AssertionError("default async provider path should not import Langfuse AsyncOpenAI")
+    monkeypatch.setitem(
+        sys.modules,
+        "openai",
+        types.SimpleNamespace(
+            OpenAI=lambda **kwargs: _FakeOpenAIClient(),
+            AsyncOpenAI=async_client,
         ),
     )
-
-    monkeypatch.setitem(sys.modules, "instructor", fake_instructor)
-    monkeypatch.setitem(sys.modules, "openai", fake_openai_module)
-    monkeypatch.setitem(sys.modules, "langfuse.openai", fake_langfuse_openai_module)
-
     provider = OpenAIProvider(api_key="test-key", base_url="https://example.test")
-    await provider.async_structured_call(messages=[], output_schema=Output)
-
-    assert provider.supports_async_structured_call is True
-    assert [call["client"].kind for call in calls] == ["sync", "async"]
-    assert calls[1]["client"].kwargs == {
-        "api_key": "test-key",
-        "base_url": "https://example.test",
-    }
-    assert calls[1]["mode"] == "json-schema-mode"
-
-
-@pytest.mark.asyncio
-async def test_openai_provider_async_lazy_client_init_does_not_block_event_loop(
-    monkeypatch,
-) -> None:
-    calls: list[dict[str, Any]] = []
-
-    class FakeOpenAI:
-        def __init__(self, **kwargs: Any) -> None:
-            self.kwargs = kwargs
-            self.kind = "sync"
-
-    class FakeAsyncOpenAI:
-        def __init__(self, **kwargs: Any) -> None:
-            sleep(0.2)
-            self.kwargs = kwargs
-            self.kind = "async"
-
-    def from_openai(
-        client: Any, **kwargs: Any
-    ) -> _FakeInstructorClient | _AsyncFakeInstructorClient:
-        calls.append({"client": client, **kwargs})
-        if client.kind == "async":
-            sleep(0.2)
-            return _AsyncFakeInstructorClient()
-        return _FakeInstructorClient()
-
-    fake_instructor = types.SimpleNamespace(
-        Mode=types.SimpleNamespace(JSON_SCHEMA="json-schema-mode"),
-        from_openai=from_openai,
-    )
-    fake_openai_module = types.SimpleNamespace(OpenAI=FakeOpenAI, AsyncOpenAI=FakeAsyncOpenAI)
-    monkeypatch.setitem(sys.modules, "instructor", fake_instructor)
-    monkeypatch.setitem(sys.modules, "openai", fake_openai_module)
-
-    provider = OpenAIProvider(api_key="test-key")
+    assert calls == []
     start = monotonic()
-    first_call = asyncio.create_task(
-        provider.async_structured_call(messages=[], output_schema=Output)
-    )
-    second_call = asyncio.create_task(
-        provider.async_structured_call(messages=[], output_schema=Output)
-    )
+    first = asyncio.create_task(provider.async_structured_call(messages=[], output_schema=Output))
+    second = asyncio.create_task(provider.async_structured_call(messages=[], output_schema=Output))
     await asyncio.sleep(0.01)
-
     assert monotonic() - start < 0.2
-    assert await first_call == Output(label="ok")
-    assert await second_call == Output(label="ok")
-    assert [call["client"].kind for call in calls] == ["sync", "async"]
+    assert await first == Output(label="ok")
+    assert await second == Output(label="ok")
+    assert calls == [{"api_key": "test-key", "base_url": "https://example.test", "max_retries": 0}]
+    assert provider.supports_async_structured_call is True
 
 
-def test_openai_provider_uses_langfuse_openai_when_enabled(monkeypatch) -> None:
-    calls: list[dict[str, Any]] = []
-    fake_instructor = types.SimpleNamespace(
-        Mode=types.SimpleNamespace(JSON_SCHEMA="json-schema-mode"),
-        from_openai=lambda client, **kwargs: (
-            calls.append({"client": client, **kwargs}) or _FakeInstructorClient()
-        ),
+def test_openai_provider_requires_langfuse_only_when_enabled(monkeypatch):
+    monkeypatch.setitem(
+        sys.modules, "openai", types.SimpleNamespace(OpenAI=lambda **kwargs: _FakeOpenAIClient())
     )
-    fake_openai_module = types.SimpleNamespace(
-        OpenAI=lambda **kwargs: {"openai_kwargs": kwargs},
-    )
-    fake_langfuse_module = types.SimpleNamespace(openai=fake_openai_module)
-
-    monkeypatch.setitem(sys.modules, "instructor", fake_instructor)
-    monkeypatch.setitem(sys.modules, "langfuse", fake_langfuse_module)
-    monkeypatch.setitem(sys.modules, "langfuse.openai", fake_openai_module)
-
-    OpenAIProvider(api_key="test-key", enable_langfuse=True)
-
-    assert calls == [
-        {
-            "client": {"openai_kwargs": {"api_key": "test-key"}},
-            "mode": "json-schema-mode",
-        }
-    ]
-
-
-def test_openai_provider_requires_langfuse_only_when_enabled(monkeypatch) -> None:
-    fake_instructor = types.SimpleNamespace(
-        Mode=types.SimpleNamespace(JSON_SCHEMA="json-schema-mode"),
-        from_openai=lambda client, **kwargs: _FakeInstructorClient(),
-    )
-    fake_openai_module = types.SimpleNamespace(OpenAI=lambda **kwargs: {"openai_kwargs": kwargs})
-    monkeypatch.setitem(sys.modules, "instructor", fake_instructor)
-    monkeypatch.setitem(sys.modules, "openai", fake_openai_module)
-
     real_import = builtins.__import__
 
     def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
@@ -918,16 +779,14 @@ def test_openai_provider_requires_langfuse_only_when_enabled(monkeypatch) -> Non
         return real_import(name, globals, locals, fromlist, level)
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
-
     OpenAIProvider(api_key="test-key")
-
     with pytest.raises(RuntimeError, match="langfuse is required when enable_langfuse=True"):
         OpenAIProvider(enable_langfuse=True)
 
 
 @pytest.mark.asyncio
 async def test_openai_provider_async_requires_async_injected_client() -> None:
-    provider = OpenAIProvider(instructor_client=_FakeInstructorClient())
+    provider = OpenAIProvider(openai_client=_FakeOpenAIClient())
 
     with pytest.raises(ProviderConfigError, match="does not support async structured calls"):
         await provider.async_structured_call(messages=[], output_schema=Output)
@@ -938,9 +797,7 @@ async def test_openai_provider_async_requires_async_injected_client() -> None:
 # all providers in test_provider_error_classification.py; the SDK error-type
 # name mappings below are OpenAI-specific.
 def test_openai_provider_classifies_rate_limit_by_sdk_error_type() -> None:
-    provider = OpenAIProvider(
-        instructor_client=_FailingInstructorClient(_named_error("RateLimitError"))
-    )
+    provider = OpenAIProvider(openai_client=_FailingOpenAIClient(_named_error("RateLimitError")))
 
     with pytest.raises(ProviderRateLimitError) as exc_info:
         provider.structured_call(messages=[], output_schema=Output)
@@ -950,7 +807,7 @@ def test_openai_provider_classifies_rate_limit_by_sdk_error_type() -> None:
 
 @pytest.mark.parametrize("error_name", ["AuthenticationError", "PermissionDeniedError"])
 def test_openai_provider_classifies_auth_error_by_sdk_error_type(error_name: str) -> None:
-    provider = OpenAIProvider(instructor_client=_FailingInstructorClient(_named_error(error_name)))
+    provider = OpenAIProvider(openai_client=_FailingOpenAIClient(_named_error(error_name)))
 
     with pytest.raises(ProviderAuthError) as exc_info:
         provider.structured_call(messages=[], output_schema=Output)
@@ -962,7 +819,7 @@ def test_openai_provider_classifies_auth_error_by_sdk_error_type(error_name: str
     "error_name", ["BadRequestError", "NotFoundError", "UnprocessableEntityError"]
 )
 def test_openai_provider_classifies_config_error_by_sdk_error_type(error_name: str) -> None:
-    provider = OpenAIProvider(instructor_client=_FailingInstructorClient(_named_error(error_name)))
+    provider = OpenAIProvider(openai_client=_FailingOpenAIClient(_named_error(error_name)))
 
     with pytest.raises(ProviderConfigError) as exc_info:
         provider.structured_call(messages=[], output_schema=Output)
@@ -974,7 +831,7 @@ def test_openai_provider_classifies_config_error_by_sdk_error_type(error_name: s
     "error_name", ["APIConnectionError", "APITimeoutError", "InternalServerError"]
 )
 def test_openai_provider_classifies_transient_error_by_sdk_error_type(error_name: str) -> None:
-    provider = OpenAIProvider(instructor_client=_FailingInstructorClient(_named_error(error_name)))
+    provider = OpenAIProvider(openai_client=_FailingOpenAIClient(_named_error(error_name)))
 
     with pytest.raises(ProviderTransientError) as exc_info:
         provider.structured_call(messages=[], output_schema=Output)
@@ -984,9 +841,7 @@ def test_openai_provider_classifies_transient_error_by_sdk_error_type(error_name
 
 @pytest.mark.asyncio
 async def test_openai_provider_async_classifies_rate_limit() -> None:
-    provider = OpenAIProvider(
-        instructor_client=_AsyncFailingInstructorClient(_SdkError("rate limit", 429))
-    )
+    provider = OpenAIProvider(openai_client=_AsyncFailingOpenAIClient(_SdkError("rate limit", 429)))
 
     with pytest.raises(ProviderRateLimitError) as exc_info:
         await provider.async_structured_call(messages=[], output_schema=Output)
@@ -1002,7 +857,7 @@ async def test_openai_provider_async_preserves_validation_error() -> None:
         validation_error = exc
     else:  # pragma: no cover - defensive assertion.
         raise AssertionError("expected validation error")
-    provider = OpenAIProvider(instructor_client=_AsyncFailingInstructorClient(validation_error))
+    provider = OpenAIProvider(openai_client=_AsyncFailingOpenAIClient(validation_error))
 
     with pytest.raises(ValidationError) as exc_info:
         await provider.async_structured_call(messages=[], output_schema=Output)
@@ -1027,11 +882,11 @@ class _FailingCompletions:
     def create(self, **kwargs: Any) -> Output:
         raise self.error
 
-    def create_with_completion(self, **kwargs: Any) -> tuple[Output, Any]:
+    def parse(self, **kwargs: Any) -> Any:
         raise self.error
 
 
-class _FailingInstructorClient:
+class _FailingOpenAIClient:
     def __init__(self, error: Exception) -> None:
         completions = _FailingCompletions(error)
         self.completions = completions
@@ -1045,11 +900,11 @@ class _AsyncFailingCompletions:
     async def create(self, **kwargs: Any) -> Output:
         raise self.error
 
-    async def create_with_completion(self, **kwargs: Any) -> tuple[Output, Any]:
+    async def parse(self, **kwargs: Any) -> Any:
         raise self.error
 
 
-class _AsyncFailingInstructorClient:
+class _AsyncFailingOpenAIClient:
     def __init__(self, error: Exception) -> None:
         completions = _AsyncFailingCompletions(error)
         self.completions = completions
@@ -1065,8 +920,8 @@ def test_openai_declares_prefix_session_cache() -> None:
 
 
 def test_prepare_cached_session_is_a_logical_marker_no_api_call() -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="gpt-4o-mini", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="gpt-4o-mini", openai_client=client)
 
     handle = provider.prepare_cached_session(
         messages=[ChatMessage(role="system", content="stable")],
@@ -1086,8 +941,8 @@ def test_prepare_cached_session_is_a_logical_marker_no_api_call() -> None:
 
 
 def test_structured_call_accepts_cached_session_without_changing_request() -> None:
-    client = _FakeInstructorClient()
-    provider = OpenAIProvider(default_model="gpt-4o-mini", instructor_client=client)
+    client = _FakeOpenAIClient()
+    provider = OpenAIProvider(default_model="gpt-4o-mini", openai_client=client)
     handle = CachedSessionHandle(provider="openai", identity_hash="h", supported=True)
 
     result = provider.structured_call(
@@ -1102,14 +957,14 @@ def test_structured_call_accepts_cached_session_without_changing_request() -> No
 
 
 def test_openai_usage_parses_cached_prompt_tokens() -> None:
-    client = _FakeInstructorClient()
+    client = _FakeOpenAIClient()
     client.completions.usage = types.SimpleNamespace(
         prompt_tokens=1000,
         completion_tokens=20,
         total_tokens=1020,
         prompt_tokens_details=types.SimpleNamespace(cached_tokens=768),
     )
-    provider = OpenAIProvider(default_model="gpt-4o-mini", instructor_client=client)
+    provider = OpenAIProvider(default_model="gpt-4o-mini", openai_client=client)
     captured: list[ProviderUsage] = []
 
     provider.structured_call(

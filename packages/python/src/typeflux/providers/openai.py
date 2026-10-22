@@ -75,35 +75,26 @@ class OpenAIProvider:
         api_key: str | None = None,
         base_url: str | None = None,
         enable_langfuse: bool = False,
-        instructor_client: Any | None = None,
-        instructor_max_retries: int = 0,
-        strict: bool = True,
+        openai_client: Any | None = None,
         default_provider_params: ProviderParams | None = None,
     ) -> None:
         self.default_model = default_model
         self.api_key = api_key
         self.base_url = base_url
         self.enable_langfuse = enable_langfuse
-        self.instructor_max_retries = instructor_max_retries
-        self.strict = strict
         self.default_provider_params = ProviderParams(model=default_model).merge(
             default_provider_params
         )
         validate_provider_params_supported(self, self.default_provider_params)
         self._async_client: Any | None = None
         self._async_client_lock = Lock()
-        self._injected_client = instructor_client is not None
+        self._injected_client = openai_client is not None
 
-        if instructor_client is not None:
-            self._client = instructor_client
+        if openai_client is not None:
+            self._client = openai_client
             return
 
         load_env()
-
-        try:
-            import instructor
-        except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency guard.
-            raise RuntimeError("instructor is required for OpenAIProvider") from exc
 
         if enable_langfuse:
             try:
@@ -116,24 +107,21 @@ class OpenAIProvider:
             except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency guard.
                 raise RuntimeError("openai is required for OpenAIProvider") from exc
 
-        client_kwargs: dict[str, Any] = {}
+        client_kwargs: dict[str, Any] = {"max_retries": 0}
         if api_key is not None:
             client_kwargs["api_key"] = api_key
         if base_url is not None:
             client_kwargs["base_url"] = base_url
-        self._client = instructor.from_openai(
-            OpenAI(**client_kwargs), mode=instructor.Mode.JSON_SCHEMA
-        )
+        self._client = OpenAI(**client_kwargs)
 
     @property
     def supports_async_structured_call(self) -> bool:
         if not self._injected_client:
             return True
-        # Probe the method the async path actually invokes (create_with_completion),
-        # not create — they can differ on an injected client.
+        # Injected clients must provide an async native parse method.
         call = getattr(
             getattr(getattr(self._client, "chat", None), "completions", None),
-            "create_with_completion",
+            "parse",
             None,
         )
         return callable(call) and iscoroutinefunction(call)
@@ -167,21 +155,20 @@ class OpenAIProvider:
             params=params,
             metadata=metadata,
             observation_context=observation_context,
-            instructor_max_retries=self.instructor_max_retries,
-            strict=self.strict,
             include_trace_name=self.enable_langfuse,
         )
 
         try:
-            result, completion = self._client.chat.completions.create_with_completion(**call_kwargs)
+            completion = self._client.chat.completions.parse(**call_kwargs)
         except Exception as exc:
             _raise_openai_provider_error(exc)
 
         # Outside the try: a truncation is a config error, not a transient/SDK
         # error to be reclassified by _raise_openai_provider_error.
         _raise_if_openai_truncated(completion)
+        result = _parsed_provider_result(completion)
         _forward_openai_usage(completion, model=params.model, usage_sink=usage_sink)
-        return _validated_provider_result(result)
+        return result
 
     async def async_structured_call(
         self,
@@ -210,25 +197,24 @@ class OpenAIProvider:
             params=params,
             metadata=metadata,
             observation_context=observation_context,
-            instructor_max_retries=self.instructor_max_retries,
-            strict=self.strict,
             include_trace_name=self.enable_langfuse,
         )
         client = await self._get_async_client_async()
         try:
-            pending = client.chat.completions.create_with_completion(**call_kwargs)
+            pending = client.chat.completions.parse(**call_kwargs)
             if not isawaitable(pending):
                 raise ProviderConfigError(
-                    "injected OpenAI instructor client does not support async structured calls",
+                    "injected OpenAI client does not support async structured calls",
                     provider="openai",
                 )
-            result, completion = await pending
+            completion = await pending
         except Exception as exc:
             _raise_openai_provider_error(exc)
 
         _raise_if_openai_truncated(completion)
+        result = _parsed_provider_result(completion)
         _forward_openai_usage(completion, model=params.model, usage_sink=usage_sink)
-        return _validated_provider_result(result)
+        return result
 
     def prepare_cached_session(
         self,
@@ -272,11 +258,6 @@ class OpenAIProvider:
 
             load_env()
 
-            try:
-                import instructor
-            except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency guard.
-                raise RuntimeError("instructor is required for OpenAIProvider") from exc
-
             if self.enable_langfuse:
                 try:
                     from langfuse.openai import AsyncOpenAI
@@ -288,14 +269,12 @@ class OpenAIProvider:
                 except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency guard.
                     raise RuntimeError("openai is required for OpenAIProvider") from exc
 
-            client_kwargs: dict[str, Any] = {}
+            client_kwargs: dict[str, Any] = {"max_retries": 0}
             if self.api_key is not None:
                 client_kwargs["api_key"] = self.api_key
             if self.base_url is not None:
                 client_kwargs["base_url"] = self.base_url
-            self._async_client = instructor.from_openai(
-                AsyncOpenAI(**client_kwargs), mode=instructor.Mode.JSON_SCHEMA
-            )
+            self._async_client = AsyncOpenAI(**client_kwargs)
             return self._async_client
 
     async def _get_async_client_async(self) -> Any:
@@ -312,16 +291,12 @@ def _openai_call_kwargs(
     params: ProviderParams,
     metadata: dict[str, Any] | None,
     observation_context: dict[str, Any] | None,
-    instructor_max_retries: int,
-    strict: bool,
     include_trace_name: bool,
 ) -> dict[str, Any]:
     call_kwargs: dict[str, Any] = {
         "model": params.model,
         "messages": [_to_openai_message(message, artifacts=artifacts) for message in messages],
-        "response_model": output_schema,
-        "max_retries": instructor_max_retries,
-        "strict": strict,
+        "response_format": output_schema,
     }
     if params.temperature is not None:
         call_kwargs["temperature"] = params.temperature
@@ -365,12 +340,7 @@ def _metadata_activity_name(metadata: Mapping[str, Any]) -> str | None:
 
 
 def _raise_if_openai_truncated(completion: Any) -> None:
-    # Mirror Anthropic's stop_reason == "max_tokens" guard: a response cut off by
-    # the output-token cap (finish_reason == "length") is a degraded result, not a
-    # success. instructor parses the truncated text into the schema (or burns
-    # validation retries on invalid JSON) and would otherwise hide the cause. When
-    # no raw completion is attached we can't read the reason, so the existing
-    # validation-repair path stays the backstop.
+    # Fake/injected clients can return truncation without the SDK parse exception.
     choices = getattr(completion, "choices", None)
     finish_reason = getattr(choices[0], "finish_reason", None) if choices else None
     raise_if_truncated(
@@ -427,21 +397,26 @@ def _usage_int(usage: Any, field: str) -> int | None:
     return value if isinstance(value, int) else None
 
 
-def _validated_provider_result(result: Any) -> BaseModel:
+def _parsed_provider_result(completion: Any) -> BaseModel:
+    choices = getattr(completion, "choices", None)
+    message = getattr(choices[0], "message", None) if choices else None
+    if getattr(message, "refusal", None):
+        raise ProviderConfigError("OpenAI refused the structured request", provider="openai")
+    result = getattr(message, "parsed", None)
     if not isinstance(result, BaseModel):
-        raise ProviderConfigError(
-            "instructor client returned a non-Pydantic result",
-            provider="openai",
-        )
+        raise ProviderConfigError("OpenAI returned no parsed structured output", provider="openai")
     return result
 
 
 def _raise_openai_provider_error(exc: Exception) -> NoReturn:
-    validation_error = _extract_instructor_validation_error(exc)
-    if validation_error is not None:
-        raise validation_error from exc
-    if isinstance(exc, ProviderError):
+    if isinstance(exc, (ValidationError, ProviderError)):
         raise exc
+    if matches_provider_error(exc, "openai", "LengthFinishReasonError"):
+        raise_if_truncated(truncated=True, provider="openai", display_name="OpenAI")
+    if matches_provider_error(exc, "openai", "ContentFilterFinishReasonError"):
+        raise ProviderConfigError(
+            "OpenAI filtered the structured response", provider="openai"
+        ) from exc
     raise _classify_provider_error(exc, provider="openai") from exc
 
 
@@ -543,18 +518,6 @@ def _is_text_like_media_type(media_type: str | None) -> bool:
         media_type.startswith("text/")
         or media_type in {"application/json", "application/xml", "text/csv"}
     )
-
-
-def _extract_instructor_validation_error(exc: Exception) -> ValidationError | None:
-    failed_attempts = getattr(exc, "failed_attempts", None)
-    if not failed_attempts:
-        return exc if isinstance(exc, ValidationError) else None
-
-    for attempt in reversed(failed_attempts):
-        attempt_exception = getattr(attempt, "exception", None)
-        if isinstance(attempt_exception, ValidationError):
-            return attempt_exception
-    return None
 
 
 def _classify_provider_error(exc: Exception, *, provider: str) -> ProviderError:

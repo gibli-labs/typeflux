@@ -73,7 +73,7 @@ decide at extraction time.
    - both e2e lanes per the harness replacement above.
 
 4. **Docker image** (the delivery target; no Dockerfile exists yet — create in
-   the new repo): multi-stage `node:22` build into an nginx/static stage
+   the new repo): multi-stage `node:24` build into an nginx/static stage
    serving `dist/`, with `/api` proxying left to the deployment (the console
    is a static SPA; the Vite dev proxy is dev-only). `npm ci` needs no registry
    credentials (public npm); if a private registry ever returns, route auth

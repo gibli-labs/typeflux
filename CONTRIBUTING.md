@@ -22,11 +22,11 @@ The DCO check on pull requests enforces this. There is no CLA.
 | Area | Path | Toolchain |
 |---|---|---|
 | Python SDK | `packages/python/` | Python ≥ 3.11, [uv](https://docs.astral.sh/uv/) |
-| TypeScript SDK (4 packages) | `packages/typescript/` | Node 22, pnpm |
+| TypeScript SDK (4 packages) | `packages/typescript/` | Node 24.15+, pnpm 12.15 |
 | Language-neutral contracts | `contracts/` | JSON Schema / golden fixtures |
-| Control-plane client (generated) | `clients/typescript/` | Node 22, npm |
-| Console | `clients/console/` | Node 22, npm, Vite |
-| MCP server | `clients/mcp/` | Node 22, npm |
+| Control-plane client (generated) | `clients/typescript/` | Node 24.15+, npm |
+| Console | `clients/console/` | Node 24.15+, npm, Vite |
+| MCP server | `clients/mcp/` | Node 24.15+, npm |
 | Docs | `docs/` | Markdown |
 
 ## Development setup
@@ -39,6 +39,9 @@ uv sync --all-extras
 # TypeScript workspace (from the repo root)
 pnpm install
 pnpm -r build
+
+# Shared contract generator (isolated TypeScript 5 compiler API)
+npm ci --prefix tools/openapi-generator
 ```
 
 ## Validating changes

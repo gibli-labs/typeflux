@@ -35,8 +35,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^22.20.5",
-    "typescript": "5.9.3",
+    "@types/node": "^24.0.0",
+    "typescript": "7.0.2",
     "vitest": "^5.0.5"
   },
   "repository": {
@@ -53,6 +53,6 @@
     "registry": "https://registry.npmjs.org"
   },
   "engines": {
-    "node": "^22"
+    "node": "^24.15.0"
   }
 }

@@ -1,7 +1,7 @@
 # @typeflux/temporal-controlplane
 
 ```bash
-npm install @typeflux/temporal-controlplane   # Node 22
+npm install @typeflux/temporal-controlplane   # Node 24.15+
 npx typeflux-controlplane serve --registry ./typeflux.projects.yaml --port 8420
 ```
 

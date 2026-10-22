@@ -60,20 +60,20 @@ class _FailingAnthropicMessages:
         raise self.error
 
 
-class _FailingInstructorCompletions:
+class _FailingOpenAICompletions:
     def __init__(self, error: Exception) -> None:
         self.error = error
 
     def create(self, **kwargs: Any) -> Any:
         raise self.error
 
-    def create_with_completion(self, **kwargs: Any) -> Any:
+    def parse(self, **kwargs: Any) -> Any:
         raise self.error
 
 
-class _FailingInstructorClient:
+class _FailingOpenAIClient:
     def __init__(self, error: Exception) -> None:
-        completions = _FailingInstructorCompletions(error)
+        completions = _FailingOpenAICompletions(error)
         self.completions = completions
         self.chat = type("Chat", (), {"completions": completions})()
 
@@ -99,9 +99,7 @@ def _failing_anthropic(error: Exception) -> ModelProvider:
 
 
 def _failing_openai(error: Exception) -> ModelProvider:
-    return OpenAIProvider(
-        default_model="test-model", instructor_client=_FailingInstructorClient(error)
-    )
+    return OpenAIProvider(default_model="test-model", openai_client=_FailingOpenAIClient(error))
 
 
 def _failing_gemini(error: Exception) -> ModelProvider:

@@ -2519,7 +2519,7 @@ Registry types:
 Provider types:
 
 - `fake` for tests and demos
-- `openai` for structured OpenAI calls through Instructor JSON Schema mode
+- `openai` for structured OpenAI calls through the native SDK parser
 - `anthropic` for structured Anthropic Messages calls through provider-native
   structured output
 - `gemini` for structured Gemini calls (`google-genai`, the `gemini` extra)

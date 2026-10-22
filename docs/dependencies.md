@@ -50,8 +50,8 @@ The `gemini` extra pulls `google-genai` for the Gemini provider
 jsonschema — required to run the [control-plane server](control-plane.md)
 (`typeflux-controlplane serve`).
 
-OpenAI provider usage depends on both `openai` and `instructor`, so the
-`openai` extra installs both packages. Langfuse-backed OpenAI tracing needs the
+OpenAI provider usage depends on the native `openai` SDK, so the
+`openai` extra installs that SDK. Langfuse-backed OpenAI tracing needs the
 OpenAI and Langfuse extras together:
 
 ```bash
@@ -59,7 +59,7 @@ pip install "typeflux[openai,langfuse]"
 ```
 
 The `live` extra remains as the aggregate integration environment and installs
-OpenAI, Anthropic, Instructor, and Langfuse support:
+OpenAI, Anthropic, and Langfuse support:
 
 ```bash
 pip install "typeflux[live]"

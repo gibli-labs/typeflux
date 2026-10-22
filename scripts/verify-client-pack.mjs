@@ -22,7 +22,7 @@ const outDir = mkdtempSync(join(tmpdir(), "client-pack-"));
 const packJson = JSON.parse(
   execFileSync("npm", ["pack", "--json", "--pack-destination", outDir], { cwd: PKG, encoding: "utf8" }),
 );
-const tarball = join(outDir, packJson[0].filename);
+const tarball = join(outDir, Object.values(packJson)[0].filename);
 const extract = mkdtempSync(join(tmpdir(), "client-verify-"));
 execFileSync("tar", ["xzf", tarball, "-C", extract]);
 const root = join(extract, "package");
@@ -35,7 +35,7 @@ if (manifest.repository?.url !== `git+${PUBLIC_HOME}.git`) failures.push(`reposi
 if (manifest.bugs?.url !== `${PUBLIC_HOME}/issues`) failures.push(`bugs.url ${manifest.bugs?.url}`);
 if (!manifest.homepage?.startsWith(`${PUBLIC_HOME}/`)) failures.push(`homepage ${manifest.homepage}`);
 if (!Array.isArray(manifest.files) || manifest.files.length === 0) failures.push("no files allowlist");
-if (manifest.engines?.node !== "^22") failures.push(`engines.node ${manifest.engines?.node}`);
+if (manifest.engines?.node !== "^24.15.0") failures.push(`engines.node ${manifest.engines?.node}`);
 for (const required of ["LICENSE", "NOTICE", "README.md", "dist/index.js", "dist/index.d.ts"]) {
   if (!existsSync(join(root, required))) failures.push(`tarball missing ${required}`);
 }
@@ -90,4 +90,4 @@ execFileSync("node", ["--input-type=module", "-e",
    if (Object.keys(m).length === 0) { console.error("no exports"); process.exit(1); }
    console.log(Object.keys(m).slice(0, 5).join(","));`,
 ], { cwd: smoke, stdio: ["ignore", "pipe", "inherit"] });
-process.stderr.write(`verify-client-pack: OK (${packJson[0].filename}; name-specifier import resolved)\n`);
+process.stderr.write(`verify-client-pack: OK (${Object.values(packJson)[0].filename}; name-specifier import resolved)\n`);

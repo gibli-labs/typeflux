@@ -54,12 +54,12 @@ def test_project_license_and_version_metadata_are_declared() -> None:
 def test_optional_extras_are_split_and_live_stays_aggregate() -> None:
     extras = _project_metadata()["optional-dependencies"]
 
-    assert extras["anthropic"] == ["anthropic>=0.77,<2"]
+    assert extras["anthropic"] == ["anthropic>=2.1,<3"]
     assert extras["api"] == ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "jsonschema>=4,<5"]
-    assert extras["gemini"] == ["google-genai>=1,<3"]
+    assert extras["gemini"] == ["google-genai>=2.32,<3"]
     assert extras["langfuse"] == ["langfuse>=4,<5"]
     assert extras["langsmith"] == ["langsmith[otel]>=0.8.18,<1"]
-    assert extras["openai"] == ["instructor>=1.15,<2", "openai>=2,<3"]
+    assert extras["openai"] == ["openai>=3.36,<4"]
     assert sorted(extras["live"]) == sorted(
         extras["anthropic"]
         + extras["gemini"]
@@ -119,7 +119,7 @@ def test_built_distributions_include_license_version_and_extras(tmp_path: Path) 
         requirement.startswith("openai")
         for requirement in _requirements_for_extra(metadata_text, "openai")
     )
-    assert any(
+    assert not any(
         requirement.startswith("instructor")
         for requirement in _requirements_for_extra(metadata_text, "openai")
     )
@@ -134,7 +134,6 @@ def test_built_distributions_include_license_version_and_extras(tmp_path: Path) 
     for dependency in (
         "anthropic",
         "google-genai",
-        "instructor",
         "langfuse",
         "langsmith",
         "openai",

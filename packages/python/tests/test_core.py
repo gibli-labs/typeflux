@@ -1550,7 +1550,7 @@ def test_openai_provider_default_leaves_validation_repair_to_typeflux() -> None:
     completions = _SequentialCompletions([validation_error, Score(score=5)])
     provider = OpenAIProvider(
         enable_langfuse=True,
-        instructor_client=_SequentialInstructorClient(completions),
+        openai_client=_SequentialOpenAIClient(completions),
     )
 
     result = execute_ai_activity(
@@ -1562,7 +1562,7 @@ def test_openai_provider_default_leaves_validation_repair_to_typeflux() -> None:
 
     assert result == Score(score=5)
     assert len(completions.calls) == 2
-    assert [call["max_retries"] for call in completions.calls] == [0, 0]
+    assert all("max_retries" not in call for call in completions.calls)
     assert completions.calls[1]["messages"][-1]["role"] == "system"
     assert (
         "Previous response failed output validation"
@@ -2124,13 +2124,18 @@ class _SequentialCompletions:
             raise response
         return response
 
-    def create_with_completion(self, **kwargs: Any) -> tuple[BaseModel, Any]:
+    def parse(self, **kwargs: Any) -> Any:
         model = self.create(**kwargs)
-        completion = SimpleNamespace(choices=[SimpleNamespace(finish_reason="stop")])
-        return model, completion
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    finish_reason="stop", message=SimpleNamespace(parsed=model, refusal=None)
+                )
+            ]
+        )
 
 
-class _SequentialInstructorClient:
+class _SequentialOpenAIClient:
     def __init__(self, completions: _SequentialCompletions) -> None:
         self.chat = type("Chat", (), {"completions": completions})()
 

@@ -27,7 +27,7 @@
     "registry": "https://registry.npmjs.org"
   },
   "scripts": {
-    "generate": "openapi-typescript ../../contracts/controlplane/openapi.v1.json -o src/schema.ts",
+    "generate": "node ../../tools/openapi-generator/generate.mjs client",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -35,14 +35,13 @@
     "openapi-fetch": "0.17.0"
   },
   "devDependencies": {
-    "openapi-typescript": "7.13.0",
-    "typescript": "5.9.3"
+    "typescript": "7.0.2"
   },
   "homepage": "https://github.com/gibli-labs/typeflux/tree/main/clients/typescript#readme",
   "bugs": {
     "url": "https://github.com/gibli-labs/typeflux/issues"
   },
   "engines": {
-    "node": "^22"
+    "node": "^24.15.0"
   }
 }

@@ -46,7 +46,7 @@ Install from the public registries — no credentials, no checkout:
 pip install typeflux
 pip install "typeflux[openai]"               # or [anthropic], [gemini], [langfuse], [api], [live]
 
-# TypeScript SDK (Node 22)
+# TypeScript SDK (Node 24.15+)
 npm install @typeflux/temporal               # core: typed AI activities
 npm install @typeflux/temporal-yaml @typeflux/temporal-worker   # YAML runtime + worker
 npm install @typeflux/temporal-controlplane  # control-plane server

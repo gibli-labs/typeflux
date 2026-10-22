@@ -8,7 +8,17 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
-(no unreleased changes)
+- Require Node 24.15+ for JavaScript packages and use TypeScript 7; isolate the
+  OpenAPI generator's TypeScript 5 compiler API in `tools/openapi-generator`.
+- Upgrade provider SDKs and build tools. Python OpenAI uses native structured
+  outputs instead of Instructor: inject `openai_client` rather than
+  `instructor_client`; `strict` and `instructor_max_retries` are removed.
+  Typeflux validation repair and Temporal own retries; default SDK retries are
+  disabled. Require OpenAI 3.36+, Anthropic 2.1+ and Google GenAI 2.32+ in Python,
+  and Anthropic 1.1+, OpenAI 7 and LangSmith 0.11 in TypeScript.
+- Validate Python 3.11–3.15 and ship reference images using Python 3.14 / Node 24.
+  Stage the MCP server as 0.6.0 for the breaking Node requirement; no publishing
+  occurs as part of this source migration.
 
 ## client-1.15.1 - 2026-09-19
 
@@ -636,4 +646,3 @@ heading as part of the release PR or tag preparation.
   reviewer identity, cancellation reasons, and failure messages; the
   lifecycle example's `audit` command gains `--redact`. Defaults still
   preserve those fields verbatim for compliance use, now documented.
-

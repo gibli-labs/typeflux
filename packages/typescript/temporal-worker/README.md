@@ -1,7 +1,7 @@
 # @typeflux/temporal-worker
 
 ```bash
-npm install @typeflux/temporal-worker # Node 22
+npm install @typeflux/temporal-worker # Node 24.15+
 ```
 
 Opt-in Temporal worker integration for the Typeflux TypeScript SDK.

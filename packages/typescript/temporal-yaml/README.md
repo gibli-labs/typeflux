@@ -1,7 +1,7 @@
 # @typeflux/temporal-yaml
 
 ```bash
-npm install @typeflux/temporal-yaml   # Node 22 (pulls the worker + core)
+npm install @typeflux/temporal-yaml   # Node 24.15+ (pulls the worker + core)
 ```
 
 Opt-in **declarative YAML runtime** for the Typeflux TypeScript SDK — the parity of
