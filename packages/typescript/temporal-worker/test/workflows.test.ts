@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 // Pure unit tests for src/workflows.ts orchestration (the live tests prove it in a
 // real Temporal sandbox; this guards the logic in CI). workflows.ts binds its
@@ -11,7 +11,7 @@ const { activities, executeChildMock } = vi.hoisted(() => ({
   activities: {
     classifyDisclosure: vi.fn(),
     substantiateClaim: vi.fn(),
-  } as Record<string, ReturnType<typeof vi.fn>>,
+  } as Record<string, Mock>,
   executeChildMock: vi.fn(),
 }));
 
