@@ -43,24 +43,24 @@
     "yaml": "^2.6.0"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": "^0.111.0",
+    "@anthropic-ai/sdk": "^0.128.0",
     "@google/genai": "^2.0.0",
     "langfuse": "^3.38.0",
     "openai": "^6.0.0",
-    "zod": "^4.4.0",
-    "langsmith": "^0.8.0"
+    "zod": "^4.6.7",
+    "langsmith": "^0.8.0 || ^0.10.5"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.111.0",
+    "@anthropic-ai/sdk": "^0.128.0",
     "@google/genai": "^2.11.0",
     "@types/node": "^22.10.0",
     "langfuse": "^3.38.20",
-    "langsmith": "^0.8.1",
+    "langsmith": "^0.10.5",
     "openai": "^6.46.0",
     "tsx": "^4.19.2",
     "typescript": "5.9.3",
-    "vitest": "^3.0.5",
-    "zod": "^4.4.0"
+    "vitest": "^5.0.5",
+    "zod": "^4.6.7"
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/sdk": {

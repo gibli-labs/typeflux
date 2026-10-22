@@ -15,19 +15,19 @@
   },
   "dependencies": {
     "@typeflux/control-plane-client": "1.15.1",
-    "@tanstack/react-query": "5.103.1",
-    "@tanstack/react-router": "1.170.38",
+    "@tanstack/react-query": "5.104.4",
+    "@tanstack/react-router": "1.170.45",
     "ajv": "8.20.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "6.1.1",
+    "@vitejs/plugin-react": "6.1.2",
     "typescript": "5.9.3",
-    "vite": "8.3.0",
-    "vitest": "4.1.11"
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
   }
 }

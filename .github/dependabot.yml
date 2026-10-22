@@ -1,8 +1,8 @@
 version: 2
 
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
+  - package-ecosystem: "uv"
+    directory: "/packages/python"
     schedule:
       interval: "weekly"
     groups:
@@ -27,13 +27,16 @@ updates:
           - "minor"
           - "patch"
 
-  # The pnpm workspace has no root package.json — target the workspace
-  # packages directly (Dependabot resolves the shared root lockfile).
+  # Update the pnpm workspace from its root so package manifests and the
+  # shared pnpm-lock.yaml are updated together. Clients use npm separately.
   - package-ecosystem: "npm"
-    directories:
-      - "/packages/typescript/*"
+    directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # Keep the type surface aligned with the SDK's supported Node 22 runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       pnpm-workspace:
         update-types:
@@ -44,6 +47,9 @@ updates:
     directory: "/clients/mcp"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       mcp-deps:
         update-types:
