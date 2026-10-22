@@ -414,7 +414,15 @@ class LangfuseTraceReader:
         for trace_id in union:
             # A filtered observation cannot establish ownership of the whole trace.
             # Hydrate every candidate without subject/time filters before deleting.
-            detail = self.get_trace(trace_id)
+            try:
+                detail = self.get_trace(trace_id)
+            except KeyError:
+                # Retention or a concurrent erasure may remove a discovered trace.
+                conflicted.append(SubjectTraceDeletionConflict(trace_id=trace_id))
+                warnings.append(
+                    f"Langfuse ownership unavailable for trace {trace_id}; not deleted."
+                )
+                continue
             if detail.retrieval is None or not detail.retrieval.complete:
                 conflicted.append(SubjectTraceDeletionConflict(trace_id=trace_id))
                 warnings.append(

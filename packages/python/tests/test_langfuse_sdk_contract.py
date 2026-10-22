@@ -196,3 +196,45 @@ def test_repeated_detail_cursor_never_looks_like_complete_ownership() -> None:
                 LangfuseTraceReader(client=client).get_trace("shared")
         finally:
             client.shutdown()
+
+
+@pytest.mark.parametrize("dry_run", [True, False])
+def test_missing_candidate_is_excluded_without_aborting_other_owned_traces(dry_run: bool) -> None:
+    deleted: list[str] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if request.method == "DELETE":
+            assert request.url.path == "/api/public/traces"
+            deleted.extend(json.loads(request.content)["traceIds"])
+            return httpx.Response(200, json={"message": "deleted"})
+        trace_id = request.url.params.get("traceId")
+        rows = (
+            []
+            if trace_id == "gone"
+            else [observation("owned")]
+            if trace_id == "owned"
+            else [observation("gone"), observation("owned")]
+        )
+        return httpx.Response(200, json={"data": rows, "meta": {"cursor": None}})
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as http:
+        client = Langfuse(
+            public_key=f"pk-contract-missing-{dry_run}",
+            secret_key="sk-test",
+            base_url="http://localhost:9",
+            httpx_client=http,
+            tracing_enabled=False,
+        )
+        try:
+            report = LangfuseTraceReader(client=client).delete_traces_for_subject(
+                "s1", dry_run=dry_run
+            )
+            assert report.trace_ids == ("owned",)
+            assert [(item.trace_id, item.other_subject_count) for item in report.conflicted] == [
+                ("gone", None)
+            ]
+            assert report.deleted_count == (0 if dry_run else 1)
+            assert any("ownership unavailable" in warning for warning in report.warnings)
+        finally:
+            client.shutdown()
+    assert deleted == ([] if dry_run else ["owned"])
