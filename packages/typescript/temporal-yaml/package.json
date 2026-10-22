@@ -43,7 +43,7 @@
     "yaml": "^2.9.1"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": "^0.135.0",
+    "@anthropic-ai/sdk": "^0.128.0 || ^0.135.0",
     "@google/genai": "^2.0.0",
     "langfuse": "^3.38.0",
     "openai": "^6.0.0 || ^7.39.0",
