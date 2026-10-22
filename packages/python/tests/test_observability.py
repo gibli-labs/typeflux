@@ -6,6 +6,7 @@ import weakref
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -1160,7 +1161,8 @@ def test_langfuse_search_uses_server_tags_and_post_filters_manifest_fields() -> 
     assert {"metadata", "model", "prompt", "trace_context"} <= set(
         client.api.observations.get_many_calls[0]["fields"].split(",")
     )
-    assert client.api.observations.get_many_calls[0]["tags"] == [
+    filters = json.loads(client.api.observations.get_many_calls[0]["filter"])
+    assert next(item["value"] for item in filters if item["column"] == "traceTags") == [
         "typeflux.workflow:SupportWorkflow",
         "typeflux.activity:classify_ticket",
         "typeflux.prompt:support/classify",
@@ -1258,7 +1260,9 @@ def test_langfuse_search_passes_backend_filter_string_and_post_filters() -> None
     )
 
     assert [trace.trace_id for trace in page.traces] == ["trace-match"]
-    assert client.api.observations.get_many_calls[0]["filter"] == backend_filter
+    filters = json.loads(client.api.observations.get_many_calls[0]["filter"])
+    assert filters[0] == json.loads(backend_filter)[0]
+    assert {item["operator"] for item in filters if item["column"] == "startTime"} == {">=", "<"}
     assert client.api.trace.list_calls == []
 
 
@@ -1280,7 +1284,9 @@ def test_langfuse_search_serializes_backend_filter_payload() -> None:
     assert [trace.trace_id for trace in page.traces] == ["trace-filter"]
     serialized_filter = client.api.observations.get_many_calls[0]["filter"]
     assert isinstance(serialized_filter, str)
-    assert json.loads(serialized_filter) == backend_filter
+    filters = json.loads(serialized_filter)
+    assert filters[: len(backend_filter)] == backend_filter
+    assert {item["operator"] for item in filters if item["column"] == "startTime"} == {">=", "<"}
 
 
 def test_langfuse_list_uses_default_bounded_v2_window(monkeypatch) -> None:
@@ -1411,53 +1417,15 @@ def test_langfuse_list_normalizes_naive_query_datetimes_to_utc() -> None:
     assert call["to_start_time"] == datetime(2026, 5, 27, 13, 0, tzinfo=UTC)
 
 
-def test_langfuse_list_filters_unsupported_observations_kwargs_from_signature() -> None:
-    trace = _trace("trace-signature", workflow_name="SupportWorkflow")
-    payload = trace.to_public_dict()
-
+def test_langfuse_list_never_strips_unsupported_query_arguments() -> None:
     class ObservationsApi:
-        def __init__(self) -> None:
-            self.get_many_calls: list[dict[str, Any]] = []
+        def get_many(self, *, limit: int) -> dict[str, Any]:
+            pytest.fail("An incompatible client must not receive a widened query")
 
-        def get_many(
-            self,
-            *,
-            limit: int,
-            from_start_time: datetime,
-            to_start_time: datetime,
-        ) -> dict[str, Any]:
-            self.get_many_calls.append(
-                {
-                    "limit": limit,
-                    "from_start_time": from_start_time,
-                    "to_start_time": to_start_time,
-                }
-            )
-            return {
-                "data": _observation_rows_from_trace_payload(payload),
-                "meta": {"cursor": None},
-            }
-
-    class Api:
-        def __init__(self) -> None:
-            self.trace = _FakeTraceApi(payload)
-            self.observations = ObservationsApi()
-
-    class Client:
-        def __init__(self) -> None:
-            self.api = Api()
-
-    client = Client()
+    client = SimpleNamespace(api=SimpleNamespace(observations=ObservationsApi()))
     reader = LangfuseTraceReader(client=client)
-
-    page = reader.list_traces(TraceListQuery(limit=5))
-
-    call = client.api.observations.get_many_calls[0]
-    assert [trace.trace_id for trace in page.traces] == ["trace-signature"]
-    assert set(call) == {"limit", "from_start_time", "to_start_time"}
-    assert call["limit"] == 50
-    assert isinstance(call["from_start_time"], datetime)
-    assert isinstance(call["to_start_time"], datetime)
+    with pytest.raises(TypeError, match="unexpected keyword"):
+        reader.list_traces(TraceListQuery(limit=5))
 
 
 def test_langfuse_list_reraises_internal_observations_type_error() -> None:
@@ -1536,7 +1504,7 @@ def test_langfuse_get_trace_uses_v2_detail_fields_and_trace_id_filter() -> None:
     assert call["trace_id"] == "trace-detail"
     assert {"metadata", "model", "prompt", "trace_context", "io"} <= set(call["fields"].split(","))
     assert "parse_io_as_json" not in call
-    assert call["expand_metadata"] == "true"
+    assert {"typeflux", "typeflux_moderation"} <= set(call["expand_metadata"].split(","))
     assert call["from_start_time"] == datetime(2026, 5, 27, 11, 0, tzinfo=UTC)
     assert call["to_start_time"] == datetime(2026, 5, 27, 12, 0, tzinfo=UTC)
     assert client.api.trace.list_calls == []

@@ -57,7 +57,7 @@ def test_optional_extras_are_split_and_live_stays_aggregate() -> None:
     assert extras["anthropic"] == ["anthropic>=2.1,<3"]
     assert extras["api"] == ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "jsonschema>=4,<5"]
     assert extras["gemini"] == ["google-genai>=2.32,<3"]
-    assert extras["langfuse"] == ["langfuse>=4,<5"]
+    assert extras["langfuse"] == ["langfuse>=5,<6"]
     assert extras["langsmith"] == ["langsmith[otel]>=0.8.18,<1"]
     assert extras["openai"] == ["openai>=3.36,<4"]
     assert sorted(extras["live"]) == sorted(

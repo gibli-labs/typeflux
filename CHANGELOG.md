@@ -8,6 +8,13 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Migrate Langfuse to Python SDK 5 and scoped JavaScript SDK 6 with dedicated
+  OpenTelemetry providers, explicit span completion and terminal shutdown.
+  Require Cloud or self-hosted 4.59.0+. Replace deprecated trace reads with
+  cursor-paginated Observations v2; use root-observation input/output. Subject
+  erasure checks every observation's ownership before deletion. Deploy before
+  the Cloud legacy API cutoff on 2026-11-16.
+
 - Require Node 24.15+ for JavaScript packages and use TypeScript 7; isolate the
   OpenAPI generator's TypeScript 5 compiler API in `tools/openapi-generator`.
 - Upgrade provider SDKs and build tools. Python OpenAI uses native structured

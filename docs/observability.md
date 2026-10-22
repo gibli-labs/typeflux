@@ -16,7 +16,13 @@ The writer records live workflow, activity, generation, hook, provider, and
 Temporal observations. The reader supports trace list, search, inspect, diff,
 and export.
 
-Langfuse is the first concrete backend.
+Langfuse is the first concrete backend. The integration requires Python SDK **5.x**
+(`pip install "typeflux[langfuse]"`) and Langfuse Cloud or self-hosted server
+**4.59.0+**. Reads use Observations v2 with opaque cursors and explicit metadata
+expansion; workflow input/output live on the root observation. There is no
+legacy trace-read fallback. Deploy before the Cloud legacy API removal on
+**2026-11-16**. See the [modernization plan](modernization-plan.md) for upstream
+migration references and validation requirements.
 
 For YAML runtimes, Langfuse tracing is explicit opt-in. A YAML file must declare
 `runtime.observability.type: langfuse` before Typeflux constructs a Langfuse

@@ -15,6 +15,7 @@
  */
 
 import { fanOut } from "@typeflux/temporal";
+import { LANGFUSE_METADATA_KEYS, readLangfuseObservations, type LangfuseObservationRow, type LangfuseObservationQuery } from "@typeflux/temporal-yaml";
 
 import type { ConnectionProbe } from "./connections.js";
 import { fetchJson } from "./deadline-fetch.js";
@@ -188,11 +189,9 @@ const LANGFUSE_CLOUD = "https://cloud.langfuse.com";
  * transport a deployment injects (via `serve`'s `--langfuse` flag or `langfuseFor`); the CP core stays
  * vendor-free. A non-2xx response throws so the caller degrades (`reachable:false` / drift `unknown`).
  *
- * Endpoints (langfuse public API): `GET /api/public/traces?limit=1` (ping), `GET /api/public/v2/prompts/{name}?label=…`
- * (label→version), `GET /api/public/traces?name=…&limit=1` + `GET /api/public/traces/{id}` (last-run
- * versions from the newest trace's typeflux activity manifests). The last-run reconstruction is
- * best-effort and defensive — any shape it doesn't recognize yields `{}` (an honest `unknown` drift),
- * never a throw. Verifying the exact response shapes needs a live langfuse instance (see the gated test).
+ * Reads use the cursor-paginated v2 observations API (Langfuse Cloud or server 4.59+).
+ * Trace views are reconstructed from root and child observations. Bounded discovery scans
+ * cover the last 24 hours; detail hydration must be complete or the caller degrades.
  */
 export function fetchLangfuseTransport(options: FetchLangfuseTransportOptions = {}): LangfuseControlPlaneTransport {
   const env = options.env ?? process.env;
@@ -232,187 +231,87 @@ export function fetchLangfuseTransport(options: FetchLangfuseTransportOptions = 
       },
     });
 
+  const observations = (host: string | null, query: LangfuseObservationQuery, deadline = traceLookupTimeoutMs) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined) params.set(key, String(value));
+    }
+    return get(host, `/api/public/v2/observations?${params}`, deadline);
+  };
+  const fields = "core,basic,time,metadata,prompt,trace_context";
+  const detail = async (host: string | null, traceId: string): Promise<FullTrace> => {
+    const page = await readLangfuseObservations((query) => observations(host, query), {
+      traceId, limit: 1000, fields, expandMetadata: LANGFUSE_METADATA_KEYS,
+    }, 100);
+    if (!page.complete || page.rows.some((row) => row.traceId !== traceId)) {
+      throw new Error("Langfuse trace retrieval incomplete");
+    }
+    const roots = page.rows.filter((row) => row.parentObservationId == null || row.isRootObservation === true);
+    // Caller and worker providers can both emit roots for one deterministic trace.
+    // Prefer the workflow rollup over an empty worker shell, regardless of row order.
+    const root = roots.find((row) => typefluxField(row.metadata, "execution_manifest") !== undefined)
+      ?? roots.find((row) => workflowIdCandidates(row.metadata).length > 0)
+      ?? roots.find((row) => row.name?.startsWith("TypefluxWorkflow:")) ?? roots[0] ?? page.rows[0];
+    return { name: root?.traceName ?? root?.name, timestamp: root?.startTime, metadata: root?.metadata, observations: page.rows };
+  };
+  const window = (): { fromStartTime: string; toStartTime: string } => {
+    const until = new Date();
+    return { fromStartTime: new Date(until.getTime() - 86_400_000).toISOString(), toStartTime: until.toISOString() };
+  };
+  const ids = (rows: LangfuseObservationRow[], limit = 100): string[] =>
+    [...new Set(rows.flatMap((row) => typeof row.traceId === "string" ? [row.traceId] : []))].slice(0, limit);
+
   return {
     enforcementCredentialsConfigured,
     async ping({ host }): Promise<void> {
-      await get(host, "/api/public/traces?limit=1");
+      await readLangfuseObservations((query) => observations(host, query, timeoutMs), {
+        ...window(), limit: 1, fields: "core",
+      }, 1);
     },
     async promptLabelVersion({ name, label, host }): Promise<string | undefined> {
-      const body = (await get(
-        host,
-        `/api/public/v2/prompts/${encodeURIComponent(name)}?label=${encodeURIComponent(label)}`,
-      )) as { version?: unknown } | null;
-      const version = body?.version;
-      return version === undefined || version === null ? undefined : String(version);
+      const body = (await get(host, `/api/public/v2/prompts/${encodeURIComponent(name)}?label=${encodeURIComponent(label)}`)) as { version?: unknown } | null;
+      return body?.version == null ? undefined : String(body.version);
     },
     async lastRunPromptVersions({ workflowName, host }): Promise<Record<string, string>> {
       try {
-        // Typeflux tags every workflow-related trace `typeflux.workflow:<name>` (the low-cardinality
-        // locator; the EXECUTION trace's NAME is `TypefluxWorkflow:<name>`, so a bare `?name=<name>`
-        // would miss). But LIFECYCLE traces (status/review/cancel — `TypefluxLifecycle*`) share the tag
-        // and carry NO execution manifest, and can be NEWER than the last execution. So scan newest-first
-        // (Python's reader post-filters candidates too), across BOUNDED pages, and return the first trace
-        // whose reconstruction yields any versions — a long run of lifecycle/empty traces must not hide
-        // an older execution trace on a later page (Bugbot).
-        const executionTraceName = `TypefluxWorkflow:${workflowName}`;
-        const tag = encodeURIComponent(`typeflux.workflow:${workflowName}`);
-        const pageSize = 20;
-        const maxPages = 5; // cap the scan at 100 traces — bounded, unlike an unfollowed single page
-        for (let page = 1; page <= maxPages; page += 1) {
-          const list = (await get(host, `/api/public/traces?tags=${tag}&limit=${pageSize}&page=${page}`)) as {
-            data?: Array<{ id?: unknown; name?: unknown }>;
-            meta?: { totalPages?: unknown };
-          } | null;
-          const rows = list?.data ?? [];
-          const candidates = rows.filter(
-            // Keep entries with an id; when a name is PRESENT keep only the execution trace (drop
-            // lifecycle traces up front). An ABSENT name — `undefined` OR JSON `null` — is kept and left
-            // for reconstruction to filter (a `null` name must not be treated as "not the execution trace").
-            (trace) =>
-              typeof trace.id === "string" &&
-              (trace.name === undefined || trace.name === null || trace.name === executionTraceName),
-          );
-          for (const candidate of candidates) {
-            const trace = (await get(host, `/api/public/traces/${encodeURIComponent(candidate.id as string)}`)) as {
-              metadata?: unknown;
-              observations?: Array<{ metadata?: unknown }>;
-            } | null;
-            const versions = reconstructTraceVersions(trace);
-            if (Object.keys(versions).length > 0) return versions; // first trace that actually recorded versions
-          }
-          // Stop at the last (or a short/empty) page — no further candidates to scan.
-          const totalPages = typeof list?.meta?.totalPages === "number" ? list.meta.totalPages : page;
-          if (rows.length < pageSize || page >= totalPages) break;
+        const bounds = window();
+        // Advanced filters replace simple query filters: include the time bounds in the same array.
+        const filter = JSON.stringify([
+          { column: "traceTags", operator: "all of", value: [`typeflux.workflow:${workflowName}`], type: "arrayOptions" },
+          { column: "startTime", operator: ">=", value: bounds.fromStartTime, type: "datetime" },
+          { column: "startTime", operator: "<", value: bounds.toStartTime, type: "datetime" },
+        ]);
+        const page = await readLangfuseObservations((query) => observations(host, query, timeoutMs), {
+          filter, fields, expandMetadata: LANGFUSE_METADATA_KEYS, limit: 1000,
+        }, 5);
+        for (const traceId of ids(page.rows.filter((row) => !row.traceName?.startsWith("TypefluxLifecycle")))) {
+          const trace = await detail(host, traceId);
+          if (typeof trace.name === "string" && trace.name.startsWith("TypefluxLifecycle")) continue;
+          const versions = reconstructTraceVersions(trace);
+          if (Object.keys(versions).length > 0) return versions;
         }
         return {};
       } catch {
-        // Python `_last_run_versions`: "unknown side, never raise" — any failure is an empty map.
-        return {};
+        return {}; // Drift remains unknown when the backend cannot supply a complete trace.
       }
     },
     async traceSummary({ workflowId, host }): Promise<Record<string, unknown> | null> {
-      // Python `search_traces` semantics over REST: scan newest-first BOUNDED pages of the trace
-      // list (its reader pages the same way — a plain limit=1 list would miss the join key in a
-      // busy project), matching each row's TRACE metadata against the execution id under the
-      // cross-edition key set (see `metadataCarriesWorkflowId`). Failures propagate: unlike the
-      // drift tier, correlation reports an unreachable backend honestly (Python's warning path).
-      const pageSize = 20;
-      const maxPages = 5; // cap the scan at 100 traces — the same bound as lastRunPromptVersions
-      for (let page = 1; page <= maxPages; page += 1) {
-        const list = (await get(host, `/api/public/traces?limit=${pageSize}&page=${page}`, traceLookupTimeoutMs)) as {
-          data?: Array<{ id?: unknown; metadata?: unknown }>;
-          meta?: { totalPages?: unknown };
-        } | null;
-        const rows = list?.data ?? [];
-        for (const row of rows) {
-          if (typeof row.id !== "string") continue;
-          if (!metadataCarriesWorkflowId(row.metadata, workflowId)) continue;
-          const trace = (await get(host, `/api/public/traces/${encodeURIComponent(row.id)}`, traceLookupTimeoutMs)) as FullTrace | null;
-          if (trace === null) continue;
-          return buildTraceSummary(row.id, trace, workflowId);
-        }
-        // OBSERVATION-metadata fallback for the NEWEST page only, BEFORE deeper
-        // pagination: a worker-only traced run (a control-plane start, #686)
-        // writes no caller-side parent metadata — the activity spans carry the
-        // join key, and the langfuse list endpoint returns no observations.
-        // Python's reader searches an observations feed and matches these
-        // outright; this edition follows the newest 20 traces' details (the
-        // sought run is overwhelmingly the newest, and deep pagination is the
-        // slow path on a loaded host) — bounded, never a per-row fan-out
-        // across every page.
-        if (page === 1) {
-          // Per-id best-effort: one slow/failed detail GET (a spiky host) must
-          // not abort the whole lookup while later ids could still match. If
-          // EVERY detail fetch failed and nothing matched, the backend is
-          // genuinely unreachable — rethrow so the route degrades honestly
-          // instead of reporting a false "reachable, no trace".
-          let fallbackFailure: unknown;
-          let fallbackSucceeded = false;
-          for (const row of rows) {
-            if (typeof row.id !== "string") continue;
-            let trace: FullTrace | null;
-            try {
-              trace = (await get(host, `/api/public/traces/${encodeURIComponent(row.id)}`, traceLookupTimeoutMs)) as FullTrace | null;
-            } catch (error) {
-              fallbackFailure = error;
-              continue;
-            }
-            fallbackSucceeded = true;
-            if (trace === null) continue;
-            const observations = trace.observations ?? [];
-            if (observations.some((observation) => metadataCarriesWorkflowId(observation.metadata, workflowId))) {
-              return buildTraceSummary(row.id, trace, workflowId);
-            }
-          }
-          if (!fallbackSucceeded && fallbackFailure !== undefined && rows.length > 0) {
-            throw fallbackFailure;
-          }
-        }
-        const totalPages = typeof list?.meta?.totalPages === "number" ? list.meta.totalPages : page;
-        if (rows.length < pageSize || page >= totalPages) break;
-      }
-      return null;
+      const page = await readLangfuseObservations((query) => observations(host, query), {
+        ...window(), fields, expandMetadata: LANGFUSE_METADATA_KEYS, limit: 1000,
+      }, 5);
+      const match = page.rows.find((row) => metadataCarriesWorkflowId(row.metadata, workflowId));
+      if (typeof match?.traceId !== "string") return null;
+      return buildTraceSummary(match.traceId, await detail(host, match.traceId), workflowId);
     },
     async searchEnforcementTraces({ since, until, limit, host }): Promise<EnforcementTraceRecord[]> {
-      // Bound the read on OBSERVATION start time, NOT trace timestamp: Python's reader queries the
-      // observations API (`client.api.observations.get_many` → GET /api/public/observations) bounded
-      // by `fromStartTime`/`toStartTime`, then groups rows into traces. A long-running workflow whose
-      // ROOT trace predates the window but has an in-window moderation-block observation is thus
-      // surfaced — bounding on the trace timestamp (the old GET /api/public/traces path) silently
-      // dropped it, which is typeflux's core use case. The environment is NOT forwarded as Langfuse's
-      // native `environment` query param: typeflux writers never set that native tag, so the
-      // server-side filter would match ZERO rows (a false-healthy `ok + []`). Environment scoping is
-      // metadata-based and applied client-side (`enforcement.ts` `filterEvents`), mirroring Python.
-      //
-      // Unlike the drift tier this path PROPAGATES failure: any non-2xx throws so the reader reports
-      // `unreachable` (never a silent empty `ok`). The exact langfuse REST shapes are best-effort/
-      // defensive (verified live in the gated test), so an unrecognized payload degrades to an empty
-      // record set, never a crash.
       const bounded = Math.max(1, Math.min(limit, 200));
-      // Ask for more observations than traces (a trace has many spans) so `bounded` distinct traces
-      // can be gathered from one page — mirrors Python's `_observation_limit` (~10× the trace limit,
-      // capped at the Langfuse per-page max).
-      const observationLimit = Math.min(Math.max(bounded * 10, 50), 1000);
-      // Scan up to SCAN_PAGES observation pages before capping distinct traces — Python's
-      // `TraceSearchQuery.scan_pages` (default 5) does the same, so a busy window whose first
-      // page is dominated by a few chatty traces still surfaces blocks from later pages
-      // (Bugbot: one page under-returned vs the Python edition).
-      const SCAN_PAGES = 5;
-      const traceIds: string[] = [];
-      const seen = new Set<string>();
-      for (let page = 1; page <= SCAN_PAGES && traceIds.length < bounded; page += 1) {
-        const params = new URLSearchParams({
-          limit: String(observationLimit),
-          page: String(page),
-          fromStartTime: since.toISOString(),
-          toStartTime: until.toISOString(),
-        });
-        const list = (await get(host, `/api/public/observations?${params.toString()}`, traceLookupTimeoutMs)) as {
-          data?: Array<{ traceId?: unknown }>;
-        } | null;
-        const rows = list?.data ?? [];
-        // Distinct trace ids in newest-first order, capped at the feed's bound.
-        for (const row of rows) {
-          const traceId = typeof row.traceId === "string" ? row.traceId : undefined;
-          if (traceId === undefined || seen.has(traceId)) continue;
-          seen.add(traceId);
-          traceIds.push(traceId);
-          if (traceIds.length >= bounded) break;
-        }
-        if (rows.length < observationLimit) break; // last page — no further rows to scan.
-      }
-      // Fetch each distinct trace's detail (for its trace-level identity + the full observation set the
-      // moderation marker rides on) with BOUNDED concurrency — a pool, not up to 200 serial GETs.
-      // `fanOut` (the repo's bounded parallel map) propagates the first rejection after in-flight
-      // siblings settle, so a failed detail fetch still degrades the feed to `unreachable`.
-      return fanOut(
-        traceIds,
-        async (traceId) => {
-          const trace = (await get(host, `/api/public/traces/${encodeURIComponent(traceId)}`, traceLookupTimeoutMs)) as FullTrace | null;
-          return enforcementTraceRecord(traceId, trace);
-        },
-        { concurrency: 8 },
-      );
+      // Observation time keeps long-running workflows visible when their root predates the window.
+      // Environment scoping uses Typeflux metadata in the caller, not Langfuse's native environment.
+      const page = await readLangfuseObservations((query) => observations(host, query), {
+        fromStartTime: since.toISOString(), toStartTime: until.toISOString(),
+        fields: "core", limit: Math.min(Math.max(bounded * 10, 50), 1000),
+      }, 5);
+      return fanOut(ids(page.rows, bounded), async (traceId) => enforcementTraceRecord(traceId, await detail(host, traceId)), { concurrency: 8 });
     },
   };
 }
@@ -455,7 +354,7 @@ function enforcementTraceRecord(traceId: string, trace: FullTrace | null): Enfor
   };
 }
 
-/** The full-trace GET shape this module reads (defensive — unknown shapes degrade, never crash). */
+/** Trace view reconstructed from v2 observations. */
 interface FullTrace {
   name?: unknown;
   timestamp?: unknown;

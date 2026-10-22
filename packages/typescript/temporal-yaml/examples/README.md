@@ -41,7 +41,7 @@ pnpm --filter @typeflux/temporal-yaml example:insurance
 ```
 
 Without the keys the examples print a notice and run untraced — offline demos
-keep working. In your own app: `pnpm add langfuse`, declare the YAML block,
+keep working. In your own app: install the [scoped Langfuse 6 peers](../../../../docs/typescript/observability.md#langfuse-requirements), declare the YAML block,
 done. LangSmith works the same way — `pnpm add langsmith`, declare
 `type: langsmith`, export `LANGSMITH_API_KEY` (see
 `docs/typescript/observability.md`; a custom backend passes its own

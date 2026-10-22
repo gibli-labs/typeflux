@@ -8240,10 +8240,8 @@ async def test_yaml_runtime_execute_workflow_rolls_up_langfuse_trace_io(
     assert [item["activity_name"] for item in execution_activities] == ["first", "second"]
     assert execution_activities[0]["prompt_resolution"]["status"] == "failed"
     assert execution_activities[1]["prompt_resolution"]["status"] == "failed"
-    assert fake_langfuse.trace_io_calls == [
-        {"input": {"value": "start"}},
-        {"output": {"value": "done"}},
-    ]
+    assert fake_langfuse.trace_io_calls == []
+    assert fake_langfuse.start_calls[0]["input"] == {"value": "start"}
     assert fake_langfuse.observations[0].updates[-1] == {"output": {"value": "done"}}
 
 

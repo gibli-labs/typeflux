@@ -4,8 +4,8 @@ requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.15'",
     "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version == '3.14.*' and sys_platform != 'emscripten'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version < '3.12' or (python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten')",
 ]
 
@@ -818,7 +818,7 @@ wheels = [
 
 [[package]]
 name = "langfuse"
-version = "4.18.0"
+version = "5.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "backoff" },
@@ -831,9 +831,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/32/cfa4cfa87a73d5e9bc527e568d9eaad171ad8d3ff3ec8a796247b4a577c4/langfuse-4.18.0.tar.gz", hash = "sha256:fd529365207ecdefd778ad1a35056a2acee032ff0d75e18368c106fbc3cd865c", size = 395814, upload-time = "2026-10-14T08:40:45.485Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/75/b3/6694c5edf351a01f85aae48a867fd34979865062cda808630aae86a99768/langfuse-5.0.4.tar.gz", hash = "sha256:f9f13a7a0bf0aad4d75287411cece3172c717d9440e73b4b84255ffffb549c31", size = 367328, upload-time = "2026-10-21T07:36:07.896Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/49/2569267383ee0d0afeaab904aefaf77eb69fed023354e833fb49ebe7411e/langfuse-4.18.0-py3-none-any.whl", hash = "sha256:b0f14f30f9f147ca662eaa9998af374fc57b9e8a894f0ae86789cbbd96448289", size = 709950, upload-time = "2026-10-14T08:40:47.196Z" },
+    { url = "https://files.pythonhosted.org/packages/42/f4/de90215c074ddde1849a60a939f75f9ceaf656c019501b5cac7cdb63b2fc/langfuse-5.0.4-py3-none-any.whl", hash = "sha256:6ab4ddcbc4b33efbd9c7f5feb405bfb0060949e7a170f7410f8fcc52984887a7", size = 637544, upload-time = "2026-10-21T07:36:06.457Z" },
 ]
 
 [[package]]
@@ -1908,8 +1908,8 @@ requires-dist = [
     { name = "google-genai", marker = "extra == 'gemini'", specifier = ">=2.32,<3" },
     { name = "google-genai", marker = "extra == 'live'", specifier = ">=2.32,<3" },
     { name = "jsonschema", marker = "extra == 'api'", specifier = ">=4,<5" },
-    { name = "langfuse", marker = "extra == 'langfuse'", specifier = ">=4,<5" },
-    { name = "langfuse", marker = "extra == 'live'", specifier = ">=4,<5" },
+    { name = "langfuse", marker = "extra == 'langfuse'", specifier = ">=5,<6" },
+    { name = "langfuse", marker = "extra == 'live'", specifier = ">=5,<6" },
     { name = "langsmith", extras = ["otel"], marker = "extra == 'langsmith'", specifier = ">=0.8.18,<1" },
     { name = "langsmith", extras = ["otel"], marker = "extra == 'live'", specifier = ">=0.8.18,<1" },
     { name = "openai", marker = "extra == 'live'", specifier = ">=3.36,<4" },

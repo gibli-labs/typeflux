@@ -449,3 +449,6 @@ export type {
   WorkflowSpec,
   WorkflowStepSpec,
 } from "./spec.js";
+
+export { readLangfuseObservations, LANGFUSE_METADATA_KEYS } from "./langfuse-observations.js";
+export type { LangfuseObservationQuery, LangfuseObservationPage, LangfuseObservationRow } from "./langfuse-observations.js";

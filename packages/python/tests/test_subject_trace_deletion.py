@@ -10,6 +10,7 @@ report is honest about what it could and could not reach.
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
@@ -28,9 +29,9 @@ from typeflux.observability import langfuse as langfuse_module
 class _RecordingTraceApi:
     """A Langfuse Trace-API double that records list/delete calls.
 
-    ``tag_pages`` / ``user_pages`` are page-numbered result pages (a list of
-    trace-id lists) served to the tag channel and the user_id channel; a page's
-    ``meta.totalPages`` drives the pagination walk. ``fail_ids`` makes any batch
+    ``tag_pages`` / ``user_pages`` are cursor-paginated result pages (a list of
+    trace-id lists) served to the tag channel and the user_id channel; each
+    ``meta.cursor`` drives the pagination walk. ``fail_ids`` makes any batch
     containing one of those ids raise, so partial-failure reporting is testable.
     ``tags_by_id`` overrides a row's ``tags`` field (default ``[]`` — a
     single-subject trace); ``None`` omits the field entirely, modelling a row
@@ -64,40 +65,39 @@ class _RecordingTraceApi:
             mapping = self._user_tags_by_id
         row_tags = mapping.get(trace_id, [])
         if row_tags is None:
-            return {"id": trace_id}
-        return {"id": trace_id, "tags": row_tags}
+            return {"id": f"obs-{trace_id}", "traceId": trace_id, "name": "TypefluxWorkflow:test"}
+        return {
+            "id": f"obs-{trace_id}",
+            "traceId": trace_id,
+            "tags": row_tags,
+            "name": "TypefluxWorkflow:test",
+        }
 
-    def list(
-        self,
-        *,
-        page: int,
-        limit: int,
-        tags: list[str] | None = None,
-        user_id: str | None = None,
-        from_timestamp: Any = None,
-        to_timestamp: Any = None,
-    ) -> dict[str, Any]:
+    def get_many(
+        self, *, limit, fields, filter=None, cursor=None, trace_id=None, expand_metadata=None
+    ):
+        if trace_id is not None:
+            rows = []
+            for channel, pages in (("tag", self._tag_pages), ("user", self._user_pages)):
+                if any(trace_id in page for page in pages):
+                    rows.append(self._row(trace_id, channel=channel))
+            return {"data": rows, "meta": {}}
+        conditions = json.loads(filter)
+        tag_filter = next((c for c in conditions if c["column"] == "traceTags"), None)
+        user_filter = next((c for c in conditions if c["column"] == "userId"), None)
+        assert tag_filter is not None or user_filter is not None
+        tags = tag_filter["value"] if tag_filter else None
+        user_id = user_filter["value"] if user_filter else None
+        page = int(cursor) if cursor else 1
         self.list_calls.append(
-            {
-                "page": page,
-                "limit": limit,
-                "tags": tags,
-                "user_id": user_id,
-                "from_timestamp": from_timestamp,
-                "to_timestamp": to_timestamp,
-            }
+            {"page": page, "limit": limit, "tags": tags, "user_id": user_id, "filter": conditions}
         )
         channel = "tag" if tags else "user"
         pages = self._tag_pages if tags else self._user_pages
         rows = pages[page - 1] if 1 <= page <= len(pages) else []
         return {
             "data": [self._row(trace_id, channel=channel) for trace_id in rows],
-            "meta": {
-                "page": page,
-                "limit": limit,
-                "totalItems": sum(len(p) for p in pages),
-                "totalPages": len(pages),
-            },
+            "meta": {"cursor": str(page + 1) if page < len(pages) else None},
         }
 
     def delete_multiple(self, *, trace_ids: list[str]) -> dict[str, str]:
@@ -111,7 +111,7 @@ class _RecordingTraceApi:
 
 class _RecordingClient:
     def __init__(self, trace_api: _RecordingTraceApi) -> None:
-        self.api = type("_Api", (), {"trace": trace_api})()
+        self.api = type("_Api", (), {"trace": trace_api, "observations": trace_api})()
 
 
 def _reader(trace_api: _RecordingTraceApi) -> LangfuseTraceReader:
@@ -227,8 +227,18 @@ def test_window_bounds_reach_the_list_call() -> None:
     _reader(trace_api).delete_traces_for_subject("subj-1", dry_run=True, since=since, until=until)
 
     tag_call = next(call for call in trace_api.list_calls if call["tags"])
-    assert tag_call["from_timestamp"] == since
-    assert tag_call["to_timestamp"] == until
+    assert {
+        "type": "datetime",
+        "column": "startTime",
+        "operator": ">=",
+        "value": since.isoformat(),
+    } in tag_call["filter"]
+    assert {
+        "type": "datetime",
+        "column": "startTime",
+        "operator": "<",
+        "value": until.isoformat(),
+    } in tag_call["filter"]
 
 
 @pytest.mark.parametrize(
@@ -242,91 +252,44 @@ def test_backends_without_a_trace_store_raise_not_supported(reader: Any) -> None
     assert str(excinfo.value) == SUBJECT_TRACE_DELETION_UNSUPPORTED
 
 
-class _NoTagFilterTraceApi(_RecordingTraceApi):
-    """A list API WITHOUT the ``tags`` kwarg — the P1 fail-closed scenario."""
+@pytest.mark.parametrize("dry_run", [True, False])
+def test_api_without_filter_fails_closed(dry_run):
+    class NoFilterApi(_RecordingTraceApi):
+        def get_many(self, *, limit, fields, cursor=None):
+            raise AssertionError("unfiltered read must never execute")
 
-    def list(  # type: ignore[override]
-        self,
-        *,
-        page: int,
-        limit: int,
-        user_id: str | None = None,
-        from_timestamp: Any = None,
-        to_timestamp: Any = None,
-    ) -> dict[str, Any]:
-        return super().list(
-            page=page,
-            limit=limit,
-            tags=None,
-            user_id=user_id,
-            from_timestamp=from_timestamp,
-            to_timestamp=to_timestamp,
-        )
+    api = NoFilterApi(tag_pages=[["t1"]])
+    with pytest.raises(RuntimeError, match="subject-filter.*fail-closed"):
+        _reader(api).delete_traces_for_subject("subj-1", dry_run=dry_run)
+    assert api.deleted == []
 
 
-class _NoFilterTraceApi(_RecordingTraceApi):
-    """A list API accepting NEITHER subject-filter kwarg."""
+def test_repeated_cursor_fails_closed():
+    class RepeatingApi(_RecordingTraceApi):
+        def get_many(self, **kwargs):
+            return {"data": [self._row("t1", channel="tag")], "meta": {"cursor": "repeat"}}
 
-    def list(  # type: ignore[override]
-        self,
-        *,
-        page: int,
-        limit: int,
-        from_timestamp: Any = None,
-        to_timestamp: Any = None,
-    ) -> dict[str, Any]:
-        return super().list(
-            page=page,
-            limit=limit,
-            tags=None,
-            user_id=None,
-            from_timestamp=from_timestamp,
-            to_timestamp=to_timestamp,
-        )
+    api = RepeatingApi()
+    with pytest.raises(RuntimeError, match="cursor repeated"):
+        _reader(api).delete_traces_for_subject("subj-1", dry_run=False)
+    assert api.deleted == []
 
 
-@pytest.mark.parametrize("dry_run", [True, False], ids=["dry-run", "execute"])
-def test_list_api_without_tag_filter_fails_closed(dry_run: bool) -> None:
-    # P1: a stripped subject filter would turn the listing UNFILTERED and feed
-    # every trace in the window to delete_multiple. The tag channel must raise
-    # instead — on dry-run too (its plan would be equally wrong) — and nothing
-    # may be deleted.
-    trace_api = _NoTagFilterTraceApi(tag_pages=[["t1"]], user_pages=[["t1"]])
-    with pytest.raises(RuntimeError, match="subject-filter.*fail-closed") as excinfo:
-        _reader(trace_api).delete_traces_for_subject("subj-1", dry_run=dry_run)
-    assert "tags" in str(excinfo.value)
-    assert trace_api.delete_batches == []
-    assert trace_api.deleted == []
+def test_incomplete_full_trace_ownership_scan_prevents_deletion():
+    class PartialApi(_RecordingTraceApi):
+        def get_many(self, **kwargs):
+            result = super().get_many(**kwargs)
+            if kwargs.get("trace_id"):
+                result["meta"] = {"cursor": "more"}
+            return result
 
-
-def test_list_api_without_either_filter_fails_closed() -> None:
-    trace_api = _NoFilterTraceApi(tag_pages=[["t1"]], user_pages=[["t1"]])
-    with pytest.raises(RuntimeError, match="fail-closed"):
-        _reader(trace_api).delete_traces_for_subject("subj-1", dry_run=False)
-    assert trace_api.deleted == []
-
-
-def test_optional_kwargs_still_compat_stripped_but_filters_never() -> None:
-    # A list API without the date-bound kwargs still works (genuinely optional
-    # kwargs keep compat-stripping); only the subject filters are load-bearing.
-    class _NoWindowTraceApi(_RecordingTraceApi):
-        def list(  # type: ignore[override]
-            self,
-            *,
-            page: int,
-            limit: int,
-            tags: list[str] | None = None,
-            user_id: str | None = None,
-        ) -> dict[str, Any]:
-            return super().list(page=page, limit=limit, tags=tags, user_id=user_id)
-
-    from datetime import UTC, datetime
-
-    trace_api = _NoWindowTraceApi(tag_pages=[["t1"]], user_pages=[[]])
-    report = _reader(trace_api).delete_traces_for_subject(
-        "subj-1", dry_run=True, since=datetime(2026, 1, 1, tzinfo=UTC)
-    )
-    assert report.trace_ids == ("t1",)
+    api = PartialApi(tag_pages=[["t1"]])
+    reader = LangfuseTraceReader(client=_RecordingClient(api), max_detail_pages=1)
+    report = reader.delete_traces_for_subject("subj-1", dry_run=False)
+    assert report.trace_ids == ()
+    assert report.conflicted[0].trace_id == "t1"
+    assert any("ownership scan incomplete" in warning for warning in report.warnings)
+    assert api.deleted == []
 
 
 def test_multi_subject_trace_is_excluded_and_reported_with_count() -> None:
@@ -415,24 +378,17 @@ def test_disjoint_readable_tag_lists_union_before_counting() -> None:
     assert [(c.trace_id, c.other_subject_count) for c in report.conflicted] == [("shared", 2)]
 
 
-def test_unreadable_channel_does_not_poison_a_readable_union() -> None:
-    # One channel's row has no readable tags, the other's is readable: the
-    # readable union governs — a clean single-subject list stays deletable and
-    # a readable conflict is counted; unknown only when NO channel is readable.
-    trace_api = _RecordingTraceApi(
-        tag_pages=[["clean", "shared"]],
-        user_pages=[["clean", "shared"]],
-        tags_by_id={"clean": None, "shared": None},
-        user_tags_by_id={
-            "clean": ["typeflux.subject:subj-1"],
-            "shared": ["typeflux.subject:subj-1", "typeflux.subject:subj-2"],
-        },
+def test_unreadable_full_trace_ownership_is_never_treated_as_exclusive():
+    api = _RecordingTraceApi(
+        tag_pages=[["opaque"]],
+        user_pages=[["opaque"]],
+        tags_by_id={"opaque": None},
+        user_tags_by_id={"opaque": ["typeflux.subject:subj-1"]},
     )
-    report = _reader(trace_api).delete_traces_for_subject("subj-1", dry_run=False)
-
-    assert report.trace_ids == ("clean",)
-    assert trace_api.deleted == ["clean"]
-    assert [(c.trace_id, c.other_subject_count) for c in report.conflicted] == [("shared", 1)]
+    report = _reader(api).delete_traces_for_subject("subj-1", dry_run=False)
+    assert report.trace_ids == ()
+    assert report.conflicted[0].other_subject_count is None
+    assert api.deleted == []
 
 
 def test_page_cap_truncation_warns_and_still_deletes_found_subset(

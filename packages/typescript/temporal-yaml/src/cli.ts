@@ -624,10 +624,10 @@ async function runErase(args: EraseArgs, io: CliIo): Promise<number> {
       // values, so check and use can never diverge.
       const credentials = langfuseCredentialsFromSpec(resolved.spec);
       if (credentials !== undefined) {
-        const sdk = (await import("langfuse")) as unknown as {
-          Langfuse: new (options: Record<string, unknown>) => unknown;
+        const sdk = (await import("@langfuse/client")) as unknown as {
+          LangfuseClient: new (options: Record<string, unknown>) => unknown;
         };
-        const langfuseClient = new sdk.Langfuse({ ...credentials });
+        const langfuseClient = new sdk.LangfuseClient({ ...credentials });
         (deps as { langfuseClient?: LangfuseTraceApiClient }).langfuseClient =
           langfuseClient as LangfuseTraceApiClient;
       }

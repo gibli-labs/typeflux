@@ -96,7 +96,7 @@ def observe_workflow_invocation(
     workflow observation and writer-created activity observer.
 
     ``subject_ids`` (#715 slice 1) sets the native Langfuse ``userId`` to the
-    PRIMARY (first) subject — first-class ``trace.list(user_id=)`` — while the
+    PRIMARY (first) subject — first-class observation ``user_id`` filtering — while the
     ``typeflux.subject:{id}`` tags (already folded into ``tags`` upstream) carry
     the full list. Native field and portable tags always agree.
     """
@@ -125,7 +125,6 @@ def observe_workflow_invocation(
             metadata=redact(metadata),
         )
         observation = cm.__enter__()
-        _set_trace_io(client, input=input_payload)
         handle = _LangfuseWorkflowInvocation(
             client=client,
             observation=observation,
@@ -373,7 +372,6 @@ class _LangfuseWorkflowInvocation(_LangfuseObservationHandle):
     def update_output(self, output_value: Any) -> None:
         output_payload = self._redact(_payload(output_value))
         self._observation.update(output=output_payload)
-        _set_trace_io(self._client, output=output_payload)
 
     def update_metadata(self, metadata: dict[str, Any]) -> None:
         with self._lock:
@@ -854,19 +852,6 @@ def _payload(value: Any) -> Any:
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
     return value
-
-
-def _set_trace_io(client: Any, *, input: Any | None = None, output: Any | None = None) -> None:
-    setter = getattr(client, "set_current_trace_io", None)
-    if setter is None:
-        return
-    kwargs: dict[str, Any] = {}
-    if input is not None:
-        kwargs["input"] = input
-    if output is not None:
-        kwargs["output"] = output
-    if kwargs:
-        setter(**kwargs)
 
 
 def _messages_payload(messages: list[ChatMessage]) -> list[dict[str, Any]]:

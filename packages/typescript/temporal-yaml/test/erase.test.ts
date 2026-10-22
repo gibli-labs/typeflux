@@ -20,6 +20,7 @@ import {
 import { SUBJECT_IDS_SEARCH_ATTRIBUTE } from "../src/index.js";
 import type { SubjectExecutionListItem } from "../src/subject-enumeration.js";
 import type { SubjectDeletionClient } from "../src/subject-execution-deletion.js";
+import type { LangfuseObservationQuery } from "../src/langfuse-observations.js";
 import type { LangfuseTraceApiClient } from "../src/subject-trace-deletion.js";
 import { InMemorySubjectKeystore, subjectKeyState } from "../src/subject-keystore.js";
 
@@ -80,28 +81,23 @@ class FakeLangfuse implements LangfuseTraceApiClient {
   constructor(private readonly traceIdsBySubject: Record<string, string[]>) {}
 
   api = {
-    traceList: async (query: {
-      page?: number;
-      limit?: number;
-      tags?: string[];
-      userId?: string;
-      fromTimestamp?: string;
-      toTimestamp?: string;
-    }) => {
-      this.listCalls.push({ ...query });
-      const subjectId =
-        query.userId ?? query.tags?.[0]?.replace("typeflux.subject:", "") ?? "";
-      const ids = (query.page ?? 1) === 1 ? (this.traceIdsBySubject[subjectId] ?? []) : [];
-      return {
-        data: ids.map((id) => ({ id, tags: [`typeflux.subject:${subjectId}`] })),
-        meta: { totalPages: 1 },
-      };
-    },
-    traceDeleteMultiple: async (payload: { traceIds: string[] }) => {
+    observations: { getMany: async (query: LangfuseObservationQuery) => {
+      const filters = query.filter === undefined ? [] : JSON.parse(query.filter) as Array<{ column: string; operator: string; value: string | string[] }>;
+      this.listCalls.push({ ...query,
+        fromTimestamp: filters.find((f: { operator: string }) => f.operator === ">=")?.value,
+        toTimestamp: filters.find((f: { operator: string }) => f.operator === "<")?.value });
+      const subject = filters.find((f: { column: string }) => f.column === "userId")?.value ??
+        (filters.find((f: { column: string }) => f.column === "traceTags")?.value as string[] | undefined)?.[0]?.replace("typeflux.subject:", "");
+      return { data: Object.entries(this.traceIdsBySubject).flatMap(([subjectId, ids]) =>
+        ids.filter((id) => query.traceId === undefined ? subjectId === subject : id === query.traceId)
+          .map((id) => ({ traceId: id, tags: [`typeflux.subject:${subjectId}`] }))), meta: { cursor: null } };
+    } },
+    trace: { deleteMultiple: async (payload: { traceIds: string[] }) => {
       this.deleted.push(...payload.traceIds);
       return { message: "ok" };
-    },
+    } },
   };
+
 }
 
 function seededCache(subjectId: string): InMemoryCacheStore {
@@ -322,10 +318,8 @@ describe("eraseSubject", () => {
     const { deps } = fullDeps();
     const exploding = {
       api: {
-        traceList: async () => {
-          throw new Error("langfuse exploded");
-        },
-        traceDeleteMultiple: async () => ({}),
+        observations: { getMany: async () => { throw new Error("langfuse exploded"); } },
+        trace: { deleteMultiple: async () => ({}) },
       },
     } as unknown as LangfuseTraceApiClient;
     const receipt = await eraseSubject(

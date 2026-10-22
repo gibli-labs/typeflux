@@ -13,6 +13,7 @@ import {
   SUBJECT_TRACE_DELETION_UNSUPPORTED,
   SUBJECT_TRACE_INDEX_COVERAGE,
   type LangfuseTraceApiClient,
+  type LangfuseObservationQuery,
 } from "../src/index.js";
 
 interface ListCall {
@@ -24,7 +25,7 @@ interface ListCall {
 }
 
 /**
- * Records list/delete calls; serves page-numbered results per channel.
+ * Records list/delete calls; serves cursor pages per identity channel.
  * `tagsById` overrides a row's `tags` (default `[]` — a single-subject trace);
  * `null` models a row whose tags are unreadable (the conflicted-unknown path).
  */
@@ -55,18 +56,27 @@ class RecordingTraceApi {
   get client(): LangfuseTraceApiClient {
     return {
       api: {
-        traceList: async (query) => {
-          this.listCalls.push(query);
-          const channel = query.tags ? "tag" : "user";
-          const pages = query.tags ? this.tagPages : this.userPages;
-          const page = query.page ?? 1;
-          const rows = page >= 1 && page <= pages.length ? pages[page - 1]! : [];
-          return {
-            data: rows.map((id) => this.row(id, channel)),
-            meta: { totalPages: pages.length },
-          };
-        },
-        traceDeleteMultiple: async ({ traceIds }) => {
+        observations: { getMany: async (query: LangfuseObservationQuery) => {
+          if (query.traceId !== undefined) {
+            const data = (["tag", "user"] as const).flatMap((channel) => {
+              const pages = channel === "tag" ? this.tagPages : this.userPages;
+              return pages.flat().includes(query.traceId!) ? [{ ...this.row(query.traceId!, channel), traceId: query.traceId! }] : [];
+            });
+            return { data, meta: { cursor: null } };
+          }
+          const filters = JSON.parse(query.filter!) as Array<{ column: string; value: string | string[]; operator: string }>;
+          const tag = filters.find((f) => f.column === "traceTags");
+          const user = filters.find((f) => f.column === "userId");
+          const page = Number(query.cursor ?? "1");
+          this.listCalls.push({ page, ...(tag ? { tags: tag.value as string[] } : { userId: user!.value as string }),
+            fromTimestamp: filters.find((f) => f.operator === ">=")?.value as string,
+            toTimestamp: filters.find((f) => f.operator === "<")?.value as string });
+          const channel = tag ? "tag" : "user";
+          const pages = tag ? this.tagPages : this.userPages;
+          return { data: (pages[page - 1] ?? []).map((id) => ({ ...this.row(id, channel), traceId: id })),
+            meta: { cursor: page < pages.length ? String(page + 1) : null } };
+        } },
+        trace: { deleteMultiple: async ({ traceIds }) => {
           this.deleteBatches.push([...traceIds]);
           const failing = traceIds.filter((id) => this.failIds.has(id));
           if (failing.length > 0) {
@@ -74,7 +84,7 @@ class RecordingTraceApi {
           }
           this.deleted.push(...traceIds);
           return { message: `deleted ${traceIds.length}` };
-        },
+        } },
       },
     };
   }
@@ -262,28 +272,12 @@ describe("deleteTracesForSubject (#715 slice 2)", () => {
     expect(report.conflicted).toEqual([{ traceId: "shared", otherSubjectCount: 2 }]);
   });
 
-  it("an unreadable channel does not poison a readable union", async () => {
-    // One channel's row has no readable tags, the other's is readable: the
-    // readable union governs — a clean single-subject list stays deletable and
-    // a readable conflict is counted; unknown only when NO channel is readable.
-    const api = new RecordingTraceApi(
-      [["clean", "shared"]],
-      [["clean", "shared"]],
-      new Set(),
-      new Map([
-        ["clean", null],
-        ["shared", null],
-      ]),
-      new Map([
-        ["clean", ["typeflux.subject:subj-1"]],
-        ["shared", ["typeflux.subject:subj-1", "typeflux.subject:subj-2"]],
-      ]),
-    );
+  it("excludes a trace if any unfiltered observation has unreadable ownership", async () => {
+    const api = new RecordingTraceApi([["shared"]], [["shared"]], new Set(),
+      new Map([["shared", null]]), new Map([["shared", ["typeflux.subject:subj-1"]]]));
     const report = await deleteTracesForSubject(api.client, "subj-1", { dryRun: false });
-
-    expect(report.traceIds).toEqual(["clean"]);
-    expect(api.deleted).toEqual(["clean"]);
-    expect(report.conflicted).toEqual([{ traceId: "shared", otherSubjectCount: 1 }]);
+    expect(api.deleted).toEqual([]);
+    expect(report.conflicted).toEqual([{ traceId: "shared", otherSubjectCount: null }]);
   });
 
   it("warns on page-cap truncation and still deletes the found subset", async () => {

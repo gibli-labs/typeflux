@@ -63,14 +63,12 @@ class FakeClient {
   calls: { name: string; version?: number | undefined; label?: string | undefined }[] = [];
   constructor(private readonly result: LangfuseRegistryPromptClient) {}
 
-  async getPrompt(
-    name: string,
-    version?: number,
-    options?: { label?: string },
-  ): Promise<LangfuseRegistryPromptClient> {
-    this.calls.push({ name, version, label: options?.label });
-    return this.result;
-  }
+  prompt = {
+    get: async (name: string, options?: { version?: number; label?: string }): Promise<LangfuseRegistryPromptClient> => {
+      this.calls.push({ name, version: options?.version, label: options?.label });
+      return this.result;
+    },
+  };
 }
 
 const CHAT_PROMPT: LangfuseRegistryPromptClient = {
@@ -198,9 +196,7 @@ describe("LangfuseRegistryTransport", () => {
   it("classifies fetch failures into the typed hierarchy", async () => {
     const failing = (error: Error) =>
       new LangfuseRegistryTransport({
-        getPrompt: async () => {
-          throw error;
-        },
+        prompt: { get: async () => { throw error; } },
       });
     const ref: PromptRef = { name: "missing" };
     await expect(failing(new Error("Prompt not found")).fetchPrompt(ref)).rejects.toBeInstanceOf(
@@ -268,9 +264,9 @@ describe("langfuseRegistryTransportFromSpec", () => {
 describe("transient classification (codex)", () => {
   it("keeps a rate-limited fetch retryable despite the SDK's plain Error", async () => {
     const transport = new LangfuseRegistryTransport({
-      async getPrompt() {
+      prompt: { async get() {
         throw new Error("429: rate limit exceeded, too many requests");
-      },
+      } },
     } as never);
     const error = await transport
       .fetchPrompt({ name: "p", label: "production" })
