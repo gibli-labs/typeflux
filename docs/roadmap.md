@@ -52,3 +52,9 @@ availability is not a regulated-production certification;
 
 Feature requests go through the issue forms; significant surface changes
 start as design issues per [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+The [project graph and agentic development proposal](project-graph.md) describes
+a staged approach to capability and journey mapping, agent context, verification,
+and release evidence. Its first milestone pairs workflow-review coverage with
+an evaluation against the current development baseline. It is proposed tooling;
+existing CI remains mandatory during advisory evaluation.

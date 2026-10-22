@@ -11,6 +11,11 @@ that file as the source of truth for label meanings and auto-fix eligibility.
 It is not intended for public API changes, YAML schema changes, user-facing
 workflow changes, provider behavior changes, or architecture work.
 
+The [project graph and agentic development proposal](project-graph.md) describes
+future context queries, impact reports, and durable verification records for
+this lane. Those tools are not implemented yet; the eligibility and approval
+rules on this page remain the current workflow.
+
 ## Labels
 
 An issue must have:
