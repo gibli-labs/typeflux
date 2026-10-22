@@ -355,6 +355,13 @@ jobs:
       - name: Type-check the SDK packages
         run: pnpm -r typecheck
 
+      # A compiler upgrade can pass tsc while breaking the generator's use
+      # of the JavaScript compiler API (#63). Exercise it before SDK tests.
+      - name: Regenerate control-plane contract types
+        run: |
+          pnpm --filter @typeflux/temporal-controlplane generate:contract
+          git diff --exit-code -- packages/typescript/temporal-controlplane/src/http/contract.ts
+
       - name: Run SDK tests
         run: pnpm -r test
 
