@@ -480,6 +480,7 @@ to both editions):
 - [Artifact & Release Policy](docs/release-policy.md)
 - [Roadmap](docs/roadmap.md)
 - [Automated Issue Resolution](docs/auto-fix.md)
+- [Project Graph and Agentic Development Proposal](docs/project-graph.md)
 
 **Python:**
 
