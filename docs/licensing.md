@@ -41,7 +41,7 @@ lockfiles, the tree references these third-party components at build/CI/deploy
 time (none are vendored; each is pulled from its upstream registry under its
 own license):
 
-- Container base images: `python:3.12-slim-bookworm`, `node:22-bookworm-slim`
+- Container base images: `python:3.14-slim-bookworm`, `node:24-bookworm-slim`
   (Docker Official Images), `temporalio/temporal` (MIT, digest-pinned in
   the compose file), and `temporalio/auto-setup:1.26` (MIT, tag-pinned in
   example run instructions).

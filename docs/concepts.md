@@ -124,13 +124,10 @@ For each AI Activity attempt, Typeflux:
 8. writes the cross-run cache only after the output is fully accepted (the hook
    completed without raising), then returns the final output model
 
-`ValidationError` is repairable inside Typeflux. The OpenAI provider disables
-Instructor retries by default so `validation_retries` is the visible structured
-output repair loop. Python callers can opt into Instructor retries with
-`OpenAIProvider(instructor_max_retries=N)`, but total model attempts then become
-Typeflux validation attempts multiplied by Instructor attempts. `OSError`
-escapes so Temporal activity retry policy can handle transport failures,
-crashes, and transient provider issues.
+`ValidationError` is repairable inside Typeflux. The OpenAI provider uses the
+SDK's native structured-output parser and disables SDK retries so
+`validation_retries` remains the visible output repair loop. Temporal activity
+retry policy handles transport failures and transient provider issues.
 
 ## Provider Controls
 

@@ -146,7 +146,7 @@ uses explicit image tags to stay readable, but production should prefer
 immutable references such as:
 
 ```dockerfile
-FROM python:3.12-slim-bookworm@sha256:<digest>
+FROM python:3.14-slim-bookworm@sha256:<digest>
 COPY --from=ghcr.io/astral-sh/uv:0.11.8@sha256:<digest> /uv /uvx /usr/local/bin/
 ```
 
@@ -1031,12 +1031,10 @@ runtime:
     retry_transient_errors: true
 ```
 
-Structured-output validation repair is owned by Typeflux by default. YAML
+Structured-output validation repair is owned by Typeflux. YAML
 `validation_retries` controls how many corrected provider calls Typeflux makes
-inside one activity attempt. OpenAI/Instructor retries are disabled by default
-to avoid hidden nested repair loops; Python-only callers can opt into
-`OpenAIProvider(instructor_max_retries=N)` when they intentionally want
-Instructor to do additional repair inside each Typeflux attempt.
+inside one activity attempt. The OpenAI provider uses native structured outputs
+with SDK retries disabled, avoiding hidden nested repair loops.
 
 Keep local provider retries small so worker capacity is not tied up for long
 periods. Omit `runtime.provider_retry` to keep the default no-local-retry

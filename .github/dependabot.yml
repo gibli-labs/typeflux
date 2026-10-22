@@ -36,12 +36,8 @@ updates:
     schedule:
       interval: "weekly"
     ignore:
-      # Keep the type surface aligned with the SDK's supported Node 22 runtime.
+      # Keep the type surface aligned with the SDK's supported Node 24 runtime.
       - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
-      # TypeScript 7 removes the JS compiler API used by openapi-typescript.
-      # Compiler major upgrades need a planned generator migration (#63).
-      - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
     groups:
       pnpm-workspace:
@@ -81,3 +77,25 @@ updates:
         update-types:
           - "minor"
           - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/tools/openapi-generator"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # This is the generator's compiler API dependency, not the product compiler.
+      # Remove when openapi-typescript supports the native compiler API.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+    groups:
+      generator:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directories: ["/deploy/yaml-worker", "/deploy/ts-yaml-worker"]
+    schedule:
+      interval: "weekly"
+    groups:
+      reference-images:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

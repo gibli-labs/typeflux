@@ -1,0 +1,13 @@
+{
+  "name": "typeflux-openapi-generator",
+  "private": true,
+  "type": "module",
+  "description": "Isolated compiler API dependencies for reproducible OpenAPI generation",
+  "dependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "js-yaml": ">=4.3.2 <5"
+  }
+}

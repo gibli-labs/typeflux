@@ -24,7 +24,7 @@ import { registerReadTools } from "./tools.js";
 export const SERVER_ID = "typeflux";
 // Must equal clients/mcp/package.json "version" — the handshake identity of a published npx
 // install. test/server.test.ts diffs the two, so a release bump can't leave this stale (Bugbot #880).
-export const SERVER_VERSION = "0.5.9";
+export const SERVER_VERSION = "0.6.0";
 
 /** The design's root-blob non-negotiables (§5.1), surfaced as MCP server instructions. */
 export const INSTRUCTIONS = `Typeflux MCP server (read tier + operate tier + guided recipes + authoring aids, Phase 3 — the full surface).

@@ -1,7 +1,7 @@
 # @typeflux/temporal
 
 ```bash
-npm install @typeflux/temporal        # Node 22
+npm install @typeflux/temporal        # Node 24.15+
 ```
 
 Typed AI activities for [Temporal](https://temporal.io): Zod-schema'd LLM

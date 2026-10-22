@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # For production builds, pin this base image by digest in your own Dockerfile,
-# for example: python:3.12-slim-bookworm@sha256:<digest>.
-FROM python:3.12-slim-bookworm
+# for example: python:3.14-slim-bookworm@sha256:<digest>.
+FROM python:3.14-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -16,7 +16,7 @@ WORKDIR /app
 
 # Keep the uv version explicit. Production image pipelines should pin this
 # stage by digest as well.
-COPY --from=ghcr.io/astral-sh/uv:0.11.8 /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /usr/local/bin/
 
 ARG TYPEFLUX_UID=10001
 ARG TYPEFLUX_GID=10001

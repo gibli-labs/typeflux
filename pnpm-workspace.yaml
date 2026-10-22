@@ -5,6 +5,11 @@
 packages:
   - "packages/typescript/*"
 
+# Explicitly validated provider major; keep pnpm's release-age gate for all
+# other packages. Remove this exact-version exception after its first day.
+minimumReleaseAgeExclude:
+  - "@anthropic-ai/sdk@1.1.0"
+
 # Force protobufjs off the version pulled transitively by @temporalio/proto
 # (7.5.8) that is vulnerable to GHSA-wcpc-wj8m-hjx6 (DoS via unbounded Any
 # expansion in JSON conversion; patched in 7.6.1). Stays on 7.x for @temporalio
@@ -13,3 +18,11 @@ overrides:
   protobufjs@<7.6.1: ">=7.6.1 <8"
   # Redocly pins js-yaml below the GHSA-2883-xcg3-v3hh fix.
   js-yaml@>=4.0.0 <4.3.2: ">=4.3.2 <5"
+
+# Reviewed native compiler installers; other packages ship usable artifacts.
+# Keep strictDepBuilds enabled so new install hooks need an explicit decision.
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  protobufjs: false
+  '@google/genai': false

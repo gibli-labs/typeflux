@@ -25,7 +25,7 @@ const REPO_ROOT = resolve(PKG_ROOT, "../..");
 const packJson = JSON.parse(
   execFileSync("npm", ["pack", "--dry-run", "--json"], { cwd: PKG_ROOT, encoding: "utf8" }),
 );
-const files = packJson[0].files.map((f) => f.path);
+const files = Object.values(packJson)[0].files.map((f) => f.path);
 
 const failures = [];
 

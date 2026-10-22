@@ -22,7 +22,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "generate:contract": "openapi-typescript ../../../contracts/controlplane/openapi.v1.json -o src/http/contract.ts"
+    "generate:contract": "node ../../../tools/openapi-generator/generate.mjs controlplane"
   },
   "dependencies": {
     "@temporalio/client": "^1.24.0",
@@ -34,12 +34,11 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^22.20.5",
+    "@types/node": "^24.0.0",
     "tsx": "^4.23.15",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vitest": "^5.0.5",
-    "zod": "^4.6.7",
-    "openapi-typescript": "7.13.0"
+    "zod": "^4.6.7"
   },
   "bin": {
     "typeflux-controlplane": "./dist/http/serve.js"
@@ -58,6 +57,6 @@
     "registry": "https://registry.npmjs.org"
   },
   "engines": {
-    "node": "^22"
+    "node": "^24.15.0"
   }
 }

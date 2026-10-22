@@ -2,19 +2,19 @@
 
 # Reference Typeflux TypeScript YAML worker image (#687), the TS twin of
 # deploy/yaml-worker. For production builds, pin the base image by digest in your
-# own Dockerfile, for example: node:22-bookworm-slim@sha256:<digest>.
-FROM node:22-bookworm-slim AS builder
+# own Dockerfile, for example: node:24-bookworm-slim@sha256:<digest>.
+FROM node:24-bookworm-slim AS builder
 
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm:${PATH}"
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+RUN npm install --global pnpm@12.15.0
 
 WORKDIR /app
 
 # Install with the workspace manifest + lockfile + every package.json first, so
 # the dependency layer caches across source-only changes. The build context is
 # the repo root (see docker-compose.yml: context ../..).
-COPY pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/typescript/temporal/package.json packages/typescript/temporal/package.json
 COPY packages/typescript/temporal-worker/package.json packages/typescript/temporal-worker/package.json
 COPY packages/typescript/temporal-yaml/package.json packages/typescript/temporal-yaml/package.json
@@ -26,7 +26,7 @@ COPY packages/typescript ./packages/typescript
 RUN pnpm -r --filter "./packages/typescript/**" build
 
 # ---------------------------------------------------------------------------
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 ENV NODE_ENV=production \
     HOME=/tmp \

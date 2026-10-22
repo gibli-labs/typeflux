@@ -359,6 +359,42 @@ describe("providerFromSpec round-trip", () => {
 });
 
 describe("real SDK clients are assignable to the adapter helpers (codex)", () => {
+  it("round-trips structured output through Anthropic 1's HTTP serialization", async () => {
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const requests: Request[] = [];
+    const sdk = new Anthropic({
+      apiKey: "test-key",
+      maxRetries: 0,
+      fetch: async (input, init) => {
+        requests.push(new Request(input, init));
+        return Response.json({
+          id: "msg_fixture", type: "message", role: "assistant", model: "claude-sonnet-4-6",
+          content: [{ type: "text", text: '{"label":"ok"}' }],
+          stop_reason: "end_turn", stop_sequence: null,
+          usage: { input_tokens: 5, output_tokens: 4 },
+        });
+      },
+    });
+    const provider = providerFromSpec(specWithProvider("anthropic"), {
+      anthropic: anthropicTransportFromSdk(sdk),
+    });
+    const usage: unknown[] = [];
+    const outputSchema = {
+      type: "object", properties: { label: { type: "string" } }, required: ["label"], additionalProperties: false,
+    };
+    expect(await provider.structuredCall({
+      messages: [{ role: "user", content: "Return the label ok." }], outputSchema,
+      usageSink: (value) => usage.push(value),
+    })).toEqual({ label: "ok" });
+    expect(usage).toEqual([expect.objectContaining({ inputTokens: 5, outputTokens: 4 })]);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]!.method).toBe("POST");
+    expect(new URL(requests[0]!.url).pathname).toBe("/v1/messages");
+    expect(await requests[0]!.json()).toMatchObject({
+      output_config: { format: { type: "json_schema", schema: outputSchema } },
+    });
+  });
+
   it("type-checks the official clients against the structural interfaces", async () => {
     // Compile-time proof: constructing each official client and passing it to
     // the exported helper must type-check WITHOUT casts (`never`-param
