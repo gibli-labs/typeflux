@@ -3,7 +3,7 @@
 # Reference Typeflux TypeScript YAML worker image (#687), the TS twin of
 # deploy/yaml-worker. For production builds, pin the base image by digest in your
 # own Dockerfile, for example: node:24-bookworm-slim@sha256:<digest>.
-FROM node:24-bookworm-slim AS builder
+FROM node:25-bookworm-slim AS builder
 
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm:${PATH}"
@@ -26,7 +26,7 @@ COPY packages/typescript ./packages/typescript
 RUN pnpm -r --filter "./packages/typescript/**" build
 
 # ---------------------------------------------------------------------------
-FROM node:24-bookworm-slim
+FROM node:25-bookworm-slim
 
 ENV NODE_ENV=production \
     HOME=/tmp \
