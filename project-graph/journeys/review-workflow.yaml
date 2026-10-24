@@ -1,0 +1,32 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: journey.review-workflow
+    kind: journey
+    description: An operator reviews a paused execution and confirms that its selected route progresses.
+    links:
+      - {relation: uses, target: capability.workflow-review}
+    steps:
+      - id: inspect
+        action: Open the execution in the selected project and environment.
+        outcome: Display the addressed run and its current lifecycle state.
+        capabilities: [capability.workflow-review]
+        checks: [check.review-python, check.review-typescript]
+        failures: [Missing execution, Foreign project or version, Backend unavailable]
+      - id: gate
+        action: Inspect valid decisions for the waiting gate and caller permissions.
+        outcome: Available decisions correspond to this execution's lifecycle definition.
+        capabilities: [capability.workflow-review]
+        checks: [check.review-python, check.review-typescript]
+        failures: [Permission denied, Stale state, Unsupported operation]
+      - id: submit
+        action: Submit one permitted decision to the verified execution.
+        outcome: The intended run acknowledges the review signal.
+        capabilities: [capability.workflow-review]
+        checks: [check.review-python, check.review-typescript]
+        failures: [Invalid decision, Binding mismatch, Uncertain delivery requires status reconciliation]
+      - id: confirm
+        action: Refresh lifecycle status and observe the selected route.
+        outcome: The workflow advances beyond the gate and produces the expected result.
+        capabilities: [capability.workflow-review]
+        checks: [check.review-browser, check.review-temporal]
+        failures: [Worker unavailable, Timeout, Acknowledged but progress not yet observed]

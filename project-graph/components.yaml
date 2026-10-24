@@ -1,0 +1,68 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: component.python
+    kind: component
+    description: Python SDK, YAML runtime, CLI and control plane.
+    paths: [packages/python/**]
+    links:
+      - {relation: implements, target: capability.workflow-review}
+      - {relation: provides, target: 'api:review_api_v1_projects__project__workflows__workflow_id__review_post'}
+      - {relation: provides, target: 'api:status_api_v1_projects__project__workflows__workflow_id__status_get'}
+  - id: component.typescript-core
+    kind: component
+    description: TypeScript workflow and activity contracts.
+    paths: [packages/typescript/temporal/**]
+  - id: component.typescript-worker
+    kind: component
+    description: TypeScript worker construction and activity integration.
+    paths: [packages/typescript/temporal-worker/**]
+  - id: component.typescript-yaml
+    kind: component
+    description: TypeScript declarative workflow runtime and lifecycle.
+    paths: [packages/typescript/temporal-yaml/**]
+    links:
+      - {relation: implements, target: capability.workflow-review}
+  - id: component.typescript-controlplane
+    kind: component
+    description: TypeScript control plane and HTTP operations.
+    paths: [packages/typescript/temporal-controlplane/**]
+    links:
+      - {relation: implements, target: capability.workflow-review}
+      - {relation: provides, target: 'api:review_api_v1_projects__project__workflows__workflow_id__review_post'}
+      - {relation: provides, target: 'api:status_api_v1_projects__project__workflows__workflow_id__status_get'}
+  - id: component.console
+    kind: component
+    description: Browser console for inspecting and operating workflows.
+    paths: [clients/console/**]
+    links:
+      - {relation: implements, target: capability.workflow-review}
+      - {relation: consumes, target: 'api:review_api_v1_projects__project__workflows__workflow_id__review_post'}
+      - {relation: consumes, target: 'api:status_api_v1_projects__project__workflows__workflow_id__status_get'}
+  - id: component.client
+    kind: component
+    description: Generated control-plane HTTP client; consumers may pin published releases.
+    paths: [clients/typescript/**]
+    links:
+      - {relation: consumes, target: 'api:review_api_v1_projects__project__workflows__workflow_id__review_post'}
+  - id: component.mcp
+    kind: component
+    description: MCP discovery, authoring and guarded operation tools.
+    paths: [clients/mcp/**]
+    links:
+      - {relation: consumes, target: 'api:review_api_v1_projects__project__workflows__workflow_id__review_post'}
+  - id: component.contracts
+    kind: component
+    description: Normative shared HTTP, schema and Temporal binding contracts.
+    paths: [contracts/**]
+  - id: component.development
+    kind: component
+    description: Build, automation, generators, graph tooling and repository policy.
+    paths: [.github/**, scripts/**, tools/**, project-graph/**, AGENTS.md, package.json, pnpm-workspace.yaml, pnpm-lock.yaml, .gitignore]
+  - id: component.documentation
+    kind: component
+    description: Repository documentation; capability-level coverage is intentionally incremental.
+    paths: [docs/**]
+  - id: component.deployment
+    kind: component
+    description: Reference worker deployment templates.
+    paths: [deploy/**]
