@@ -125,6 +125,14 @@ jobs:
           echo "sha256=$(shasum -a 256 dist/*.whl | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           cat evidence/SHA256SUMS
 
+      - name: Bind built artifact bytes to the project graph
+        run: |
+          args=()
+          for artifact in packages/python/dist/*.whl packages/python/dist/*.tar.gz; do
+            args+=(--artifact "$artifact")
+          done
+          uv run --project packages/python python -m tools.project_graph --output packages/python/evidence/project-graph.json release "${args[@]}"
+
       # Tag-before-publish (release policy): the tag lands only once every
       # build gate has passed, and always before any registry upload.
       - name: Ensure the release tag exists at HEAD (dispatch only)

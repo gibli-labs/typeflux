@@ -21,3 +21,9 @@ node_modules/
 
 # Rebuildable development graph snapshots, evidence and local reports.
 .project-graph/
+
+# Release artifacts and evidence (source identity stays clean during packaging).
+/dist-train/
+/packages/python/evidence/
+/clients/*/*.tgz
+/clients/*/*.sha256

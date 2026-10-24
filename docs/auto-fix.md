@@ -11,10 +11,21 @@ that file as the source of truth for label meanings and auto-fix eligibility.
 It is not intended for public API changes, YAML schema changes, user-facing
 workflow changes, provider behavior changes, or architecture work.
 
-The [project graph and agentic development proposal](project-graph.md) describes
-future context queries, impact reports, and durable verification records for
-this lane. Those tools are not implemented yet; the eligibility and approval
-rules on this page remain the current workflow.
+The [project graph tooling](../tools/project_graph/README.md) provides bounded
+context, impact reports and local task/evidence journals. The eligibility and
+approval rules on this page still govern this lane; graph recommendations are advisory.
+
+Opt into capability-specific planning context using the graph development environment:
+
+```bash
+uv run --project packages/python python scripts/auto_fix_issue.py plan 8 \
+  --graph-capability capability.workflow-review --prompt-out /tmp/typeflux-plan.md
+```
+
+The same flag is supported in run mode. Retrieval is bounded to three capabilities,
+strips credentials from the collection process, and labels graph text as untrusted
+data. Generated prompts ask for a local base/head report; CI independently publishes
+the report and explorer. No graph field becomes a command or grants auto-fix eligibility.
 
 ## Labels
 

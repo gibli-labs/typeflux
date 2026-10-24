@@ -1,0 +1,15 @@
+apiVersion: typeflux.dev/graph-policy/v1alpha1
+mode: advisory
+requiredJobs:
+  - Tests (Python 3.11)
+  - Tests (Python 3.12)
+  - Tests (Python 3.13)
+  - Tests (Python 3.14)
+  - Tests (Python 3.15)
+  - Quality gates
+  - Web (client + console)
+  - Control-plane conformance (python-cp)
+  - Control-plane conformance (ts-cp)
+  - TypeScript SDK
+  - MCP server (typeflux-mcp)
+  - Project graph (advisory)

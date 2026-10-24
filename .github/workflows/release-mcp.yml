@@ -246,6 +246,19 @@ jobs:
 
       # Release evidence: the tarball + checksum land on a GitHub Release at
       # the same tag the publish came from.
+      - name: Set up graph evidence tooling
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: '3.12'
+          version: '0.13.5'
+      - name: Bind verified artifact bytes to the project graph
+        working-directory: .
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          uv sync --project packages/python --frozen --group dev
+          uv run --project packages/python python -m tools.project_graph --output .project-graph/release-mcp.json release --artifact "clients/mcp/$TARBALL"
+
       - name: Create the GitHub Release
         working-directory: clients/mcp
         env:
@@ -261,10 +274,10 @@ jobs:
           Install: npx -y typeflux-mcp@$RELEASE_VERSION (no credentials required).
           Third-party attribution ships in the package (THIRD-PARTY-NOTICES.md)."
           if gh release view "mcp-v$RELEASE_VERSION" >/dev/null 2>&1; then
-            gh release upload "mcp-v$RELEASE_VERSION" "$TARBALL" "$TARBALL.sha256" --clobber
+            gh release upload "mcp-v$RELEASE_VERSION" "$TARBALL" "$TARBALL.sha256" "../../.project-graph/release-mcp.json" --clobber
           else
             gh release create "mcp-v$RELEASE_VERSION" \
               --title "typeflux-mcp $RELEASE_VERSION" \
               --notes "$notes" \
-              "$TARBALL" "$TARBALL.sha256"
+              "$TARBALL" "$TARBALL.sha256" "../../.project-graph/release-mcp.json"
           fi
