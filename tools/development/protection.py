@@ -25,6 +25,53 @@ def differences(protection):
     }
 
 
+def require_conversation_resolution(repository):
+    # GitHub exposes this field through GraphQL, not a standalone REST endpoint.
+    owner, name = repository.split("/", 1)
+    result = api(
+        "graphql",
+        {
+            "query": """query($owner:String!, $name:String!) {
+              repository(owner:$owner, name:$name) {
+                ref(qualifiedName:"refs/heads/main") {
+                  branchProtectionRule { id pattern }
+                }
+              }
+            }""",
+            "variables": {"owner": owner, "name": name},
+        },
+    )
+    if result.get("errors"):
+        raise GraphError(f"cannot inspect branch protection: {result['errors']}")
+    repo = result.get("data", {}).get("repository") or {}
+    rule = (repo.get("ref") or {}).get("branchProtectionRule") or {}
+    if rule.get("pattern") != "main" or not rule.get("id"):
+        raise GraphError("conversation reconciliation requires a protection rule scoped to main")
+    result = api(
+        "graphql",
+        {
+            "query": """mutation($input:UpdateBranchProtectionRuleInput!) {
+              updateBranchProtectionRule(input:$input) {
+                branchProtectionRule { requiresConversationResolution }
+              }
+            }""",
+            "variables": {
+                "input": {
+                    "branchProtectionRuleId": rule["id"],
+                    "requiresConversationResolution": True,
+                }
+            },
+        },
+    )
+    if result.get("errors"):
+        raise GraphError(f"cannot update branch protection: {result['errors']}")
+    updated = (result.get("data") or {}).get("updateBranchProtectionRule") or {}
+    if (updated.get("branchProtectionRule") or {}).get(
+        "requiresConversationResolution"
+    ) is not True:
+        raise GraphError("conversation-resolution update was not confirmed")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -64,11 +111,8 @@ def main():
             check=True,
             stdout=subprocess.DEVNULL,
         )
-        subprocess.run(
-            ["gh", "api", "--method", "POST", endpoint + "/required_conversation_resolution"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-        )
+        if drift["conversations"]:
+            require_conversation_resolution(args.repository)
         drift = differences(api(endpoint))
     print(json.dumps({"requiredContexts": REQUIRED_CONTEXTS, "drift": drift}, indent=2))
     return int(any(drift.values()))
