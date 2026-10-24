@@ -27,10 +27,11 @@ entities:
       - {relation: verifies, target: invariant.review-failure}
   - id: check.review-browser
     kind: check
-    description: Browser review interaction against both read-API editions with controlled operation responses; not live Temporal evidence.
+    description: Browser review interaction against both read-API editions with self-contained bundle fixtures, unexpected background API failure assertions and controlled operation responses; not live Temporal evidence.
     environment: chromium-python-cp-and-ts-cp
     ci: [browser-python, browser-typescript]
     tests:
+      - {path: clients/console/e2e/smoke.spec.ts, name: fixture bundles resolve across projects and environments without credentials}
       - {path: clients/console/e2e/review.spec.ts, name: review journey submits to the selected execution and observes progress}
       - {path: clients/console/e2e/review.spec.ts, name: review journey respects permission denial without submitting}
       - {path: clients/console/e2e/review.spec.ts, name: review journey reports binding mismatch without offering a decision}

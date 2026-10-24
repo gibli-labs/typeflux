@@ -1,0 +1,31 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.provider-model-defaults
+    kind: capability
+    description: Programmatic TypeScript providers expose their effective model before activity policy, cache identity, observations and session-cache preparation.
+    editions: {typescript: supported}
+    implementation:
+      - packages/typescript/temporal/src/execute.ts
+      - packages/typescript/temporal/src/openai-provider.ts
+      - packages/typescript/temporal/src/anthropic-provider.ts
+      - packages/typescript/temporal/src/gemini-provider.ts
+    documentation: [docs/typescript/provider-portability.md]
+    links:
+      - {relation: requires, target: invariant.provider-model-identity}
+  - id: invariant.provider-model-identity
+    kind: invariant
+    description: Constructor models partition cached results and sessions, reach policy even on cache hits, and identify observations; prompt, activity and explicit call overrides retain precedence and undeclared custom-provider defaults remain unknown.
+  - id: check.provider-model-defaults
+    kind: check
+    description: Offline transport regressions for OpenAI, Anthropic and Gemini constructor models, overrides, session preparation and legacy custom providers.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/temporal/test/provider-defaults.test.ts, name: separates cached results and checks the effective model even on cache hits}
+      - {path: packages/typescript/temporal/test/provider-defaults.test.ts, name: 'preserves call defaults, prompt, activity and explicit model precedence'}
+      - {path: packages/typescript/temporal/test/provider-defaults.test.ts, name: prepares distinct model-bound sessions through messages}
+      - {path: packages/typescript/temporal/test/provider-defaults.test.ts, name: prepares distinct model-bound sessions through registry}
+      - {path: packages/typescript/temporal/test/provider-defaults.test.ts, name: exposes Gemini's implicit model to policy and observations}
+      - {path: packages/typescript/temporal/test/provider-defaults.test.ts, name: preserves undefined models for custom providers without declared defaults}
+    links:
+      - {relation: verifies, target: invariant.provider-model-identity}

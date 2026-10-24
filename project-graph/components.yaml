@@ -14,6 +14,7 @@ entities:
     description: TypeScript workflow and activity contracts.
     paths: [packages/typescript/temporal/**]
     links:
+      - {relation: implements, target: capability.provider-model-defaults}
       - {relation: implements, target: capability.vercel-ai-gateway}
   - id: component.typescript-worker
     kind: component

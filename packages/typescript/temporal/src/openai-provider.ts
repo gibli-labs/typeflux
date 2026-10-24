@@ -103,9 +103,7 @@ export interface OpenAIChatTransport {
 }
 
 export interface OpenAIProviderOptions {
-  /** Default model when a call doesn't set one. For cross-run cache correctness,
-   * pass the effective model via `executeActivity`'s options (it enters the cache
-   * key) — this provider default is not visible to the cache. */
+  /** Default model, exposed to execution policy, cache identity and observations. */
   model?: string;
   /** The `json_schema` name sent to the provider (default `"response"`). */
   schemaName?: string;
@@ -121,19 +119,19 @@ export class OpenAIProvider implements ModelProvider {
   readonly supportsSessionCache = true;
   readonly sessionCacheStyle = "prefix" as const;
   private readonly transport: OpenAIChatTransport;
-  private readonly defaultModel: string | undefined;
+  readonly defaultProviderParams: Readonly<{ model?: string }>;
   private readonly schemaName: string;
   private readonly strict: boolean;
 
   constructor(transport: OpenAIChatTransport, options: OpenAIProviderOptions = {}) {
     this.transport = transport;
-    this.defaultModel = options.model;
+    this.defaultProviderParams = Object.freeze(options.model === undefined ? {} : { model: options.model });
     this.schemaName = options.schemaName ?? "response";
     this.strict = options.strict ?? true;
   }
 
   async structuredCall(params: StructuredCallParams): Promise<unknown> {
-    const model = params.model ?? this.defaultModel;
+    const model = params.model ?? this.defaultProviderParams.model;
     if (model === undefined) {
       throw new ProviderConfigError(
         "OpenAIProvider: a model is required (set it on the call or via options.model)",
@@ -251,7 +249,7 @@ export class OpenAIProvider implements ModelProvider {
       supported: true,
       style: "prefix",
       cache_id: null,
-      model: params.model ?? this.defaultModel ?? null,
+      model: params.model ?? this.defaultProviderParams.model ?? null,
       created_at: null,
       ttl_seconds: null,
       reference_cached: false,
