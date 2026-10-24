@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+import json
 import re
 
 import yaml
@@ -15,7 +16,7 @@ POLICY = "project-graph/policy.yaml"
 
 
 def workflow_jobs(repo: Repository) -> set[str]:
-    """Bootstrap from the actual base workflow before graph policy was introduced."""
+    """Expand display names for consistency checks; never an absent-policy fallback."""
     # Workflow YAML uses the YAML 1.2 `on` key; BaseLoader avoids YAML 1.1's
     # boolean conversion and treats all scalar matrix values as display strings.
     workflow = yaml.load(repo.text(".github/workflows/ci.yml"), Loader=yaml.BaseLoader)
@@ -42,23 +43,49 @@ def workflow_jobs(repo: Repository) -> set[str]:
     return result
 
 
-def required_jobs(repo: Repository) -> set[str]:
-    if POLICY not in repo.files:
-        return workflow_jobs(repo)
+def required_checks(repo: Repository) -> dict[str, str]:
     policy = yaml_data(repo.text(POLICY))
-    if not isinstance(policy, dict) or set(policy) != {"apiVersion", "mode", "requiredJobs"}:
-        raise GraphError("invalid graph policy fields")
-    if policy["apiVersion"] != "typeflux.dev/graph-policy/v1alpha1" or policy["mode"] != "advisory":
+    if not isinstance(policy, dict) or policy.get("mode") != "advisory":
         raise GraphError("only advisory graph policy is supported")
-    jobs = policy["requiredJobs"]
+    # Historical graph-policy snapshots remain readable as data for both-revision impact.
+    # New source must use stable IDs, validated by the development-loop tests.
+    if policy.get("apiVersion") == "typeflux.dev/graph-policy/v1alpha1":
+        if set(policy) != {"apiVersion", "mode", "requiredJobs"}:
+            raise GraphError("invalid graph policy fields")
+        jobs = policy["requiredJobs"]
+        if (
+            not isinstance(jobs, list)
+            or not jobs
+            or not all(isinstance(n, str) and n for n in jobs)
+            or len(set(jobs)) != len(jobs)
+        ):
+            raise GraphError("requiredJobs must be a nonempty unique list")
+        return {name: name for name in jobs}
+    if policy.get("apiVersion") != "typeflux.dev/graph-policy/v1" or set(policy) != {
+        "apiVersion",
+        "mode",
+        "requiredChecks",
+    }:
+        raise GraphError("invalid graph policy fields")
+    registry = json.loads(repo.text("tools/development/checks.json"))
+    ids = policy["requiredChecks"]
     if (
-        not isinstance(jobs, list)
-        or not jobs
-        or not all(isinstance(n, str) and n for n in jobs)
-        or len(set(jobs)) != len(jobs)
+        not isinstance(ids, list)
+        or not ids
+        or not all(isinstance(n, str) and n in registry for n in ids)
+        or len(set(ids)) != len(ids)
     ):
-        raise GraphError("requiredJobs must be a nonempty unique list of job names")
-    return set(jobs)
+        raise GraphError("requiredChecks must contain unique registered IDs")
+    names = {identifier: registry[identifier]["name"] for identifier in ids}
+    if not all(isinstance(n, str) and n for n in names.values()) or len(set(names.values())) != len(
+        names
+    ):
+        raise GraphError("required check names must be nonempty and unique")
+    return names
+
+
+def required_jobs(repo: Repository) -> set[str]:
+    return set(required_checks(repo).values())
 
 
 def plan(base: Repository, head: Repository) -> dict:
@@ -77,7 +104,7 @@ def plan(base: Repository, head: Repository) -> dict:
     return {
         **report,
         "requiredJobs": sorted(required),
-        "advisorySelectedJobs": recommended,
+        "advisorySelectedChecks": recommended,
         "policyBase": base.revision,
         "policyDigest": digest(sorted(required)),
         "selectionEnabled": False,

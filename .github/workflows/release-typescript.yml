@@ -19,6 +19,7 @@ on:
         required: true
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -35,6 +36,19 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up release verification
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: '0.13.5'
+          python-version: '3.12'
+      - name: Require accepted CI for this exact main revision
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          uv sync --project packages/python --frozen --group dev
+          uv run --project packages/python python -m tools.development.release_evidence --output .project-graph/release-ci.json
 
       - name: Resolve release version
         id: version
@@ -178,12 +192,26 @@ jobs:
     timeout-minutes: 30
     environment: npm
     permissions:
+      actions: read
       contents: write
       # id-token backs npm --provenance (launch-coupled: public-repo only).
       id-token: write
     steps:
       - name: Check out repository (release notes source)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up release verification
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: '0.13.5'
+          python-version: '3.12'
+      - name: Require accepted CI for this exact main revision
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          uv sync --project packages/python --frozen --group dev
+          uv run --project packages/python python -m tools.development.release_evidence --output .project-graph/release-ci.json
 
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -209,6 +237,7 @@ jobs:
           RELEASE_VERSION: ${{ needs.build.outputs.version }}
         run: |
           npmrc="$RUNNER_TEMP/publish-npmrc"
+          # shellcheck disable=SC2016
           echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$npmrc"
           # Registry presence probe that distinguishes ABSENT (E404) from
           # transient/other failures — the latter must never read as absence,
@@ -361,7 +390,7 @@ jobs:
           uv sync --project packages/python --frozen --group dev
           args=()
           for artifact in dist-train/*.tgz; do args+=(--artifact "$artifact"); done
-          uv run --project packages/python python -m tools.project_graph --output dist-train/project-graph.json release "${args[@]}"
+          uv run --project packages/python python -m tools.project_graph --output dist-train/project-graph.json release --verification .project-graph/release-ci.json "${args[@]}"
 
       - name: Create the GitHub Release
         env:

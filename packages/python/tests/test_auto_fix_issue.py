@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shlex
 
+import pytest
 from scripts.auto_fix_issue import (
     DEFAULT_VALIDATION_COMMANDS,
     AutoFixPolicy,
@@ -82,11 +83,11 @@ def test_evaluate_issue_allows_approved_safe_bug() -> None:
     assert eligibility.warnings == ()
 
 
-def test_evaluate_issue_warns_without_safe_signal() -> None:
+def test_evaluate_issue_rejects_without_safe_signal() -> None:
     eligibility = evaluate_issue(_issue("auto-fix:approved"), POLICY)
 
-    assert eligibility.ok
-    assert eligibility.warnings
+    assert not eligibility.ok
+    assert eligibility.reasons
 
 
 def test_slugify_and_branch_name_are_stable() -> None:
@@ -120,22 +121,12 @@ def test_changed_files_from_outputs_includes_untracked_files_once() -> None:
     ]
 
 
-def test_legacy_codex_plan_command_uses_current_read_only_exec() -> None:
-    invocation = _command_invocation("codex exec --plan {prompt_file}", "/tmp/prompt.md")
-
-    assert invocation.command == ("codex", "exec", "--sandbox", "read-only")
-    assert invocation.stdin_prompt
-
-
-def test_legacy_codex_full_auto_command_uses_current_unattended_exec() -> None:
-    invocation = _command_invocation("codex exec --full-auto {prompt_file}", "/tmp/prompt.md")
-
-    assert invocation.command == (
-        "codex",
-        "exec",
-        "--dangerously-bypass-approvals-and-sandbox",
-    )
-    assert invocation.stdin_prompt
+@pytest.mark.parametrize(
+    "flag", ["--plan", "--full-auto", "--dangerously-bypass-approvals-and-sandbox"]
+)
+def test_obsolete_codex_flags_are_rejected_instead_of_escalating(flag) -> None:
+    with pytest.raises(SystemExit, match="explicit codex exec --sandbox"):
+        _command_invocation(f"codex exec {flag} {{prompt_file}}", "/tmp/prompt.md")
 
 
 def test_current_codex_exec_prompt_file_placeholder_is_piped_on_stdin() -> None:

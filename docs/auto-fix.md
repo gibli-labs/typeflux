@@ -18,7 +18,7 @@ approval rules on this page still govern this lane; graph recommendations are ad
 Opt into capability-specific planning context using the graph development environment:
 
 ```bash
-uv run --project packages/python python scripts/auto_fix_issue.py plan 8 \
+uv run --project packages/python python -m scripts.auto_fix_issue plan 8 \
   --graph-capability capability.workflow-review --prompt-out /tmp/typeflux-plan.md
 ```
 
@@ -62,7 +62,7 @@ metadata, or the YAML schema.
 Generate the Codex prompt and eligibility report locally:
 
 ```bash
-uv run --project packages/python python scripts/auto_fix_issue.py plan 8 --prompt-out /tmp/typeflux-auto-fix.md
+uv run --project packages/python python -m scripts.auto_fix_issue plan 8 --prompt-out /tmp/typeflux-auto-fix.md
 ```
 
 The GitHub Action named `Auto Fix Issue` also supports `plan` mode. Plan mode is
@@ -71,8 +71,8 @@ the recommended first run for newly approved issues.
 To run a Codex planning pass and persist it as an issue comment:
 
 ```bash
-uv run --project packages/python python scripts/auto_fix_issue.py plan 8 \
-  --codex-plan-command "codex exec --plan {prompt_file}" \
+uv run --project packages/python python -m scripts.auto_fix_issue plan 8 \
+  --codex-plan-command "codex exec --sandbox read-only {prompt_file}" \
   --plan-out /tmp/typeflux-auto-fix-plan.md \
   --comment
 ```
@@ -86,9 +86,10 @@ receive a path to the generated prompt.
 Example local shape:
 
 ```bash
-uv run --project packages/python python scripts/auto_fix_issue.py run 8 \
-  --codex-plan-command "codex exec --plan {prompt_file}" \
-  --codex-command "codex exec --full-auto {prompt_file}" \
+uv run --project packages/python python -m scripts.auto_fix_issue run 8 \
+  --codex-plan-command "codex exec --sandbox read-only {prompt_file}" \
+  --codex-command "codex exec --sandbox workspace-write {prompt_file}" \
+  --comment-plan \
   --push \
   --create-pr
 ```
@@ -105,15 +106,20 @@ The wrapper will:
 8. run the standard validation suite
 9. commit, push, and optionally open a PR
 
-The standard validation suite is:
+The wrapper uses the shared [development loop](development.md), including Python,
+TypeScript, candidate client/console, MCP, conformance, browser, graph collection
+and isolated local Temporal checks. It records task progress and external-effect
+receipts under `.project-graph/tasks/`; interrupted effects require reconciliation
+before a retry. Test results are under `.project-graph/evidence/`.
 
-```bash
-uv run --directory packages/python ruff check . ../../scripts
-uv run --directory packages/python ruff format --check . ../../scripts
-uv run --directory packages/python mypy src/typeflux
-uv run --directory packages/python python -m build
-uv run --directory packages/python pytest -q -m "not live"
+```sh
+uv run --project packages/python python -m tools.development sync all
+uv run --project packages/python python -m tools.development run default
 ```
+
+Use explicit Codex sandbox modes. Legacy `--plan`, `--full-auto` and sandbox-bypass
+flags are rejected. A planning result other than `Decision: safe automated fix`
+stops the wrapper. The hosted action accepts an optional `graph_capability` input.
 
 ## Review Bot Hygiene
 

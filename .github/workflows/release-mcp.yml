@@ -19,6 +19,7 @@ on:
         required: true
 
 permissions:
+  actions: read
   contents: write
   # id-token backs npm --provenance; this repository is public, so every
   # publish carries the attestation.
@@ -31,12 +32,26 @@ concurrency:
 jobs:
   publish:
     name: Publish typeflux-mcp
+    environment: npm
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up release verification
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: '0.13.5'
+          python-version: '3.12'
+      - name: Require accepted CI for this exact main revision
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          uv sync --project packages/python --frozen --group dev
+          uv run --project packages/python python -m tools.development.release_evidence --output .project-graph/release-ci.json
 
       - name: Resolve release version
         id: version
@@ -122,7 +137,7 @@ jobs:
       - name: Build the control-plane client
         working-directory: clients/typescript
         run: |
-          npm install
+          npm ci
           npm run build
 
       - name: Install typeflux-mcp
@@ -206,6 +221,7 @@ jobs:
             exit 0
           fi
           npmrc="$RUNNER_TEMP/publish-npmrc"
+          # shellcheck disable=SC2016
           echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$npmrc"
           # Publish the EXACT tarball that was hashed — a directory publish
           # would re-pack and could upload different bytes than the evidence.
@@ -257,7 +273,7 @@ jobs:
           TARBALL: ${{ steps.pack.outputs.tarball }}
         run: |
           uv sync --project packages/python --frozen --group dev
-          uv run --project packages/python python -m tools.project_graph --output .project-graph/release-mcp.json release --artifact "clients/mcp/$TARBALL"
+          uv run --project packages/python python -m tools.project_graph --output .project-graph/release-mcp.json release --verification .project-graph/release-ci.json --artifact "clients/mcp/$TARBALL"
 
       - name: Create the GitHub Release
         working-directory: clients/mcp

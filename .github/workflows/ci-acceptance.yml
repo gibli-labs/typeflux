@@ -1,0 +1,48 @@
+name: CI acceptance
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  checks: write
+
+concurrency:
+  group: ci-acceptance-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  accept:
+    name: Validate CI evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # workflow_run loads this workflow from the default branch. Only trusted
+      # source is checked out/executed; candidate Git objects and ZIP/JSON are data.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: '0.13.5'
+          python-version: '3.12'
+      - name: Install trusted validator dependencies
+        run: uv sync --project packages/python --frozen --group dev
+      - name: Accept exact-run evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: uv run --project packages/python python -m tools.development.acceptance --run-id "$RUN_ID" --attempt "$ATTEMPT" --publish
+      - name: Upload accepted evidence and human view
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: accepted-ci-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: .project-graph/accepted/
+          include-hidden-files: true
+          if-no-files-found: warn

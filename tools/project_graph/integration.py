@@ -32,6 +32,7 @@ def register(commands):
     sub = commands.add_parser("release")
     sub.add_argument("--artifact", action="append", type=Path, required=True)
     sub.add_argument("--environment", default="unassigned")
+    sub.add_argument("--verification", type=Path)
     sub = commands.add_parser("task")
     sub.add_argument("task_id")
     sub.add_argument("action", choices=("create", "resume", "transition", "effect"))
@@ -69,7 +70,12 @@ def execute(args):
         return render(graph, report, verification)
     if args.command == "release":
         # Working tree must match HEAD; never attest a clean historical view of dirty files.
-        return receipt(Repository(root), args.artifact, args.environment)
+        return receipt(
+            Repository(root),
+            args.artifact,
+            args.environment,
+            json.loads(args.verification.read_text()) if args.verification else None,
+        )
     if args.command == "verify":
         return verify(root, args.task_id, args.verifier)
     repo = Repository(root)

@@ -33,6 +33,7 @@ jobs:
         language:
           - python
           - javascript-typescript
+          - actions
 
     steps:
       - name: Check out repository

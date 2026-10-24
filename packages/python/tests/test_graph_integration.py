@@ -287,17 +287,15 @@ def test_workflow_aggregate_covers_jobs_and_keeps_credentials_out_of_validator()
     repo = Repository(root)
     assert workflow_jobs(repo) == required_jobs(repo)
     workflow = yaml.load(repo.text(".github/workflows/ci.yml"), Loader=yaml.BaseLoader)
-    jobs = workflow["jobs"]
-    aggregate_job = jobs["graph-aggregate"]
-    assert set(aggregate_job["needs"]) == set(jobs) - {"graph-aggregate"}
-    assert aggregate_job["permissions"] == {"contents": "read", "actions": "read"}
-    validator = next(
-        s for s in aggregate_job["steps"] if s.get("name", "").startswith("Verify every")
-    )
-    assert "GH_TOKEN" not in validator.get("env", {})
-    assert 'tools_root="$GITHUB_WORKSPACE/trusted"' in validator["run"]
-    assert '--tested-revision "$GITHUB_SHA"' in validator["run"]
-    for step in aggregate_job["steps"]:
+    assert workflow["permissions"] == {"contents": "read"}
+    gate = yaml.load(repo.text(".github/workflows/ci-acceptance.yml"), Loader=yaml.BaseLoader)
+    assert gate["on"]["workflow_run"]["workflows"] == ["CI"]
+    steps = gate["jobs"]["accept"]["steps"]
+    checkout = next(s for s in steps if s.get("uses", "").startswith("actions/checkout@"))
+    assert "ref" not in checkout["with"]  # default-branch source only
+    assert checkout["with"]["persist-credentials"] == "false"
+    assert not any("pull_request_target" in key for key in gate["on"])
+    for step in steps:
         if "run" in step:
             subprocess.run(["bash", "-n"], input=step["run"], text=True, check=True)
 

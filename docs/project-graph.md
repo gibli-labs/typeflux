@@ -1,6 +1,6 @@
 # Project graph and agentic development proposal
 
-Status: repository tooling implemented. The [local tool](../tools/project_graph/README.md)
+Status: repository tooling implemented; the [development loop](development.md) documents current CI acceptance and execution evidence. The [local tool](../tools/project_graph/README.md)
 provides deterministic compilation, context/impact queries, test collection, task
 and verification journals, advisory CI aggregation, a human explorer and release
 identity receipts. Workflow review is the first detailed journey. Larger matched
