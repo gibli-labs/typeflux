@@ -15,7 +15,7 @@ describe("Vercel AI Gateway YAML", () => {
   it("configures the gateway SDK and executes the example activity", async () => {
     sdk.create.mockResolvedValue({ choices: [{ message: { content: '{"label":"billing"}' } }] });
     const spec = loadYamlSpec(yaml, { env: {} });
-    const transports = await providerTransportsFromSpec(spec, { AI_GATEWAY_API_KEY: "fixture-key", OPENAI_BASE_URL: "https://wrong.invalid" });
+    const transports = await providerTransportsFromSpec(spec, { VERCEL_API_KEY: "fixture-key", OPENAI_BASE_URL: "https://wrong.invalid" });
     expect(sdk.constructor).toHaveBeenLastCalledWith({ apiKey: "fixture-key", baseURL: "https://ai-gateway.vercel.sh/v1", maxRetries: 0 });
     const runtime = assembleYamlRuntime(spec, { transports: transports!, schemas });
     expect(await runtime.activities["classify"]!({ text: "invoice" })).toEqual({ label: "billing" });
@@ -24,8 +24,21 @@ describe("Vercel AI Gateway YAML", () => {
   });
 
   it("requires a gateway key without falling back to OpenAI credentials", async () => {
-    const spec = loadYamlSpec(yaml.replace("    api_key: {value_from: {env: AI_GATEWAY_API_KEY}}\n", ""), { env: {} });
-    await expect(providerTransportsFromSpec(spec, { OPENAI_API_KEY: "unrelated" })).rejects.toThrow("AI_GATEWAY_API_KEY");
+    const spec = loadYamlSpec(yaml.replace("    api_key: {value_from: {env: VERCEL_API_KEY}}\n", ""), { env: {} });
+    await expect(providerTransportsFromSpec(spec, {
+      OPENAI_API_KEY: "unrelated", AI_GATEWAY_API_KEY: "unused-fixture-key",
+    })).rejects.toThrow("VERCEL_API_KEY");
+    await providerTransportsFromSpec(spec, { VERCEL_API_KEY: "default-fixture-key" });
+    expect(sdk.constructor).toHaveBeenLastCalledWith({
+      apiKey: "default-fixture-key", baseURL: "https://ai-gateway.vercel.sh/v1", maxRetries: 0,
+    });
+    const explicit = loadYamlSpec(yaml.replace(
+      "api_key: {value_from: {env: VERCEL_API_KEY}}", "api_key: explicit-fixture-key",
+    ), { env: {} });
+    await providerTransportsFromSpec(explicit, { VERCEL_API_KEY: "default-fixture-key" });
+    expect(sdk.constructor).toHaveBeenLastCalledWith({
+      apiKey: "explicit-fixture-key", baseURL: "https://ai-gateway.vercel.sh/v1", maxRetries: 0,
+    });
   });
 
   it("rejects missing models and unsupported gateway options during load", () => {

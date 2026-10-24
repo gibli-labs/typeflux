@@ -10,7 +10,7 @@ runtime:
   provider:
     type: vercel-ai-gateway
     model: openai/gpt-4o-mini
-    api_key: {value_from: {env: AI_GATEWAY_API_KEY}}
+    api_key: {value_from: {env: VERCEL_API_KEY}}
     params: {max_tokens: 128, timeout: 30}
 activities:
   definitions:

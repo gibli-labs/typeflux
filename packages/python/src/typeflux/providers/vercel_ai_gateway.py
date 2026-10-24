@@ -77,10 +77,10 @@ class VercelAIGatewayProvider:
         self._api_key = api_key
         if not self._injected:
             load_env()
-            self._api_key = api_key if api_key is not None else os.getenv("AI_GATEWAY_API_KEY")
+            self._api_key = api_key if api_key is not None else os.getenv("VERCEL_API_KEY")
             if not self._api_key or not self._api_key.strip():
                 raise ProviderAuthError(
-                    "Vercel AI Gateway requires AI_GATEWAY_API_KEY or api_key",
+                    "Vercel AI Gateway requires VERCEL_API_KEY or api_key",
                     provider=self.provider_name,
                 )
 

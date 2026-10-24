@@ -7,7 +7,7 @@ entities:
       - {relation: uses, target: capability.vercel-ai-gateway}
     steps:
       - id: configure
-        action: Select the gateway and an explicit model programmatically or through YAML and supply a secret reference.
+        action: Select the gateway and an explicit model programmatically or through YAML and supply an explicit secret reference or VERCEL_API_KEY.
         outcome: Construct an optional SDK client or injected transport with the correct gateway identity and endpoint.
         capabilities: [capability.vercel-ai-gateway]
         checks: [check.gateway-python, check.gateway-typescript, check.gateway-yaml]

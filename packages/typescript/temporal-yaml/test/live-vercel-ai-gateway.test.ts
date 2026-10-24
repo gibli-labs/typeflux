@@ -7,7 +7,7 @@ import {
 } from "@typeflux/temporal";
 import { loadYamlSpec, providerFromSpec, providerTransportsFromSpec } from "../src/index.js";
 
-it.skipIf(process.env["TYPEFLUX_RUN_LIVE"] !== "1" || !process.env["AI_GATEWAY_API_KEY"])(
+it.skipIf(process.env["TYPEFLUX_RUN_LIVE"] !== "1" || !process.env["VERCEL_API_KEY"])(
   "live Vercel AI Gateway bounded structured output", async () => {
     const spec = loadYamlSpec(`
 project: smoke

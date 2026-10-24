@@ -17,7 +17,8 @@ only when a gateway client is needed. In TypeScript, install `openai` in the
 application when using the YAML environment adapter; the core provider requires
 only an injected `OpenAIChatTransport` and has no vendor SDK dependency.
 
-Supply `AI_GATEWAY_API_KEY` through your secret mechanism. An explicit `api_key`
+Supply an AI Gateway credential in `VERCEL_API_KEY` through your secret mechanism.
+This is Typeflux's default environment variable name. An explicit `api_key`
 or YAML `value_from` reference takes precedence. The adapter does not fall back
 to `OPENAI_API_KEY`, `OPENAI_BASE_URL`, or automatic OIDC discovery. An OIDC bearer
 token can be supplied explicitly through the same secret slot, with refresh
@@ -30,7 +31,7 @@ runtime:
   provider:
     type: vercel-ai-gateway
     model: openai/gpt-4o-mini
-    api_key: {value_from: {env: AI_GATEWAY_API_KEY}}
+    api_key: {value_from: {env: VERCEL_API_KEY}}
     params: {max_tokens: 128, timeout: 30}
 ```
 
@@ -70,7 +71,7 @@ import {
 } from "@typeflux/temporal";
 
 const client = new OpenAI({
-  apiKey: process.env.AI_GATEWAY_API_KEY,
+  apiKey: process.env.VERCEL_API_KEY,
   baseURL: VERCEL_AI_GATEWAY_BASE_URL,
   maxRetries: 0,
 });

@@ -229,7 +229,7 @@ export async function providerTransportsFromSpec(
       // truthiness trap): an interpolated empty env var is no credential.
       const specKey = resolveProviderApiKey(spec, environment);
       const gateway = type === "vercel-ai-gateway";
-      const envName = gateway ? "AI_GATEWAY_API_KEY" : "OPENAI_API_KEY";
+      const envName = gateway ? "VERCEL_API_KEY" : "OPENAI_API_KEY";
       const apiKey = specKey ?? (environment[envName] || undefined);
       if (apiKey === undefined || (gateway && apiKey.trim() === "")) {
         throw missingKeyError(type, envName);

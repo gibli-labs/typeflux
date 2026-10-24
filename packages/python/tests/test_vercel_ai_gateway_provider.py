@@ -239,15 +239,17 @@ def test_gateway_yaml_configuration_and_authentication(monkeypatch):
     spec = ProviderSpec(type="vercel-ai-gateway", params={"model": MODEL, "max_tokens": 64})
     assert spec.model == MODEL
     monkeypatch.setenv("OPENAI_API_KEY", "unrelated-key")
-    with pytest.raises(ProviderAuthError, match="AI_GATEWAY_API_KEY"):
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "unused-fixture-key")
+    with pytest.raises(ProviderAuthError, match="VERCEL_API_KEY"):
         _build_provider(
             SimpleNamespace(runtime=SimpleNamespace(provider=spec)), enable_langfuse=False
         )
-    monkeypatch.setenv("AI_GATEWAY_API_KEY", "gateway-fixture-key")
+    monkeypatch.setenv("VERCEL_API_KEY", "gateway-fixture-key")
     provider = _build_provider(
         SimpleNamespace(runtime=SimpleNamespace(provider=spec)), enable_langfuse=False
     )
     assert isinstance(provider, VercelAIGatewayProvider)
+    assert provider._api_key == "gateway-fixture-key"
     assert provider.default_provider_params.max_tokens == 64
     assert provider._client is None  # SDK loading/creation is lazy.
 
@@ -338,7 +340,7 @@ async def test_gateway_yaml_example_executes_validated_activity(monkeypatch):
 
     path = Path(__file__).parents[1] / "examples/vercel_ai_gateway/typeflux.yaml"
     spec = load_yaml_spec(path, env={})
-    monkeypatch.setenv("AI_GATEWAY_API_KEY", "gateway-fixture-key")
+    monkeypatch.setenv("VERCEL_API_KEY", "gateway-fixture-key")
 
     async def connect(*args, **kwargs):
         return object()
@@ -385,7 +387,7 @@ async def test_gateway_lazy_clients_use_gateway_credentials_and_no_sdk_retries(m
     monkeypatch.setitem(
         sys.modules, "openai", SimpleNamespace(OpenAI=Client, AsyncOpenAI=AsyncClient)
     )
-    monkeypatch.setenv("AI_GATEWAY_API_KEY", "environment-fixture")
+    monkeypatch.setenv("VERCEL_API_KEY", "environment-fixture")
     monkeypatch.setenv("OPENAI_BASE_URL", "https://unrelated.invalid")
     provider = VercelAIGatewayProvider(default_model=MODEL, api_key="explicit-fixture")
     assert configurations == []

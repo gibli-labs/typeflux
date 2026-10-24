@@ -138,5 +138,5 @@ are mutually exclusive (Vertex is keyless).
 
 [Vercel AI Gateway](vercel-ai-gateway.md) is a first-class text/JSON Schema provider
 in both editions. Select `vercel-ai-gateway` and an explicit `author/model` ID;
-use the documented narrow parameter set and `AI_GATEWAY_API_KEY`. Gateway identity
+use the documented narrow parameter set and `VERCEL_API_KEY`. Gateway identity
 is distinct from the requested model and optional reported upstream host.

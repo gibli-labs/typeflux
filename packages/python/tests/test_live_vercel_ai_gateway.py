@@ -21,14 +21,14 @@ class GatewaySmokeOutput(BaseModel):
 @pytest.mark.live
 @pytest.mark.asyncio
 async def test_live_vercel_ai_gateway():
-    if os.getenv("TYPEFLUX_RUN_LIVE") != "1" or not os.getenv("AI_GATEWAY_API_KEY"):
-        pytest.skip("requires TYPEFLUX_RUN_LIVE=1 and AI_GATEWAY_API_KEY in this execution context")
+    if os.getenv("TYPEFLUX_RUN_LIVE") != "1" or not os.getenv("VERCEL_API_KEY"):
+        pytest.skip("requires TYPEFLUX_RUN_LIVE=1 and VERCEL_API_KEY in this execution context")
     usage = []
     failure = None
     try:
         # No dotenv lookup for availability, SDK retries, repair loop or fallback request.
         provider = VercelAIGatewayProvider(
-            default_model="openai/gpt-4o-mini", api_key=os.environ["AI_GATEWAY_API_KEY"]
+            default_model="openai/gpt-4o-mini", api_key=os.environ["VERCEL_API_KEY"]
         )
         result = await asyncio.wait_for(
             provider.async_structured_call(

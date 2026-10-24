@@ -31,7 +31,7 @@ entities:
       - {relation: requires, target: invariant.gateway-failure}
   - id: invariant.gateway-configuration
     kind: invariant
-    description: Require an explicit author/model ID and gateway credentials; keep SDK dependencies optional and reject unsupported features before transport.
+    description: Require an explicit author/model ID and gateway credentials from an explicit api_key or the default VERCEL_API_KEY environment variable; keep SDK dependencies optional and reject unsupported features before transport.
   - id: invariant.gateway-output
     kind: invariant
     description: Only schema-validated activity output is accepted or cached; invalid output uses existing repair semantics and truncated output fails.
