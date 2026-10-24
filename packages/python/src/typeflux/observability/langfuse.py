@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 import json
 import os
 import re
@@ -43,13 +42,13 @@ _LANGFUSE_LIST_FIELDS = "core,basic,metadata,model,prompt,trace_context,usage"
 _LANGFUSE_DETAIL_FIELDS = f"{_LANGFUSE_LIST_FIELDS},io"
 _LANGFUSE_MAX_OBSERVATION_LIMIT = 1000
 _LANGFUSE_DEFAULT_DETAIL_MAX_PAGES = 100
-#: Page size for the ``trace.list`` deletion scan, and the batch size for
-#: ``trace.delete_multiple`` (#715 slice 2). The trace list API is page-numbered
-#: (page 1..total_pages); the walk pages fully so no matched trace is missed.
+#: Page size for the observations discovery scan, and the batch size for
+#: ``trace.delete_multiple`` (#715 slice 2). Observations v2 uses opaque cursors;
+#: discovery and unfiltered ownership walks preserve every cursor.
 _LANGFUSE_TRACE_LIST_PAGE_SIZE = 100
 _LANGFUSE_TRACE_DELETE_BATCH_SIZE = 100
 #: A hard ceiling on the pagination walk so a backend that never advances
-#: total_pages/shrinks a page cannot spin forever.
+#: repeats a cursor cannot spin forever.
 _LANGFUSE_TRACE_LIST_MAX_PAGES = 10_000
 
 
@@ -244,6 +243,7 @@ class LangfuseTraceReader:
         rows: list[Any] = []
         cursor: str | None = None
         pages_read = 0
+        seen_cursors: set[str] = set()
         complete = True
         while pages_read < resolved_max_pages:
             row_page = self._observation_rows_page(
@@ -259,6 +259,9 @@ class LangfuseTraceReader:
             cursor = row_page.next_cursor
             if cursor is None:
                 break
+            if cursor in seen_cursors:
+                raise RuntimeError("Langfuse observation cursor repeated during trace retrieval")
+            seen_cursors.add(cursor)
         else:
             if cursor is not None:
                 complete = False
@@ -345,7 +348,7 @@ class LangfuseTraceReader:
         (slice 1 always sets both), so this lists by BOTH and UNIONs the ids —
         neither channel alone is authoritative (a hand-written trace may set only
         one). Each channel's pages are walked FULLY (the list API is
-        page-numbered); hitting the page cap yields an explicit warning, never a
+        cursor-paginated); hitting the page cap yields an explicit warning, never a
         silently partial set. The subject-filter kwargs are FAIL-CLOSED: a list
         API that cannot accept a channel's filter raises rather than listing (and
         deleting from) an UNFILTERED page. Multi-subject traces are EXCLUDED and
@@ -357,14 +360,23 @@ class LangfuseTraceReader:
         """
 
         trace_api = _trace_api(self._require_client())
+        observations_getter = _observations_getter(self._require_client())
         window_since = _as_utc_aware(since) if since is not None else None
         window_until = _as_utc_aware(until) if until is not None else None
         (own_tag,) = subject_trace_tags([subject_id])
         tag_listing = _list_subject_trace_rows(
-            trace_api, tags=[own_tag], user_id=None, since=window_since, until=window_until
+            observations_getter,
+            tags=[own_tag],
+            user_id=None,
+            since=window_since,
+            until=window_until,
         )
         user_listing = _list_subject_trace_rows(
-            trace_api, tags=None, user_id=subject_id, since=window_since, until=window_until
+            observations_getter,
+            tags=None,
+            user_id=subject_id,
+            since=window_since,
+            until=window_until,
         )
         warnings = [
             *_channel_truncation_warnings(subject_id, "tag", tag_listing),
@@ -400,12 +412,30 @@ class LangfuseTraceReader:
         deletable: list[str] = []
         conflicted: list[SubjectTraceDeletionConflict] = []
         for trace_id in union:
-            row_tags = tags_by_id.get(trace_id)
-            if row_tags is None:
-                # No readable tags → the other-subject question is unanswerable;
-                # exclude fail-safe rather than delete on a guess.
+            # A filtered observation cannot establish ownership of the whole trace.
+            # Hydrate every candidate without subject/time filters before deleting.
+            try:
+                detail = self.get_trace(trace_id)
+            except KeyError:
+                # Retention or a concurrent erasure may remove a discovered trace.
+                conflicted.append(SubjectTraceDeletionConflict(trace_id=trace_id))
+                warnings.append(
+                    f"Langfuse ownership unavailable for trace {trace_id}; not deleted."
+                )
+                continue
+            if detail.retrieval is None or not detail.retrieval.complete:
+                conflicted.append(SubjectTraceDeletionConflict(trace_id=trace_id))
+                warnings.append(
+                    f"Langfuse ownership scan incomplete for trace {trace_id}; not deleted."
+                )
+                continue
+            detail_tags = [_row_tags(row) for row in detail.raw]
+            if not detail_tags or any(tags is None for tags in detail_tags):
                 conflicted.append(SubjectTraceDeletionConflict(trace_id=trace_id))
                 continue
+            row_tags = list(tags_by_id.get(trace_id) or [])
+            for tags in detail_tags:
+                row_tags.extend(tag for tag in (tags or []) if tag not in row_tags)
             other_subjects = sum(
                 1 for tag in row_tags if tag.startswith(_SUBJECT_TAG_PREFIX) and tag != own_tag
             )
@@ -541,13 +571,9 @@ class LangfuseTraceReader:
         getter = _observations_getter(self._require_client())
         kwargs: dict[str, Any] = {
             "fields": fields,
-            "expand_metadata": "true",
+            "expand_metadata": "typeflux,typeflux_moderation,typeflux.execution_manifest,typeflux.activity_execution_manifest",
             "limit": observation_limit or _observation_limit(query.limit),
         }
-        if server_tags:
-            # Dropped by _call_with_supported_kwargs when the backend API does
-            # not accept server-side tag filtering; post-filtering still applies.
-            kwargs["tags"] = list(server_tags)
         if default_lookback:
             since, until = _bounded_window(query.since, query.until)
             kwargs["from_start_time"] = since
@@ -564,9 +590,44 @@ class LangfuseTraceReader:
             kwargs["cursor"] = resolved_cursor
         if trace_id is not None:
             kwargs["trace_id"] = trace_id
-        if backend_filter is not None:
-            kwargs["filter"] = _serialize_backend_filter(backend_filter)
-        raw_page = _call_with_supported_kwargs(getter, kwargs)
+        if backend_filter is not None or server_tags:
+            filters = (
+                json.loads(_serialize_backend_filter(backend_filter))
+                if backend_filter is not None
+                else []
+            )
+            if not isinstance(filters, list):
+                raise ValueError("Langfuse backend_filter must be an array of conditions")
+            if server_tags:
+                filters.append(
+                    {
+                        "type": "arrayOptions",
+                        "column": "traceTags",
+                        "operator": "all of",
+                        "value": list(server_tags),
+                    }
+                )
+            for key, operator in (("from_start_time", ">="), ("to_start_time", "<")):
+                if key in kwargs:
+                    filters.append(
+                        {
+                            "type": "datetime",
+                            "column": "startTime",
+                            "operator": operator,
+                            "value": kwargs.pop(key).isoformat(),
+                        }
+                    )
+            if "trace_id" in kwargs:
+                filters.append(
+                    {
+                        "type": "string",
+                        "column": "traceId",
+                        "operator": "=",
+                        "value": kwargs.pop("trace_id"),
+                    }
+                )
+            kwargs["filter"] = json.dumps(filters)
+        raw_page = getter(**kwargs)
         return _ObservationRowsPage(
             rows=_page_items(raw_page),
             next_cursor=_page_cursor(raw_page),
@@ -763,8 +824,10 @@ def _trace_from_observation_rows(trace_id: str, rows: list[Any]) -> TraceRecord:
     tags = _first_trace_context_value(rows, "tags")
     if tags is not None and "tags" not in metadata:
         metadata["tags"] = tags
-    trace_name = _optional_str(_first_trace_context_value(rows, "traceName")) or (
-        first.name if first is not None and _is_workflow_observation(first) else None
+    trace_name = (
+        _optional_str(_first_trace_context_value(rows, "traceName"))
+        or _optional_str(_first_trace_context_value(rows, "trace_name"))
+        or (first.name if first is not None and _is_workflow_observation(first) else None)
     )
     return TraceRecord(
         trace_id=trace_id,
@@ -861,13 +924,13 @@ def _page_items(payload: Any) -> list[Any]:
 
 
 def _page_cursor(payload: Any) -> str | None:
-    data = _dump(payload)
-    meta = data.get("meta")
-    if isinstance(meta, dict):
-        cursor = meta.get("cursor")
-        return str(cursor) if cursor else None
-    cursor = _first_present(data, ("cursor", "next_cursor", "nextCursor", "next_page", "nextPage"))
-    return str(cursor) if cursor else None
+    meta = _dump(payload).get("meta")
+    if not isinstance(meta, dict):
+        raise ValueError("Invalid Langfuse Observations v2 page; completeness is unknown")
+    cursor = meta.get("cursor")
+    if cursor is not None and not isinstance(cursor, str):
+        raise ValueError("Invalid Langfuse observation cursor")
+    return cursor or None
 
 
 def _dump(value: Any) -> dict[str, Any]:
@@ -882,49 +945,6 @@ def _dump(value: Any) -> dict[str, Any]:
     if hasattr(value, "__dict__"):
         return dict(value.__dict__)
     return {}
-
-
-def _call_with_supported_kwargs(func: Any, kwargs: dict[str, Any]) -> Any:
-    signature_kwargs = _kwargs_supported_by_signature(func, kwargs)
-    if signature_kwargs is not None:
-        supported_kwargs, accepts_arbitrary_kwargs = signature_kwargs
-        if not accepts_arbitrary_kwargs:
-            return func(**supported_kwargs)
-        return _call_retrying_unsupported_kwargs(func, supported_kwargs)
-    return _call_retrying_unsupported_kwargs(func, kwargs)
-
-
-def _call_retrying_unsupported_kwargs(func: Any, kwargs: dict[str, Any]) -> Any:
-    remaining = dict(kwargs)
-    while True:
-        try:
-            return func(**remaining)
-        except TypeError as exc:
-            unsupported_keyword = _unsupported_keyword_from_type_error(exc)
-            if unsupported_keyword is None or unsupported_keyword not in remaining:
-                raise
-            remaining.pop(unsupported_keyword)
-
-
-def _kwargs_supported_by_signature(
-    func: Any, kwargs: dict[str, Any]
-) -> tuple[dict[str, Any], bool] | None:
-    try:
-        signature = inspect.signature(func)
-    except (TypeError, ValueError):
-        return None
-
-    parameters = signature.parameters.values()
-    if any(parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters):
-        return kwargs, True
-
-    supported_names = {
-        parameter.name
-        for parameter in signature.parameters.values()
-        if parameter.kind
-        in {inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD}
-    }
-    return {key: value for key, value in kwargs.items() if key in supported_names}, False
 
 
 def _unsupported_keyword_from_type_error(exc: TypeError) -> str | None:
@@ -1030,107 +1050,99 @@ class _SubjectChannelListing:
 
     @property
     def trace_ids(self) -> list[str]:
-        return [trace_id for trace_id, _ in self.rows]
+        return list(dict.fromkeys(trace_id for trace_id, _ in self.rows))
 
 
 def _subject_filter_unsupported_error(keys: Sequence[str]) -> RuntimeError:
     names = ", ".join(sorted(keys))
     return RuntimeError(
-        f"the Langfuse trace list API does not accept the subject-filter "
+        f"the Langfuse observations API does not accept the subject-filter "
         f"keyword(s) {names}; refusing to list (and delete from) an UNFILTERED "
         "trace page — a subject-scoped erasure must never widen to every trace "
         "in the window (fail-closed). Upgrade the langfuse client or use a "
-        "backend whose trace listing supports tag/user_id filtering."
+        "backend whose observations API supports the required filters."
     )
 
 
-def _call_requiring_kwargs(func: Any, kwargs: dict[str, Any], *, required: frozenset[str]) -> Any:
-    """``_call_with_supported_kwargs``, except the ``required`` kwargs are NEVER
-    strippable (#715 review, P1).
-
-    The generic compat helper silently drops kwargs the callee does not accept —
-    fine for pagination/date bounds, catastrophic for a subject filter: a
-    stripped ``tags``/``user_id`` turns a subject-scoped deletion listing into an
-    UNFILTERED one. If the callee cannot accept a required kwarg (by signature,
-    or by raising TypeError for it at call time), this raises the pointed
-    fail-closed error instead of proceeding without it."""
-
-    remaining = dict(kwargs)
-    signature_kwargs = _kwargs_supported_by_signature(func, kwargs)
-    if signature_kwargs is not None:
-        supported_kwargs, accepts_arbitrary_kwargs = signature_kwargs
-        if not accepts_arbitrary_kwargs:
-            dropped_required = [
-                key for key in required if key in kwargs and key not in supported_kwargs
-            ]
-            if dropped_required:
-                raise _subject_filter_unsupported_error(dropped_required)
-            return func(**supported_kwargs)
-    while True:
-        try:
-            return func(**remaining)
-        except TypeError as exc:
-            unsupported_keyword = _unsupported_keyword_from_type_error(exc)
-            if unsupported_keyword is None or unsupported_keyword not in remaining:
-                raise
-            if unsupported_keyword in required:
-                raise _subject_filter_unsupported_error([unsupported_keyword]) from exc
-            remaining.pop(unsupported_keyword)
+def _call_subject_query(func: Any, kwargs: dict[str, Any]) -> Any:
+    """Call the current SDK contract once; never retry without identity or cursor filters."""
+    try:
+        return func(**kwargs)
+    except TypeError as exc:
+        unsupported = _unsupported_keyword_from_type_error(exc)
+        if unsupported in kwargs:
+            raise _subject_filter_unsupported_error([unsupported]) from exc
+        raise
 
 
 def _list_subject_trace_rows(
-    trace_api: Any,
+    getter: Any,
     *,
     tags: Sequence[str] | None,
     user_id: str | None,
     since: datetime | None,
     until: datetime | None,
 ) -> _SubjectChannelListing:
-    """Walk ``trace.list`` (page-numbered) FULLY for one query channel.
+    """List subject candidates through bounded Observations v2 cursor pages.
 
-    Exactly one of ``tags`` / ``user_id`` is set per call — and that filter kwarg
-    is FAIL-CLOSED (see :func:`_call_requiring_kwargs`): if the list API cannot
-    accept it, this raises rather than listing unfiltered traces for a deletion.
-    Rows carry each trace's ``tags`` (or ``None`` when unreadable) so the caller
-    can detect multi-subject conflicts. The walk continues while the API reports
-    more pages (or, absent a page count, while a full page keeps arriving); if
-    the page cap stops it first, ``complete`` is False and the caller warns."""
-
-    getter = trace_api.list
-    required = frozenset({"tags"} if tags else {"user_id"})
+    JSON filters override simple query filters, so identity AND time bounds
+    belong to the same array. No filter or cursor may be compatibility-stripped.
+    """
+    filters: list[dict[str, Any]] = []
+    if tags:
+        filters.append(
+            {
+                "type": "arrayOptions",
+                "column": "traceTags",
+                "operator": "all of",
+                "value": list(tags),
+            }
+        )
+    elif user_id is not None:
+        filters.append({"type": "string", "column": "userId", "operator": "=", "value": user_id})
+    else:
+        raise ValueError("subject erasure requires a tag or user filter")
+    if since is not None:
+        filters.append(
+            {
+                "type": "datetime",
+                "column": "startTime",
+                "operator": ">=",
+                "value": since.isoformat(),
+            }
+        )
+    if until is not None:
+        filters.append(
+            {"type": "datetime", "column": "startTime", "operator": "<", "value": until.isoformat()}
+        )
     rows: list[tuple[str, list[str] | None]] = []
+    cursor: str | None = None
+    cursors: set[str] = set()
     complete = False
     pages_scanned = 0
-    page = 1
-    while page <= _LANGFUSE_TRACE_LIST_MAX_PAGES:
-        kwargs: dict[str, Any] = {"page": page, "limit": _LANGFUSE_TRACE_LIST_PAGE_SIZE}
-        if tags:
-            kwargs["tags"] = list(tags)
-        if user_id is not None:
-            kwargs["user_id"] = user_id
-        if since is not None:
-            kwargs["from_timestamp"] = since
-        if until is not None:
-            kwargs["to_timestamp"] = until
-        response = _call_requiring_kwargs(getter, kwargs, required=required)
-        page_rows = _page_items(response)
+    for _ in range(_LANGFUSE_TRACE_LIST_MAX_PAGES):
+        kwargs: dict[str, Any] = {
+            "limit": _LANGFUSE_TRACE_LIST_PAGE_SIZE,
+            "fields": "core,basic,trace_context",
+            "filter": json.dumps(filters),
+        }
+        if cursor is not None:
+            kwargs["cursor"] = cursor
+        response = _call_subject_query(getter, kwargs)
         pages_scanned += 1
-        for row in page_rows:
-            trace_id = _optional_str(_first_present(row, ("id", "trace_id", "traceId")))
+        for row in _page_items(response):
+            trace_id = _optional_str(_first_present(row, ("trace_id", "traceId")))
             if trace_id:
                 rows.append((trace_id, _row_tags(row)))
-        total_pages = _trace_list_total_pages(response)
-        if not page_rows:
+        cursor = _page_cursor(response)
+        if cursor is None:
             complete = True
             break
-        if total_pages is not None:
-            if page >= total_pages:
-                complete = True
-                break
-        elif len(page_rows) < _LANGFUSE_TRACE_LIST_PAGE_SIZE:
-            complete = True
-            break
-        page += 1
+        if cursor in cursors:
+            raise RuntimeError(
+                "Langfuse observation cursor repeated; refusing incomplete subject erasure"
+            )
+        cursors.add(cursor)
     return _SubjectChannelListing(rows=tuple(rows), complete=complete, pages_scanned=pages_scanned)
 
 
@@ -1138,9 +1150,15 @@ def _row_tags(row: Any) -> list[str] | None:
     """A row's tags list, or ``None`` when the field is absent/unreadable."""
 
     value = _first_present(row, ("tags",))
-    if isinstance(value, list):
-        return [str(tag) for tag in value]
-    return None
+    if not isinstance(value, list) or not all(isinstance(tag, str) for tag in value):
+        return None
+    tags = list(value)
+    user_id = _first_present(row, ("user_id", "userId"))
+    if isinstance(user_id, str) and user_id:
+        native_tag = f"typeflux.subject:{user_id}"
+        if native_tag not in tags:
+            tags.append(native_tag)
+    return tags
 
 
 def _channel_truncation_warnings(
@@ -1157,19 +1175,6 @@ def _channel_truncation_warnings(
         "more candidate pages remain. The deletion covers only the traces found "
         "— narrow --since/--until and rerun to reach the rest.",
     )
-
-
-def _trace_list_total_pages(response: Any) -> int | None:
-    data = _dump(response)
-    meta = data.get("meta")
-    if isinstance(meta, dict):
-        total = _first_present(meta, ("total_pages", "totalPages"))
-        if total is not None:
-            try:
-                return int(total)
-            except (TypeError, ValueError):
-                return None
-    return None
 
 
 def _chunked(items: Sequence[str], size: int) -> Iterator[Sequence[str]]:

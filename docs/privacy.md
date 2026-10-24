@@ -389,7 +389,12 @@ of #715 to ship. It removes every trace attributed to a subject id:
 Both editions ship the same seam behaviorally (Python parity, not byte-identical):
 Python `LangfuseTraceReader.delete_traces_for_subject(subject_id, *, dry_run, since, until)`
 and TypeScript `deleteTracesForSubject(client, subjectId, { dryRun, since, until })`
-both use their pinned langfuse SDK's native trace list + bulk-delete API. The
+both discover candidates through Observations v2 and use the current bulk-delete API.
+The time window applies to observation start time. Before deletion, each candidate
+is hydrated **without subject or time filters** across all cursor pages; tags and
+native user IDs from every observation contribute to the ownership check. A partial
+or unreadable ownership scan excludes the trace. Discovery caps report incomplete
+coverage; they never authorize deleting a trace with incomplete ownership evidence. The
 `typeflux erase` operation that orchestrates this and the other surfaces is described
 below.
 

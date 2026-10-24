@@ -9,7 +9,7 @@ Use two cohesive implementation PRs, each prepared and validated locally before 
 1. **Toolchain, runtime coverage, and providers** (#21, closes #63): upgrade all seven TypeScript packages to stable 7.0.2; isolate both OpenAPI generators in one private tool with their required TypeScript 5 compiler; remove the product compiler hold. Use Node 24 LTS (minimum 24.15) and Node 24 types throughout; remove older provider major ranges. Test Python 3.11–3.15 while retaining the existing minimum, and move reference deployment images to validated current runtimes. Update pnpm, npm, uv, provider major ranges, and compatible lock entries together. Replace Instructor with native OpenAI structured outputs: Instructor 1.17 requires jiter<0.15, blocking OpenAI 3.36 (jiter>=0.16). Remove the old injection/retry options; native client injection is `openai_client`, with SDK retries disabled so Typeflux/Temporal own retries. Verify packages, generated contracts, native Temporal imports, real SDK HTTP transport behavior, and release workflow assumptions.
 2. **Langfuse adapters** (closes #71): move the Python adapter to SDK 5 and the TypeScript adapter from legacy `langfuse` to current scoped SDKs and OpenTelemetry. Replace legacy trace-list reads with bounded cursor-paginated observations, and use root-observation input/output. Preserve subject filters, ownership checks, deduplication, truncation handling, deletion fail-closed behavior, observation parentage, prompt linkage and shutdown/flush behavior. Document server prerequisites and the November 16 Cloud cutoff.
 
-The second PR starts from the first merged result to keep one active implementation PR at a time. No package publishing, production deployment or destructive live erasure is part of this plan. A live telemetry smoke is attempted only if a configured test service is available; transport tests and explicit rollout evidence must identify any unavailable live validation.
+The second migration can be prepared locally while the first awaits CI, but is rebased onto its merged result before opening the second PR. Keep one active implementation PR at a time. No package publishing, production deployment or destructive live erasure is part of this plan. A live telemetry smoke is attempted only if a configured test service is available; transport tests and explicit rollout evidence must identify any unavailable live validation.
 
 ## Compatibility and invariants
 
@@ -36,3 +36,16 @@ A regression rolls back the affected consolidated PR with its manifest/lock/code
 - [Dependabot configuration](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference): group related updates, keep security discovery, and scope compatibility holds to the actual blocked dependency.
 - [OpenAI SDK reference](https://developers.openai.com/api/reference/python): SDK internals and static types can change independently of runtime behavior; test the public client over intercepted HTTP instead of relying only on fake method objects.
 - [Langfuse Python migration](https://langfuse.com/docs/observability/sdk/upgrade-path/python-v4-to-v5), [TypeScript migration](https://langfuse.com/docs/observability/sdk/upgrade-path/js-v3-to-v4), [current JS migration](https://langfuse.com/docs/observability/sdk/upgrade-path/js-v5-to-v6), and [API migration](https://langfuse.com/faq/all/deprecated-api-migration): replace removed APIs and legacy ingestion, preserve cursor/filter semantics, and coordinate server prerequisites with SDK upgrades.
+
+## Execution notes
+
+- PR #73 merged after all required checks and Bugbot passed: native TypeScript 7,
+  Node 24, Python 3.11–3.15 coverage, current provider SDKs and isolated generator.
+- Langfuse JS 6 requires OpenTelemetry 2; pin compatible exporters to 0.223.x
+  because exporter 0.300 uses OTel 3. The upstream `sdk-trace-base` peer remains
+  transitive; Typeflux uses its replacement `sdk-trace`. Remove this constraint
+  when Langfuse supports OTel 3, updating processor/API/exporters together.
+- Live Langfuse validation was not run for this migration. Real SDK HTTP
+  contracts and in-memory OTel exports validate the adapters offline; verify one
+  redacted workflow, prompt lookup, control-plane correlation and dry-run erasure
+  against the target service before production rollout.

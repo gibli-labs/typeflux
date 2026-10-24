@@ -60,7 +60,7 @@ declares `observability: {type: langfuse}` or `{type: langsmith}`,
 `buildRuntime` wires the observer itself over the OFFICIAL SDK — no transport
 code in your app. Each SDK is an optional peer dependency loaded lazily (the
 TS mirror of Python's `[langfuse]`/`[langsmith]` extras): install the one your
-spec names (`npm/pnpm add langfuse` or `add langsmith`), export its standard
+spec names (the Langfuse packages below, or `pnpm add langsmith`), export its standard
 credentials — `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` (plus
 `LANGFUSE_HOST` for self-hosted), or `LANGSMITH_API_KEY` (plus
 `LANGSMITH_PROJECT`, default "default", and `LANGSMITH_ENDPOINT`) — and every
@@ -68,8 +68,40 @@ run's traces land in your project. Missing keys degrade to an untraced run
 with one warning; a spec that opts in without its SDK installed fails loudly
 with an install hint. Traces STREAM per completed activity; call
 `runtime.drainObservability()` before a short-lived process exits so the tail
-ships. An explicit `observer` option always wins — that is how custom
+ships and the dedicated tracer provider shuts down. Do not reuse that runtime after this terminal drain. An explicit `observer` option always wins — that is how custom
 backends (and tests) inject their own transport via `observerFromSpec`.
+
+## Langfuse requirements
+
+Use Langfuse Cloud or a self-hosted server **4.59.0+**, with the scoped JavaScript
+SDKs **6.x**. Install the optional peers together:
+
+```sh
+pnpm add @langfuse/client@6 @langfuse/tracing@6 @langfuse/otel@6 \
+  '@opentelemetry/api@~1.9.1' '@opentelemetry/sdk-trace@^2.12.0' \
+  '@opentelemetry/exporter-trace-otlp-http@^0.223.0' \
+  '@opentelemetry/otlp-exporter-base@^0.223.0'
+```
+
+Langfuse 6 currently requires OpenTelemetry 2. The exporter packages use a
+separate 0.x version series: 0.223 matches OTel 2.12; 0.300 requires OTel 3.
+Upgrade this set together when Langfuse supports OTel 3. Typeflux uses a dedicated
+provider per integration and leaves the application's global provider intact.
+
+Each active run has a root observation; input/output live on that observation.
+Activity and generation spans export as they complete. Roots end at workflow
+completion/error or shutdown. The Temporal run ID seeds a deterministic OTel
+trace ID; it is not used as a raw OTel ID. Worker and caller processes can join
+that trace without sharing a global tracer. There is no legacy `langfuse` SDK
+fallback or trace-level input/output update path.
+
+The control plane reads the cursor-paginated **Observations v2** API. Discovery
+for correlation and last-run prompt versions covers the last 24 hours and at
+most five pages; exact detail hydration follows up to 100 pages. Incomplete
+details fail the lookup. Subject erasure separately scans the entire candidate
+trace without identity/time filters before deciding whether deletion is safe.
+Langfuse Cloud removes the deprecated APIs on **2026-11-16**; deploy this migration
+before that date. See the [migration plan](../modernization-plan.md).
 
 ## Execution manifests
 

@@ -17,6 +17,7 @@ import {
   StreamingTraceWriter,
 } from "../src/index.js";
 import type { LangfuseSdkClient } from "../src/index.js";
+import type { LangfuseObservationClient, ObservationAttributes, RootObservationAttributes } from "../src/langfuse-otel.js";
 
 const YAML = `
 project: obs_demo
@@ -63,23 +64,32 @@ class FakeClient implements LangfuseSdkClient {
   flushes = 0;
   failFlushes = 0;
 
-  private observationClient() {
-    const self = this;
+  ended: Record<string, unknown>[] = [];
+  private observationClient(body: Record<string, unknown>): LangfuseObservationClient {
     return {
-      generation: (g: Record<string, unknown>) => self.generations.push(g),
-      span: (s: Record<string, unknown>) => {
-        self.spans.push(s);
-        return self.observationClient();
+      update: (attributes) => { Object.assign(body, attributes); },
+      updateIdentity: (tags, userId) => {
+        body["tags"] = [...new Set([...(body["tags"] as string[] ?? []), ...tags])];
+        if (userId !== undefined) body["userId"] ??= userId;
+      },
+      end: () => { this.ended.push(body); },
+      startObservation: (name: string, attributes: ObservationAttributes, type = "span") => {
+        const child = { name, ...attributes };
+        (type === "generation" ? this.generations : this.spans).push(child);
+        return this.observationClient(child);
       },
     };
   }
 
-  trace(body: Record<string, unknown>) {
+  startRoot(attributes: RootObservationAttributes) {
+    const body = { ...attributes };
     this.traces.push(body);
-    return this.observationClient();
+    return this.observationClient(body);
   }
 
-  async flushAsync(): Promise<void> {
+  async shutdown(): Promise<void> { await this.forceFlush(); }
+
+  async forceFlush(): Promise<void> {
     if (this.failFlushes > 0) {
       this.failFlushes -= 1;
       throw new Error("simulated langfuse outage");
@@ -136,7 +146,7 @@ describe("LangfuseSdkTransport", () => {
     expect(span!["level"]).toBe("ERROR");
     expect(span!["statusMessage"]).toBe("hook failed");
 
-    // Deterministic egress: one flushAsync per submitted trace.
+    // Deterministic egress: one forceFlush per submitted trace.
     expect(client.flushes).toBe(1);
   });
 });
@@ -174,9 +184,8 @@ describe("LangfuseSdkTransport grouping", () => {
       });
     }
 
-    // Both submits target the SAME trace id (langfuse upserts the shell) with
-    // the cross-edition parent identity: name + the read-path tag.
-    expect(client.traces).toHaveLength(2);
+    // Both activities share a single active root observation.
+    expect(client.traces).toHaveLength(1);
     for (const trace of client.traces) {
       expect(trace["id"]).toBe(RUN.runId);
       expect(trace["name"]).toBe("TypefluxWorkflow:insurance_claim_review");
@@ -228,7 +237,7 @@ describe("LangfuseSdkTransport grouping", () => {
 });
 
 describe("LangfuseSdkTransport recordWorkflowRun", () => {
-  it("upserts the parent shell with input at start and output at completion", async () => {
+  it("ends the root observation with input and output at completion", async () => {
     const client = new FakeClient();
     const transport = new LangfuseSdkTransport(client, "wf");
     const runId = "0199aaaa-bbbb-cccc-dddd-eeeeffff0010";
@@ -241,17 +250,18 @@ describe("LangfuseSdkTransport recordWorkflowRun", () => {
     });
     await transport.recordWorkflowRun({ runId, workflowId: "case-1", output: { verdict: "ok" } });
 
-    expect(client.traces).toHaveLength(2);
+    expect(client.traces).toHaveLength(1);
     expect(client.traces[0]!).toMatchObject({
       id: runId,
       name: "TypefluxWorkflow:wf",
       input: { claim: "c" },
       metadata: { typeflux_project: "p", workflow_id: "case-1" },
     });
-    expect(client.traces[1]!).toMatchObject({ id: runId, output: { verdict: "ok" } });
+    expect(client.traces[0]!).toMatchObject({ id: runId, output: { verdict: "ok" } });
+    expect(client.ended).toContain(client.traces[0]);
     // A failed run's error lands in parent metadata.
-    await transport.recordWorkflowRun({ runId, workflowId: "case-1", error: "boom" });
-    expect(client.traces[2]!["metadata"]).toMatchObject({ error: "boom" });
+    await transport.recordWorkflowRun({ runId: "failed-run", workflowId: "failed-case", error: "boom" });
+    expect(client.traces[1]!["metadata"]).toMatchObject({ error: "boom" });
   });
 
   it("sets native userId to the primary subject and a tag per subject (#715)", async () => {
@@ -271,7 +281,7 @@ describe("LangfuseSdkTransport recordWorkflowRun", () => {
     ]);
   });
 
-  it("omits userId when there are no subjects (byte-unchanged from pre-#715)", async () => {
+  it("omits userId when there are no subjects", async () => {
     const client = new FakeClient();
     const transport = new LangfuseSdkTransport(client, "wf");
     await transport.recordWorkflowRun({ runId: "r", workflowId: "case-3", input: {} });
@@ -279,23 +289,20 @@ describe("LangfuseSdkTransport recordWorkflowRun", () => {
     expect(client.traces[0]!["tags"]).toEqual(["typeflux.workflow:wf"]);
   });
 
-  it("re-applies subject identity on completion/error upserts that omit it (#715 review, finding 3)", async () => {
+  it("retains subject identity on completion records that omit it", async () => {
     const client = new FakeClient();
     const transport = new LangfuseSdkTransport(client, "wf");
     const runId = "0199aaaa-bbbb-cccc-dddd-eeeeffff0012";
     await transport.recordWorkflowRun({ runId, workflowId: "case-4", input: {}, subjectIds: ["pt-1", "pt-2"] });
-    // The completion record carries NO subjectIds — a Langfuse upsert replaces the
-    // fields it carries, so without the remembered re-apply the final trace would
-    // lose userId and the subject tags.
+    // Completing the root must retain its original identity.
     await transport.recordWorkflowRun({ runId, workflowId: "case-4", output: { ok: true } });
-    await transport.recordWorkflowRun({ runId, workflowId: "case-4", error: "boom" });
     for (const trace of client.traces) {
       expect(trace["userId"]).toBe("pt-1");
       expect(trace["tags"]).toEqual(["typeflux.workflow:wf", "typeflux.subject:pt-1", "typeflux.subject:pt-2"]);
     }
   });
 
-  it("a grouped activity's trace-shell upsert re-carries the run's subject identity (#715)", async () => {
+  it("a grouped activity retains the run's subject identity", async () => {
     const client = new FakeClient();
     const transport = new LangfuseSdkTransport(client, "wf");
     const runId = "0199aaaa-bbbb-cccc-dddd-eeeeffff0013";
@@ -309,7 +316,7 @@ describe("LangfuseSdkTransport recordWorkflowRun", () => {
       metadata: {},
       observations: [],
     });
-    // The activity's grouped upsert of the SAME trace shell must not strip the identity.
+    // Adding an activity must not strip the root identity.
     const activityShell = client.traces.at(-1)!;
     expect(activityShell["userId"]).toBe("pt-9");
     expect(activityShell["tags"]).toEqual(["typeflux.workflow:wf", "typeflux.subject:pt-9"]);
@@ -474,6 +481,7 @@ describe("langfuseObserverFromSpec", () => {
       LANGFUSE_HOST: "http://localhost:9",
     });
     expect(observer).toBeInstanceOf(StreamingTraceWriter);
+    await observer!.shutdown();
   });
 });
 

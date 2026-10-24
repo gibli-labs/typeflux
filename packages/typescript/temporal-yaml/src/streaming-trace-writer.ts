@@ -47,7 +47,7 @@ export class StreamingTraceWriter extends TraceWriter {
   private chain: Promise<void> = Promise.resolve();
 
   constructor(
-    private readonly streamTransport: TraceTransport & Partial<WorkflowRunRecorder>,
+    private readonly streamTransport: TraceTransport & Partial<WorkflowRunRecorder> & { shutdown?(): Promise<unknown> },
     private readonly streamRedaction?: RedactionConfig,
   ) {
     super(streamTransport, streamRedaction);
@@ -118,6 +118,12 @@ export class StreamingTraceWriter extends TraceWriter {
       });
     };
     return observation;
+  }
+
+  /** Flush completed work and close backend resources when the worker/client exits. */
+  async shutdown(): Promise<void> {
+    await this.drain();
+    await this.streamTransport.shutdown?.();
   }
 
   /** Await every scheduled flush, then flush once more (re-buffered stragglers). */

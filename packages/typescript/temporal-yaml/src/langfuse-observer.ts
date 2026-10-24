@@ -1,7 +1,7 @@
 /**
  * Out-of-the-box Langfuse tracing (Python parity): when the spec declares
  * `runtime.observability.type: langfuse`, `buildRuntime` wires an observer
- * over the OFFICIAL `langfuse` SDK — no transport code in the caller, exactly
+ * over the scoped Langfuse 6 SDKs and OpenTelemetry — no transport code in the caller, exactly
  * like Python's `_build_observability` constructing its Langfuse backend from
  * the environment. The SDK is an OPTIONAL peer dependency loaded lazily (the
  * TS mirror of Python's `[langfuse]` extra): specs that never opt in never
@@ -28,211 +28,92 @@ import {
 } from "./streaming-trace-writer.js";
 import type { TypefluxYamlSpec } from "./spec.js";
 
-/** A langfuse observation client — spans nest further spans/generations (structural). */
-export interface LangfuseObservationClient {
-  generation(body: {
-    name: string;
-    model?: string;
-    input?: unknown;
-    output?: unknown;
-    metadata?: Record<string, unknown>;
-    level?: "ERROR";
-    statusMessage?: string;
-  }): unknown;
-  span(body: {
-    name: string;
-    input?: unknown;
-    output?: unknown;
-    metadata?: Record<string, unknown>;
-    level?: "ERROR";
-    statusMessage?: string;
-  }): LangfuseObservationClient;
-}
+import { createLangfuseOtelClient, type LangfuseObservationClient, type LangfuseSdkClient } from "./langfuse-otel.js";
+export type { LangfuseObservationClient, LangfuseSdkClient } from "./langfuse-otel.js";
 
-/** The slice of the official SDK's client this module drives (structural — tests fake it). */
-export interface LangfuseSdkClient {
-  trace(body: {
-    id?: string;
-    name: string;
-    input?: unknown;
-    output?: unknown;
-    metadata?: Record<string, unknown>;
-    tags?: string[];
-    /** Native Langfuse user id (#715 slice 1): the PRIMARY subject id. */
-    userId?: string;
-  }): LangfuseObservationClient;
-  flushAsync(): Promise<unknown>;
-}
-
-/**
- * Adapt one `EmittedTrace` to the official SDK. Activities of the SAME
- * workflow run GROUP under one parent trace (Python parity — its OTel
- * interceptor joins every activity span to one trace): the Temporal run id is
- * the trace id (deterministic, so every activity's trace-create UPSERTS the
- * same shell), named `TypefluxWorkflow:<workflow>` and tagged
- * `typeflux.workflow:<workflow>` — the exact shape both editions' read paths
- * (CP prompt-status/correlation) already reconstruct from. Each activity is a
- * SPAN under that trace, its generations/hooks nested beneath it. Without a
- * run id (standalone `executeActivity`), the activity is its own trace.
- */
+/** One real root observation per active run, with deterministic cross-process trace identity. */
 export class LangfuseSdkTransport implements TraceTransport, WorkflowRunRecorder {
-  /**
-   * Subjects remembered per run id (#715 review, finding 3): a Langfuse `trace()`
-   * upsert REPLACES the fields it carries, so a completion/error upsert (or a
-   * grouped activity's trace-shell upsert) that omitted userId/tags would strip
-   * the subject identity the start recorded. Every upsert for a run re-applies
-   * the remembered subjects instead. Insertion-order bounded so a long-lived
-   * worker process cannot grow it without limit.
-   */
-  private readonly subjectsByRun = new Map<string, readonly string[]>();
-  private static readonly SUBJECTS_BY_RUN_LIMIT = 1024;
+  private readonly runs = new Map<string, LangfuseObservationClient>();
+  private static readonly MAX_ACTIVE_RUNS = 1024;
 
-  constructor(
-    private readonly client: LangfuseSdkClient,
-    /** The spec's workflow name — the grouped parent trace's identity. */
-    private readonly workflowName?: string,
-  ) {}
+  constructor(private readonly client: LangfuseSdkClient, private readonly workflowName?: string) {}
 
-  private rememberSubjects(runId: string, subjectIds: readonly string[] | undefined): readonly string[] {
-    if (subjectIds !== undefined && subjectIds.length > 0) {
-      if (!this.subjectsByRun.has(runId) && this.subjectsByRun.size >= LangfuseSdkTransport.SUBJECTS_BY_RUN_LIMIT) {
-        const oldest = this.subjectsByRun.keys().next().value;
-        if (oldest !== undefined) {
-          this.subjectsByRun.delete(oldest);
-        }
-      }
-      this.subjectsByRun.set(runId, [...subjectIds]);
-      return subjectIds;
+  private root(runId: string, subjectIds: readonly string[] = []): LangfuseObservationClient {
+    const existing = this.runs.get(runId);
+    if (existing !== undefined) {
+      existing.updateIdentity(subjectIds.map((id) => `typeflux.subject:${id}`), subjectIds[0]);
+      return existing;
     }
-    return this.subjectsByRun.get(runId) ?? [];
-  }
-
-  /** The subject identity fields every upsert of a run's trace shell must re-carry (#715). */
-  private subjectTraceFields(subjectIds: readonly string[]): { tags: string[]; userId?: string } {
-    return {
-      tags: subjectIds.map((id) => `typeflux.subject:${id}`),
+    if (this.runs.size >= LangfuseSdkTransport.MAX_ACTIVE_RUNS) {
+      const oldest = this.runs.keys().next().value!;
+      this.runs.get(oldest)!.end();
+      this.runs.delete(oldest);
+    }
+    const root = this.client.startRoot({
+      id: runId, name: `TypefluxWorkflow:${this.workflowName}`,
+      tags: [`typeflux.workflow:${this.workflowName}`, ...subjectIds.map((id) => `typeflux.subject:${id}`)],
       ...(subjectIds.length > 0 ? { userId: subjectIds[0]! } : {}),
-    };
+    });
+    this.runs.set(runId, root);
+    return root;
   }
 
-  /**
-   * Enrich the grouped parent trace with workflow-level facts (Python parity:
-   * the workflow span carries the run's input/output + identity metadata).
-   * Upserts merge field-by-field, so the start's input and the completion's
-   * output land on the same shell the activity spans hang from.
-   */
   async recordWorkflowRun(record: WorkflowRunRecord): Promise<void> {
-    if (this.workflowName === undefined) {
-      return;
-    }
-    // #715 slice 1: the primary subject is the native userId; every subject a
-    // portable `typeflux.subject:{id}` tag (native field + tags always agree).
-    // Remembered per run and RE-APPLIED on every upsert, so the completion/error
-    // upsert cannot strip what the start recorded (finding 3).
-    const subjects = this.rememberSubjects(record.runId, record.subjectIds);
-    const identity = this.subjectTraceFields(subjects);
-    this.client.trace({
-      id: record.runId,
-      name: `TypefluxWorkflow:${this.workflowName}`,
-      tags: [`typeflux.workflow:${this.workflowName}`, ...identity.tags],
-      ...(identity.userId !== undefined ? { userId: identity.userId } : {}),
+    if (this.workflowName === undefined) return;
+    const root = this.root(record.runId, record.subjectIds);
+    root.update({
       ...(record.input !== undefined ? { input: record.input } : {}),
       ...(record.output !== undefined ? { output: record.output } : {}),
-      ...(record.metadata !== undefined || record.error !== undefined
-        ? { metadata: { ...record.metadata, ...(record.error !== undefined ? { error: record.error } : {}) } }
-        : {}),
+      ...(record.metadata !== undefined ? { metadata: record.metadata } : {}),
+      ...(record.error !== undefined ? { level: "ERROR", statusMessage: record.error, metadata: { ...record.metadata, error: record.error } } : {}),
     });
-    await this.client.flushAsync();
+    if ("output" in record || "error" in record) {
+      root.end();
+      this.runs.delete(record.runId);
+    }
+    await this.client.forceFlush();
   }
 
   async submitTrace(trace: EmittedTrace): Promise<void> {
     const grouped = trace.runId !== undefined && this.workflowName !== undefined;
-    const activityMetadata = {
-      ...trace.metadata,
-      tenant: trace.tenant,
-      // The activity-level error ships in metadata plus level/statusMessage
-      // on the span (grouped) or an `error` tag (standalone root).
-      ...(trace.error !== undefined ? { error: trace.error } : {}),
+    const body = {
+      input: trace.input,
+      ...(trace.output !== undefined ? { output: trace.output } : {}),
+      metadata: { ...trace.metadata, tenant: trace.tenant, ...(trace.error !== undefined ? { error: trace.error } : {}) },
+      ...(trace.error !== undefined ? { level: "ERROR" as const, statusMessage: String(trace.error) } : {}),
     };
-    // A grouped activity's trace() call UPSERTS the same run-scoped shell the
-    // workflow record created — re-carry the remembered subject identity so an
-    // activity flush arriving after the start record cannot strip it (#715).
-    const groupedSubjects = grouped ? this.subjectTraceFields(this.subjectsByRun.get(trace.runId!) ?? []) : undefined;
-    const root = this.client.trace(
-      grouped
-        ? {
-            id: trace.runId!,
-            name: `TypefluxWorkflow:${this.workflowName}`,
-            tags: [`typeflux.workflow:${this.workflowName}`, ...(groupedSubjects?.tags ?? [])],
-            ...(groupedSubjects?.userId !== undefined ? { userId: groupedSubjects.userId } : {}),
-          }
-        : {
-            name: trace.name,
-            input: trace.input,
-            ...(trace.output !== undefined ? { output: trace.output } : {}),
-            metadata: activityMetadata,
-            ...(trace.error !== undefined ? { tags: ["error"] } : {}),
-          },
-    );
     const activity = grouped
-      ? root.span({
-          name: trace.name,
-          input: trace.input,
-          ...(trace.output !== undefined ? { output: trace.output } : {}),
-          metadata: activityMetadata,
-          ...(trace.error !== undefined
-            ? { level: "ERROR" as const, statusMessage: String(trace.error) }
-            : {}),
-        })
-      : root;
-    for (const observation of trace.observations) {
-      const failure =
-        observation.error !== undefined
-          ? { level: "ERROR" as const, statusMessage: observation.error }
-          : {};
-      if (observation.type === "generation") {
-        activity.generation({
-          name: `${trace.name}:generation`,
-          ...(observation.model != null ? { model: observation.model } : {}),
+      ? this.root(trace.runId!).startObservation(trace.name, body)
+      : this.client.startRoot({ name: trace.name, ...body, ...(trace.error !== undefined ? { tags: ["error"] } : {}) });
+    try {
+      for (const observation of trace.observations) {
+        const child = activity.startObservation(`${trace.name}:${observation.type === "generation" ? "generation" : "hook"}`, {
           input: observation.input,
           ...(observation.output !== undefined ? { output: observation.output } : {}),
-          // The 0-based validation attempt keeps repair retries
-          // distinguishable (Python: typeflux.provider.validation_attempt).
-          metadata: { ...observation.metadata, validation_attempt: observation.attempt },
-          ...failure,
-        });
-      } else {
-        activity.span({
-          name: `${trace.name}:hook`,
-          input: observation.input,
-          ...(observation.output !== undefined ? { output: observation.output } : {}),
-          // The pre-hook model output rides in metadata so the span shows
-          // what the hook transformed (Python records it as llm_output).
-          ...(observation.metadata !== undefined || observation.modelOutput !== undefined
-            ? {
-                metadata: {
-                  ...observation.metadata,
-                  ...(observation.modelOutput !== undefined
-                    ? { llm_output: observation.modelOutput }
-                    : {}),
-                },
-              }
-            : {}),
-          ...failure,
-        });
+          ...(observation.error !== undefined ? { level: "ERROR", statusMessage: observation.error } : {}),
+          ...(observation.type === "generation" ? {
+            ...(observation.model != null ? { model: observation.model } : {}),
+            metadata: { ...observation.metadata, validation_attempt: observation.attempt },
+          } : {
+            metadata: { ...observation.metadata, ...(observation.modelOutput !== undefined ? { llm_output: observation.modelOutput } : {}) },
+          }),
+        }, observation.type === "generation" ? "generation" : "span");
+        child.end();
       }
+    } finally {
+      activity.end();
     }
-    // Prompt egress: the SDK's queue is sent before submitTrace resolves, so
-    // short-lived runs (examples, tests, CLIs) need no shutdown ceremony.
-    // DELIVERY is SDK-owned: langfuse v3 retries transient failures with
-    // backoff internally and then logs-and-drops — flushAsync resolves either
-    // way (the Python SDK's background exporter behaves the same), so a
-    // Langfuse outage surfaces in logs, not as a rejection here.
-    await this.client.flushAsync();
+    await this.client.forceFlush();
+  }
+
+  async shutdown(): Promise<void> {
+    for (const root of this.runs.values()) root.end();
+    this.runs.clear();
+    await this.client.shutdown();
   }
 }
 
-/** The resolved Langfuse client credentials, ready to spread into `new Langfuse(...)`. */
+/** The resolved Langfuse client credentials, shared by the scoped client and OTel processor. */
 export interface LangfuseEnvCredentials {
   readonly publicKey: string;
   readonly secretKey: string;
@@ -290,7 +171,7 @@ export function langfuseCredentialsFromSpec(
  * own module; custom brings a transport via `observerFromSpec`), and
  * undefined with one
  * warning when the credentials are absent. Throws with an install hint when
- * the spec opts in but the optional `langfuse` peer is not installed.
+ * the spec opts in but the optional scoped Langfuse peers is not installed.
  */
 export async function langfuseObserverFromSpec(
   spec: TypefluxYamlSpec,
@@ -308,18 +189,16 @@ export async function langfuseObserverFromSpec(
     );
     return undefined;
   }
-  let sdk: { Langfuse: new (options: Record<string, unknown>) => LangfuseSdkClient };
+  let client: LangfuseSdkClient;
   try {
-    sdk = (await import("langfuse")) as unknown as typeof sdk;
+    client = await createLangfuseOtelClient(credentials);
   } catch (error) {
     throw new Error(
-      "runtime.observability.type is langfuse but the langfuse SDK is not installed — " +
-        "add it to your app (npm/pnpm add langfuse). It is an optional peer dependency, " +
-        "loaded only when a spec opts into langfuse tracing (Python's [langfuse] extra).",
+      "Langfuse tracing requires @langfuse/tracing@6, @langfuse/otel@6, " +
+      "@opentelemetry/api and @opentelemetry/sdk-trace; install the optional integration peers.",
       { cause: error },
     );
   }
-  const client = new sdk.Langfuse({ ...credentials });
   // Redaction defaults ON for a tracing backend (observerFromSpec parity):
   // absent `redaction` block ≠ raw PII egress.
   return new StreamingTraceWriter(

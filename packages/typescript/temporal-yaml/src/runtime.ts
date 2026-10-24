@@ -671,7 +671,8 @@ export interface TypefluxYamlRuntime {
   /**
    * Await every trace still in flight from the runtime-built observer
    * (streams per activity; this is the graceful-exit drain for short-lived
-   * processes). BEST-EFFORT: a failed tail flush is logged, never thrown —
+   * processes), then shut down its transport. This is terminal: do not reuse
+   * the runtime afterward. BEST-EFFORT: a failed tail flush is logged, never thrown —
    * safe to call from a finally. No-op when the spec doesn't trace or the
    * caller supplied their own observer (whose lifecycle they own).
    */
@@ -831,7 +832,7 @@ export async function buildRuntime(
     ...(codecDataConverter !== undefined ? { dataConverter: codecDataConverter } : {}),
     drainObservability: async () => {
       try {
-        await autoObserver?.drain();
+        await autoObserver?.shutdown();
       } catch (error) {
         // Graceful-exit helper: a failed tail flush must not abort the
         // caller's finally (connection close) — tracing is observability,

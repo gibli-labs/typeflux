@@ -1,37 +1,10 @@
-/**
- * Subject-scoped Langfuse trace deletion (#715 slice 2) — behavioral parity with
- * the Python `LangfuseTraceReader.delete_traces_for_subject` driver.
- *
- * The Langfuse surface's erasure primitive. The pinned `langfuse` SDK (v3)
- * exposes the full public Trace API on `client.api` — `traceList` (page-numbered)
- * and `traceDeleteMultiple` — so this uses the NATIVE SDK, not a hand-rolled REST
- * call (evidence: `langfuse@3.38.20` d.ts declares `api.traceList` /
- * `api.traceDeleteMultiple`).
- *
- * DUAL-CHANNEL per the ratified decision: slice 1 stamps every trace with BOTH
- * the portable `typeflux.subject:{id}` tag and the native `userId`, so this lists
- * by BOTH and UNIONs the ids — neither channel alone is authoritative. Each
- * channel's pages are walked fully; hitting the page cap yields an explicit
- * warning, never a silently partial set.
- *
- * FAIL-CLOSED subject filter (#715 review, P1): unlike Python's kwargs-compat
- * layer there is NO argument-stripping on this path — the filter rides a single
- * typed query object passed verbatim to `traceList`, so it cannot be silently
- * dropped. The reachable failure mode here is a client whose `api` lacks the
- * trace methods entirely; that raises a pointed not-supported error up front
- * rather than proceeding (and a deletion never starts without a filtered list).
- *
- * Multi-subject traces are EXCLUDED and reported as `conflicted` — deleting a
- * trace that also carries OTHER subjects' markers would silently destroy their
- * audit trails. `dryRun` (default true; safe by default) returns what it WOULD
- * delete without mutating; a real run batches the delete and records per-batch
- * failures. Every report carries the index-coverage caveat: traces predating
- * subject tagging carry neither carrier and are invisible here.
- */
+/** Subject-scoped erasure uses Observations v2 discovery, complete ownership scans,
+ * and the current trace delete API. No legacy trace-list fallback is permitted. */
+import { readLangfuseObservations, type LangfuseObservationQuery, type LangfuseObservationPage, type LangfuseObservationRow } from "./langfuse-observations.js";
 
 import { subjectTraceTags } from "./subjects.js";
 
-/** Page size for the `traceList` scan, and the `traceDeleteMultiple` batch size. */
+/** Page size for the observations scan, and the `trace.deleteMultiple` batch size. */
 const TRACE_LIST_PAGE_SIZE = 100;
 const TRACE_DELETE_BATCH_SIZE = 100;
 /** A hard ceiling on the pagination walk (a backend that never advances cannot spin forever). */
@@ -102,26 +75,16 @@ export interface SubjectTraceDeletionReport {
 /** The public-API slice of the langfuse SDK this driver needs (structural — tests fake it). */
 export interface LangfuseTraceApiClient {
   api: {
-    traceList(query: {
-      page?: number;
-      limit?: number;
-      tags?: string[];
-      userId?: string;
-      fromTimestamp?: string;
-      toTimestamp?: string;
-    }): Promise<{
-      data: Array<{ id?: string | null; tags?: string[] | null }>;
-      meta?: { totalPages?: number | null } | null;
-    }>;
-    traceDeleteMultiple(payload: { traceIds: string[] }): Promise<{ message?: string }>;
+    observations: { getMany(query: LangfuseObservationQuery): Promise<LangfuseObservationPage> };
+    trace: { deleteMultiple(payload: { traceIds: string[] }): Promise<unknown> };
   };
 }
 
 interface DeleteOptions {
   readonly dryRun?: boolean;
-  /** ISO-8601 lower bound on trace timestamp. */
+  /** ISO-8601 lower bound on observation start time. */
   readonly since?: string;
-  /** ISO-8601 upper bound on trace timestamp. */
+  /** ISO-8601 upper bound on observation start time. */
   readonly until?: string;
   /** Per-channel page-walk ceiling (a safety valve; default 10000). */
   readonly maxListPages?: number;
@@ -137,55 +100,33 @@ function requireTraceApi(client: LangfuseTraceApiClient): LangfuseTraceApiClient
   const api = client?.api;
   // Fail-closed: a client without the trace endpoints must raise up front, not
   // TypeError mid-listing (and never fall back to an unfiltered path).
-  if (typeof api?.traceList !== "function" || typeof api?.traceDeleteMultiple !== "function") {
+  if (typeof api?.observations?.getMany !== "function" || typeof api?.trace?.deleteMultiple !== "function") {
     throw new Error(SUBJECT_TRACE_DELETION_UNSUPPORTED);
   }
   return api;
 }
 
-/** Walk `traceList` (page-numbered) for one query channel, keeping each row's tags. */
+function rowTags(row: LangfuseObservationRow): string[] | null {
+  if (!Array.isArray(row.tags) || !row.tags.every((tag) => typeof tag === "string")) return null;
+  return [...new Set([...row.tags, ...(typeof row.userId === "string" && row.userId ? [`typeflux.subject:${row.userId}`] : [])])];
+}
+
 async function listSubjectTraceRows(
   api: LangfuseTraceApiClient["api"],
   channel: { tags?: string[]; userId?: string; since?: string; until?: string },
   maxPages: number,
 ): Promise<ChannelListing> {
-  const rows: Array<{ traceId: string; tags: string[] | null }> = [];
-  let complete = false;
-  let pagesScanned = 0;
-  let page = 1;
-  while (page <= maxPages) {
-    const response = await api.traceList({
-      page,
-      limit: TRACE_LIST_PAGE_SIZE,
-      ...(channel.tags !== undefined ? { tags: channel.tags } : {}),
-      ...(channel.userId !== undefined ? { userId: channel.userId } : {}),
-      ...(channel.since !== undefined ? { fromTimestamp: channel.since } : {}),
-      ...(channel.until !== undefined ? { toTimestamp: channel.until } : {}),
-    });
-    const pageRows = response.data ?? [];
-    pagesScanned += 1;
-    for (const row of pageRows) {
-      if (typeof row.id === "string" && row.id.length > 0) {
-        rows.push({ traceId: row.id, tags: Array.isArray(row.tags) ? [...row.tags] : null });
-      }
-    }
-    const totalPages = response.meta?.totalPages ?? undefined;
-    if (pageRows.length === 0) {
-      complete = true;
-      break;
-    }
-    if (totalPages != null) {
-      if (page >= totalPages) {
-        complete = true;
-        break;
-      }
-    } else if (pageRows.length < TRACE_LIST_PAGE_SIZE) {
-      complete = true;
-      break;
-    }
-    page += 1;
-  }
-  return { rows, complete, pagesScanned };
+  // Advanced filters replace query filters in v2, so carry identity and time together.
+  const filters: Record<string, unknown>[] = channel.tags !== undefined
+    ? [{ type: "arrayOptions", column: "traceTags", operator: "all of", value: channel.tags }]
+    : [{ type: "string", column: "userId", operator: "=", value: channel.userId }];
+  if (channel.since !== undefined) filters.push({ type: "datetime", column: "startTime", operator: ">=", value: channel.since });
+  if (channel.until !== undefined) filters.push({ type: "datetime", column: "startTime", operator: "<", value: channel.until });
+  const scan = await readLangfuseObservations((query) => api.observations.getMany(query), {
+    limit: TRACE_LIST_PAGE_SIZE, fields: "core,basic,trace_context", filter: JSON.stringify(filters),
+  }, maxPages);
+  return { ...scan, rows: scan.rows.filter((row) => typeof row.traceId === "string" && row.traceId.length > 0)
+    .map((row) => ({ traceId: row.traceId!, tags: rowTags(row) })) };
 }
 
 function channelTruncationWarnings(
@@ -215,7 +156,7 @@ function* chunked<T>(items: readonly T[], size: number): Generator<T[]> {
  * Erase every Langfuse trace attributed to `subjectId` (#715 slice 2). Lists by
  * both the `typeflux.subject:{id}` tag and the native `userId`, UNIONs the ids,
  * excludes multi-subject conflicts, and — unless `dryRun` (default true) —
- * batches `traceDeleteMultiple`, recording any batch failure rather than
+ * batches `trace.deleteMultiple`, recording any batch failure rather than
  * swallowing it.
  */
 export async function deleteTracesForSubject(
@@ -265,8 +206,8 @@ export async function deleteTracesForSubject(
     }
   }
 
-  const matchedByTag = tagListing.rows.map((row) => row.traceId);
-  const matchedByUserId = userListing.rows.map((row) => row.traceId);
+  const matchedByTag = [...new Set(tagListing.rows.map((row) => row.traceId))];
+  const matchedByUserId = [...new Set(userListing.rows.map((row) => row.traceId))];
   const seen = new Set<string>();
   const union: string[] = [];
   for (const traceId of [...matchedByTag, ...matchedByUserId]) {
@@ -279,14 +220,16 @@ export async function deleteTracesForSubject(
   const traceIds: string[] = [];
   const conflicted: SubjectTraceDeletionConflict[] = [];
   for (const traceId of union) {
-    const rowTags = tagsById.get(traceId) ?? null;
-    if (rowTags === null) {
-      // No readable tags → the other-subject question is unanswerable; exclude
-      // fail-safe rather than delete on a guess.
+    const detail = await readLangfuseObservations((query) => api.observations.getMany(query), {
+      traceId, limit: 1000, fields: "core,basic,trace_context",
+    }, Math.min(maxPages, 100));
+    if (!detail.complete || detail.rows.length === 0 || detail.rows.some((row) => row.traceId !== traceId || rowTags(row) === null)) {
       conflicted.push({ traceId, otherSubjectCount: null });
+      warnings.push(`Langfuse ownership scan incomplete or unreadable for trace ${traceId}; not deleted.`);
       continue;
     }
-    const otherSubjects = rowTags.filter(
+    const ownershipTags = [...new Set([...(tagsById.get(traceId) ?? []), ...detail.rows.flatMap((row) => rowTags(row) ?? [])])];
+    const otherSubjects = ownershipTags.filter(
       (tag) => tag.startsWith(SUBJECT_TAG_PREFIX) && tag !== ownTag,
     ).length;
     if (otherSubjects > 0) {
@@ -315,7 +258,7 @@ export async function deleteTracesForSubject(
   const failures: SubjectTraceDeletionFailure[] = [];
   for (const batch of chunked(traceIds, TRACE_DELETE_BATCH_SIZE)) {
     try {
-      await api.traceDeleteMultiple({ traceIds: batch });
+      await api.trace.deleteMultiple({ traceIds: batch });
       deletedCount += batch.length;
     } catch (error) {
       const reason = error instanceof Error ? `${error.name}: ${error.message}` : String(error);

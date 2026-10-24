@@ -1242,10 +1242,8 @@ async def test_typeflux_worker_execute_workflow_rolls_up_langfuse_root_for_code_
     execution_manifest = metadata["typeflux"]["execution_manifest"]
     assert execution_manifest["activities"][0]["activity_name"] == "wrapped"
     assert execution_manifest["activities"][0]["prompt_messages_hash"]
-    assert langfuse_client.trace_io_calls == [
-        {"input": {"text": "hello"}},
-        {"output": {"text": "done"}},
-    ]
+    assert langfuse_client.trace_io_calls == []
+    assert langfuse_client.start_calls[0]["input"] == {"text": "hello"}
     assert langfuse_client.observations[0].updates[-1] == {"output": {"text": "done"}}
 
 

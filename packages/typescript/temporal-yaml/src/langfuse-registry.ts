@@ -1,7 +1,7 @@
 /**
  * Out-of-the-box Langfuse prompt registry (Python parity): when the spec
  * declares `runtime.registry.type: langfuse`, `buildRuntime` wires a
- * `RegistryTransport` over the OFFICIAL `langfuse` SDK (user directive:
+ * `RegistryTransport` over the official `@langfuse/client` SDK (user directive:
  * official SDK) — no transport code in the caller, exactly like Python's
  * `_build_registry` constructing a `LangfusePromptRegistry` from the
  * environment. The SDK is an OPTIONAL peer dependency loaded lazily (the TS
@@ -39,7 +39,7 @@ import type { TypefluxYamlSpec } from "./spec.js";
 
 /**
  * The slice of the official SDK's prompt client this module reads (structural —
- * tests fake it): `getPrompt` resolves to a `TextPromptClient` (`prompt` is the
+ * tests fake it): `prompt.get` resolves to a `TextPromptClient` (`prompt` is the
  * template string) or `ChatPromptClient` (`prompt` is a message list), each
  * carrying the registry `version` and the prompt-level `config` object.
  */
@@ -52,11 +52,9 @@ export interface LangfuseRegistryPromptClient {
 
 /** The slice of the official SDK's client this module drives (structural — tests fake it). */
 export interface LangfuseRegistrySdkClient {
-  getPrompt(
-    name: string,
-    version?: number,
-    options?: { label?: string },
-  ): Promise<LangfuseRegistryPromptClient>;
+  prompt: {
+    get(name: string, options?: { version?: number; label?: string }): Promise<LangfuseRegistryPromptClient>;
+  };
 }
 
 /** Python `PromptRef.selector`: the human-readable selector in error messages. */
@@ -160,25 +158,19 @@ function messagesFromLangfusePrompt(prompt: LangfuseRegistryPromptClient, ref: P
 }
 
 /**
- * Classify an SDK fetch failure into the typed hierarchy (Python
- * `_classify_langfuse_prompt_error`). The JS SDK folds most HTTP failures into
- * a plain `Error(data.message)` (no status attribute), so classification here
- * is by error NAME for the SDK's typed network/5xx errors and by message text
- * for the rest — the same buckets Python lands in, reached from what the JS
- * SDK actually exposes.
+ * Classify the scoped SDK's HTTP status and network errors into Typeflux retry buckets.
  */
 function classifyLangfusePromptError(error: unknown, ref: PromptRef): PromptResolutionError {
   const reason = `failed to resolve prompt ${ref.name}@${selector(ref)}`;
-  const name = error instanceof Error ? error.name : "";
+  const name = error instanceof Error ? `${error.name} ${error.constructor.name}` : "";
   const message = error instanceof Error ? error.message : String(error);
-  // LangfuseFetchNetworkError (timeout/DNS/refused) and LangfuseFetchHttpError
-  // (the SDK throws it for 5xx only) are the transient bucket.
-  if (name.includes("LangfuseFetchNetworkError") || name.includes("LangfuseFetchHttpError")) {
+  const status = typeof error === "object" && error !== null && "statusCode" in error ? error.statusCode : undefined;
+  if (status === 404) return new PromptNotFoundError(ref, { reason, cause: error });
+  if (status === 401 || status === 403) return new PromptRegistryAuthError(reason, { ref, cause: error });
+  if (status === 408 || status === 429 || (typeof status === "number" && status >= 500) ||
+      /Network|Timeout|Abort/.test(name) || (name.includes("LangfuseAPIError") && status == null)) {
     return new PromptRegistryUnavailableError(reason, { ref, cause: error });
   }
-  // The v3 SDK folds non-5xx HTTP failures into a plain Error(message) — a
-  // rate limit (429) or timeout (408) is TRANSIENT and must stay retryable,
-  // or Temporal fails the activity on the first backoff-worthy blip (codex).
   if (/rate.?limit|too many requests|\b429\b|\b408\b|timed?\s*out/i.test(message)) {
     return new PromptRegistryUnavailableError(reason, { ref, cause: error });
   }
@@ -192,7 +184,7 @@ function classifyLangfusePromptError(error: unknown, ref: PromptRef): PromptReso
 }
 
 /**
- * Adapt the official SDK's `getPrompt` to the `RegistryTransport` seam
+ * Adapt the official SDK's `prompt.get` to the `RegistryTransport` seam
  * (Python `LangfusePromptRegistry.resolve`). A ref's `version` pins an
  * immutable registry version; otherwise its `label` selects, defaulting to
  * `production` (Python's explicit default — `registryFromSpec` has already
@@ -211,8 +203,8 @@ export class LangfuseRegistryTransport implements RegistryTransport {
     try {
       prompt =
         ref.version != null
-          ? await this.client.getPrompt(ref.name, ref.version)
-          : await this.client.getPrompt(ref.name, undefined, { label: ref.label ?? "production" });
+          ? await this.client.prompt.get(ref.name, { version: ref.version })
+          : await this.client.prompt.get(ref.name, { label: ref.label ?? "production" });
     } catch (error) {
       throw classifyLangfusePromptError(error, ref);
     }
@@ -316,7 +308,7 @@ export class LangfuseRegistryTransport implements RegistryTransport {
  * `registryFromSpec`; langsmith has its own module; custom keeps the injected
  * seam). THROWS — does not degrade — when the credentials are absent (a run
  * cannot proceed without its prompts) or when the spec opts in but the
- * optional `langfuse` peer is not installed.
+ * optional `@langfuse/client` peer is not installed.
  */
 export async function langfuseRegistryTransportFromSpec(
   spec: TypefluxYamlSpec,
@@ -334,13 +326,13 @@ export async function langfuseRegistryTransportFromSpec(
         "keys (plus LANGFUSE_HOST for self-hosted), or inject `registry`/`registryTransport` yourself.",
     );
   }
-  let sdk: { Langfuse: new (options: Record<string, unknown>) => LangfuseRegistrySdkClient };
+  let sdk: { LangfuseClient: new (options: Record<string, unknown>) => LangfuseRegistrySdkClient };
   try {
-    sdk = (await import("langfuse")) as unknown as typeof sdk;
+    sdk = (await import("@langfuse/client")) as unknown as typeof sdk;
   } catch (error) {
     throw new Error(
       "runtime.registry.type is langfuse but the langfuse SDK is not installed — " +
-        "add it to your app (npm/pnpm add langfuse). It is an optional peer dependency, " +
+        "add it to your app (npm/pnpm add @langfuse/client@6). It is an optional peer dependency, " +
         "loaded only when a spec opts into the langfuse prompt registry (Python's [langfuse] extra).",
       { cause: error },
     );
@@ -350,7 +342,7 @@ export async function langfuseRegistryTransportFromSpec(
   // spelling as the env fallback (parity with langfuse-observer.ts).
   const baseUrl =
     spec.runtime.registry.host || environment["LANGFUSE_HOST"] || environment["LANGFUSE_BASEURL"];
-  const client = new sdk.Langfuse({
+  const client = new sdk.LangfuseClient({
     publicKey,
     secretKey,
     ...(baseUrl ? { baseUrl } : {}),
