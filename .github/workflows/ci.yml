@@ -126,6 +126,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Trust the mounted checkout in the browser container
+        # The host checkout owner differs from the container's runtime user.
+        # Scope the exception to this workspace, never every repository.
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: ./.github/actions/setup-development
         with:
           scope: browser
@@ -215,7 +219,7 @@ jobs:
   mcp:
     name: MCP server (typeflux-mcp)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

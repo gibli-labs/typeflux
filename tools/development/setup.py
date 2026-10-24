@@ -91,6 +91,7 @@ def sync(root: Path, scope: str):
     if scope != "typescript":
         run("npm", "ci", cwd="clients/typescript")
         run("npm", "run", "build", cwd="clients/typescript")
+    if scope in {"all", "web", "browser", "graph"}:
         run("npm", "ci", cwd="clients/console")
     if scope not in {"python", "web", "typescript"}:
         run("npm", "ci", cwd="clients/mcp")
