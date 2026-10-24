@@ -65,6 +65,7 @@ entities:
       - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_rejects_unsupported_options_before_transport}
       - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_async_timeout_and_cancellation}
       - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_real_sdk_wire_and_validation}
+      - {path: packages/python/tests/test_observability.py, name: test_generation_response_identity_preserves_existing_metadata}
     links:
       - {relation: verifies, target: invariant.gateway-configuration}
       - {relation: verifies, target: invariant.gateway-output}

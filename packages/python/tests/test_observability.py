@@ -503,6 +503,57 @@ def test_generation_observation_update_usage_sets_usage_details() -> None:
     } in generation_observation.updates
 
 
+def test_generation_response_identity_preserves_existing_metadata() -> None:
+    client = _FakeObservationClient()
+    observer = LangfuseAIActivityObserver(client=client)
+    activity = AIActivity(
+        name="classify_ticket",
+        input_type=ActivityInput,
+        output_type=ActivityOutput,
+        prompt_ref=PromptRef("support/classify"),
+    )
+    with observer.observe_activity(
+        activity=activity,
+        input_value=ActivityInput(text="hello"),
+        manifest=_activity_manifest("classify_ticket"),
+        execution_manifest=_activity_execution_manifest("classify_ticket"),
+        invocation_context=None,
+    ) as observation:
+        with observation.observe_generation(
+            messages=[],
+            output_schema=ActivityOutput,
+            metadata={},
+            validation_attempt=0,
+            model="openai/gpt-4o-mini",
+            temperature=None,
+        ) as generation:
+            generation.update_metadata({"note": "contact user@example.com"})
+            generation.update_usage(
+                ProviderUsage(
+                    input_tokens=5,
+                    output_tokens=4,
+                    model="openai/gpt-4o-mini",
+                    reported_model="gpt-4o-mini",
+                    upstream_provider="azure",
+                )
+            )
+            generation.update_metadata({"completed": True})
+
+    span = client.observations[0]
+    initial = span.child_start_calls[0]["metadata"]
+    updates = span.children[0].updates
+    usage_update = next(update for update in updates if "usage_details" in update)
+    assert usage_update["metadata"]["typeflux"] == initial["typeflux"]
+    assert usage_update["metadata"]["provider_response"] == {
+        "reported_model": "gpt-4o-mini",
+        "upstream_provider": "azure",
+    }
+    assert "user@example.com" not in repr(updates)
+    assert "note" in usage_update["metadata"]
+    assert updates[-1]["metadata"] == {**usage_update["metadata"], "completed": True}
+    assert usage_update["model"] == "openai/gpt-4o-mini"
+
+
 def test_activity_observation_without_rollup_match_does_not_crash() -> None:
     client = _FakeObservationClient()
     observer = LangfuseAIActivityObserver(
