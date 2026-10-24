@@ -80,7 +80,9 @@ export interface ChatCompletionRequest {
 
 /** The chat-completions response this provider reads (a subset of OpenAI's). */
 export interface ChatCompletionResponse {
-  choices: { message: { content: string | null }; finish_reason?: string }[];
+  model?: string;
+  provider_metadata?: { gateway?: { routing?: { finalProvider?: string } } };
+  choices: { message: { content: string | null; refusal?: string | null }; finish_reason?: string }[];
   /** Token accounting (#478). `prompt_tokens_details.cached_tokens` is the implicit prefix-cache hit. */
   usage?: {
     prompt_tokens?: number;
@@ -268,7 +270,7 @@ export class OpenAIProvider implements ModelProvider {
  * (there is no write-side signal). Skipped entirely when the response carries no
  * usage fields, matching Python's None return.
  */
-function reportOpenAIUsage(
+export function reportOpenAIUsage(
   response: ChatCompletionResponse,
   params: StructuredCallParams,
   model: string,

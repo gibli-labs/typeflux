@@ -89,6 +89,7 @@ from typeflux.providers import (
     GeminiProvider,
     ModelProvider,
     OpenAIProvider,
+    VercelAIGatewayProvider,
     provider_default_params,
     validate_provider_params_supported,
 )
@@ -1196,6 +1197,12 @@ def _build_provider(spec: TypefluxYamlSpec, *, enable_langfuse: bool) -> ModelPr
         provider_spec.api_key,
         runtime_path="runtime.provider.api_key",
     )
+    if provider_spec.type == "vercel-ai-gateway":
+        return VercelAIGatewayProvider(
+            default_model=cast(str, provider_spec.model),
+            api_key=api_key,
+            default_provider_params=runtime_provider_params,
+        )
     if provider_spec.type == "openai":
         return OpenAIProvider(
             default_model=provider_spec.model or DEFAULT_OPENAI_MODEL,

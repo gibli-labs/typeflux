@@ -29,12 +29,26 @@ class ProviderUsage:
     output_tokens: int | None = None
     total_tokens: int | None = None
     model: str | None = None
+    #: Response identity is informational; model remains the requested policy/cache ID.
+    reported_model: str | None = None
+    upstream_provider: str | None = None
     #: Provider-side cache accounting for session caching (#60). ``cache_read``
     #: is input tokens served from a cached prefix (a cache *hit*); ``cache_write``
     #: is tokens written creating/refreshing the cache (a *miss*/first call).
     #: None ⇒ the provider did not report cache usage for this call.
     cache_read_tokens: int | None = None
     cache_write_tokens: int | None = None
+
+    def response_identity(self) -> dict[str, str]:
+        """Optional reported identity, separate from the requested model."""
+        return {
+            key: value
+            for key, value in {
+                "reported_model": self.reported_model,
+                "upstream_provider": self.upstream_provider,
+            }.items()
+            if value is not None
+        }
 
     @property
     def cache_hit(self) -> bool | None:

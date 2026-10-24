@@ -232,6 +232,8 @@ class _OtelObservationHandle:
 
     def update_usage(self, usage: Any) -> None:
         # Token counts are operational metadata, never content.
+        if hasattr(usage, "response_identity") and (identity := usage.response_identity()):
+            self._set_metadata({"provider_response": identity})
         details = usage.usage_details() if hasattr(usage, "usage_details") else {}
         details = details if isinstance(details, dict) else {}
         input_tokens = _first_int(details, ("input", "input_tokens", "prompt_tokens"))

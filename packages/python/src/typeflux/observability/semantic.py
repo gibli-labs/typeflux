@@ -328,9 +328,13 @@ class _LangfuseObservationHandle:
         observation: Any,
         *,
         redact: Callable[[Any], Any] = _identity_payload,
+        initial_metadata: dict[str, Any] | None = None,
     ) -> None:
         self._observation = observation
         self._redact = redact
+        # Seed with the same payload used to create the observation. Redact
+        # additions separately so previously redacted fields are not transformed twice.
+        self._metadata_snapshot = dict(initial_metadata or {})
 
     def update_output(self, output_value: BaseModel) -> None:
         self._observation.update(output=self._redact(_model_payload(output_value)))
@@ -339,7 +343,14 @@ class _LangfuseObservationHandle:
         self._observation.update(level="ERROR", status_message=_safe_status_message(error))
 
     def update_metadata(self, metadata: dict[str, Any]) -> None:
-        self._observation.update(metadata=self._redact(metadata))
+        self._observation.update(metadata=self._merge_metadata(metadata))
+
+    def _merge_metadata(self, metadata: dict[str, Any]) -> Any:
+        redacted = self._redact(metadata)
+        if not isinstance(redacted, dict):
+            return redacted
+        self._metadata_snapshot = {**self._metadata_snapshot, **redacted}
+        return self._metadata_snapshot
 
     def update_usage(self, usage: ProviderUsage) -> None:
         # Token counts are operational metadata, never content; cost stays
@@ -350,6 +361,8 @@ class _LangfuseObservationHandle:
             updates["usage_details"] = details
         if usage.model:
             updates["model"] = usage.model
+        if identity := usage.response_identity():
+            updates["metadata"] = self._merge_metadata({"provider_response": identity})
         if updates:
             self._observation.update(**updates)
 
@@ -601,7 +614,9 @@ class _LangfuseActivityObservation(_LangfuseObservationHandle):
         cm = self._observation.start_as_current_observation(**start_kwargs)
         generation = cm.__enter__()
         try:
-            yield _LangfuseObservationHandle(generation, redact=self._redact)
+            yield _LangfuseObservationHandle(
+                generation, redact=self._redact, initial_metadata=start_kwargs["metadata"]
+            )
         except BaseException as exc:
             generation.update(level="ERROR", status_message=_safe_status_message(exc))
             raise

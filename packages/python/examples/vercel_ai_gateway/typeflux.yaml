@@ -1,0 +1,26 @@
+project: examples.vercel_ai_gateway
+name: vercel_gateway
+task_queue: vercel-gateway
+runtime:
+  temporal: {address: "${TEMPORAL_ADDRESS:-localhost:7233}"}
+  registry:
+    type: inline
+    prompts:
+      classify: "Classify this support ticket with a short label: {{ text }}"
+  provider:
+    type: vercel-ai-gateway
+    model: openai/gpt-4o-mini
+    api_key: {value_from: {env: VERCEL_API_KEY}}
+    params: {max_tokens: 128, timeout: 30}
+activities:
+  definitions:
+    - name: classify
+      input: schemas:Input
+      output: schemas:Output
+      prompt: classify
+workflow:
+  name: GatewayWorkflow
+  input: schemas:Input
+  output: schemas:Output
+  steps:
+    - {id: classify, activity: classify}

@@ -5,6 +5,7 @@ entities:
     description: Python SDK, YAML runtime, CLI and control plane.
     paths: [packages/python/**]
     links:
+      - {relation: implements, target: capability.vercel-ai-gateway}
       - {relation: implements, target: capability.workflow-review}
       - {relation: provides, target: 'api:review_api_v1_projects__project__workflows__workflow_id__review_post'}
       - {relation: provides, target: 'api:status_api_v1_projects__project__workflows__workflow_id__status_get'}
@@ -12,6 +13,8 @@ entities:
     kind: component
     description: TypeScript workflow and activity contracts.
     paths: [packages/typescript/temporal/**]
+    links:
+      - {relation: implements, target: capability.vercel-ai-gateway}
   - id: component.typescript-worker
     kind: component
     description: TypeScript worker construction and activity integration.
@@ -21,6 +24,7 @@ entities:
     description: TypeScript declarative workflow runtime and lifecycle.
     paths: [packages/typescript/temporal-yaml/**]
     links:
+      - {relation: implements, target: capability.vercel-ai-gateway}
       - {relation: implements, target: capability.workflow-review}
   - id: component.typescript-controlplane
     kind: component
@@ -57,7 +61,7 @@ entities:
   - id: component.development
     kind: component
     description: Build, automation, generators, graph tooling and repository policy.
-    paths: [.github/**, scripts/**, tools/**, skills/**, project-graph/**, AGENTS.md, package.json, pnpm-workspace.yaml, pnpm-lock.yaml, .gitignore]
+    paths: [.github/**, scripts/**, tools/**, skills/**, packages/typescript/test-setup/**, project-graph/**, AGENTS.md, package.json, pnpm-workspace.yaml, pnpm-lock.yaml, .gitignore]
   - id: component.documentation
     kind: component
     description: Repository documentation; capability-level coverage is intentionally incremental.

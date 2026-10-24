@@ -27,6 +27,8 @@
  * pass your own `provider` or `transports` and this module never runs.
  */
 
+import { VERCEL_AI_GATEWAY_BASE_URL } from "@typeflux/temporal";
+
 import { resolveOptionalSecretText } from "./secret-references.js";
 
 import type {
@@ -218,6 +220,7 @@ export async function providerTransportsFromSpec(
 ): Promise<ProviderTransports | undefined> {
   const type = spec.runtime.provider.type;
   switch (type) {
+    case "vercel-ai-gateway":
     case "openai": {
       // The spec's api_key slot wins over the vendor's standard variable
       // (Python `_build_provider`); resolved INSIDE the vendor gate so
@@ -225,9 +228,11 @@ export async function providerTransportsFromSpec(
       // Truthy `||` (Python SDK `os.environ.get` posture + the ported
       // truthiness trap): an interpolated empty env var is no credential.
       const specKey = resolveProviderApiKey(spec, environment);
-      const apiKey = specKey ?? (environment["OPENAI_API_KEY"] || undefined);
-      if (apiKey === undefined) {
-        throw missingKeyError(type, "OPENAI_API_KEY");
+      const gateway = type === "vercel-ai-gateway";
+      const envName = gateway ? "VERCEL_API_KEY" : "OPENAI_API_KEY";
+      const apiKey = specKey ?? (environment[envName] || undefined);
+      if (apiKey === undefined || (gateway && apiKey.trim() === "")) {
+        throw missingKeyError(type, envName);
       }
       let sdk: { default: new (options: Record<string, unknown>) => OpenAiSdkClient };
       try {
@@ -241,9 +246,9 @@ export async function providerTransportsFromSpec(
       // ALWAYS passed: an omitted baseURL makes the SDK read process.env
       // directly (readEnv in its constructor), bypassing the injected
       // environment — a scoped map must be authoritative (finder).
-      const baseUrl = environment["OPENAI_BASE_URL"] || "https://api.openai.com/v1";
-      const client = new sdk.default({ apiKey, baseURL: baseUrl });
-      return { openai: openaiTransportFromSdk(client) };
+      const baseUrl = gateway ? VERCEL_AI_GATEWAY_BASE_URL : environment["OPENAI_BASE_URL"] || "https://api.openai.com/v1";
+      const client = new sdk.default({ apiKey, baseURL: baseUrl, ...(gateway ? { maxRetries: 0 } : {}) });
+      return { [type]: openaiTransportFromSdk(client) };
     }
     case "anthropic": {
       const specKey = resolveProviderApiKey(spec, environment);

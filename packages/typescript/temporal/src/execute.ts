@@ -70,6 +70,9 @@ export interface ProviderUsage {
   outputTokens?: number;
   totalTokens?: number;
   model?: string;
+  /** Informational response identity; never replaces the requested policy/cache model. */
+  reportedModel?: string;
+  upstreamProvider?: string;
   cacheReadTokens?: number;
   cacheWriteTokens?: number;
 }
@@ -266,6 +269,8 @@ export interface ModelProvider {
    * `providerIdentifier` falls back to the kebab-cased class name when absent.
    */
   providerName?: string;
+  /** Provider defaults must be visible before policy checks, caching and observation. */
+  defaultProviderParams?: Readonly<Record<string, unknown>>;
   supportsSessionCache?: boolean;
   sessionCacheStyle?: SessionCacheStyle;
   prepareCachedSession?(params: PrepareCachedSessionParams): CachedSessionHandle | Promise<CachedSessionHandle>;
@@ -744,6 +749,14 @@ export class ProviderConfigError extends Error {
   }
 }
 
+/** Authentication failures are terminal, including in Temporal workers. */
+export class ProviderAuthError extends ProviderConfigError {
+  constructor(message: string, options?: { provider?: string }) {
+    super(message, options);
+    this.name = "ProviderAuthError";
+  }
+}
+
 /**
  * Fail loud on a response cut off at the output-token cap (#784; parity with Python's
  * `raise_if_truncated` in `providers/_shared.py`). Truncation is deterministic — the same
@@ -1169,7 +1182,7 @@ async function resolveCall<In extends z.ZodType, Out extends z.ZodType>(
   promptModel: string | null;
 }> {
   if (options.messages !== undefined) {
-    const providerParams = mergeProviderParams(options.providerParams, descriptor.providerParams);
+    const providerParams = mergeProviderParams(options.provider.defaultProviderParams, options.providerParams, descriptor.providerParams);
     // The same params-model fallback as the registry path (Bugbot #526): a model
     // inside the call/activity params must select the call's model, not only fold
     // into the cache key while a different model actually runs.
@@ -1193,6 +1206,7 @@ async function resolveCall<In extends z.ZodType, Out extends z.ZodType>(
     // prompt's model rides as a layer value so an activity params model outranks it;
     // `options.model` stays the explicit TS call-level override on top.
     const providerParams = mergeProviderParams(
+      options.provider.defaultProviderParams,
       options.providerParams,
       resolved.providerParams,
       { temperature: resolved.temperature, model: resolved.model },
@@ -1334,7 +1348,7 @@ export async function prepareSessionCache<In extends z.ZodType, Out extends z.Zo
   let effectiveParams: Record<string, unknown>;
   if (options.messages !== undefined) {
     prefixSource = options.messages;
-    effectiveParams = mergeProviderParams(options.providerParams, descriptor.providerParams);
+    effectiveParams = mergeProviderParams(options.provider.defaultProviderParams, options.providerParams, descriptor.providerParams);
     // Same params-model fallback as the registry branch (Bugbot #526).
     const messagesParamsModel = effectiveParams["model"];
     effectiveModel =
@@ -1348,6 +1362,7 @@ export async function prepareSessionCache<In extends z.ZodType, Out extends z.Zo
     // prompt-pinned model must reach the prep + identity, or a model-scoped
     // (reference-style) cache is prepared under a different model than the fan-out.
     effectiveParams = mergeProviderParams(
+      options.provider.defaultProviderParams,
       options.providerParams,
       resolved.providerParams,
       { temperature: resolved.temperature, model: resolved.model },

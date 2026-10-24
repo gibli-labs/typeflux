@@ -489,9 +489,11 @@
           "type": "object",
           "properties": {
             "type": {
-              "type": "string"
+              "type": "string",
+              "description": "Provider: openai, anthropic, gemini, vercel-ai-gateway, or an injected provider"
             },
             "model": {
+              "description": "Explicit author/model ID required for vercel-ai-gateway",
               "type": "string"
             },
             "structured_mode": {

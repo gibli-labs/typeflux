@@ -10,6 +10,7 @@
  */
 
 import { z } from "zod";
+import { VERCEL_AI_GATEWAY_PARAMS } from "@typeflux/temporal";
 
 // One source of truth for the reserved subject-key kid prefix (#715 fix round): the
 // codec module OWNS the constant; this import is runtime-safe (payload-codec's own
@@ -248,6 +249,7 @@ export const providerParamsSpec = z
  * Unknown provider types (`custom`/`fake`) skip the check (their provider is injected).
  */
 const SUPPORTED_PROVIDER_PARAMS: Record<string, ReadonlySet<string>> = {
+  "vercel-ai-gateway": VERCEL_AI_GATEWAY_PARAMS,
   openai: new Set(["model", "temperature", "max_tokens", "top_p", "stop", "seed", "timeout", "frequency_penalty", "presence_penalty"]),
   anthropic: new Set(["model", "temperature", "max_tokens", "top_p", "top_k", "stop", "timeout"]),
   gemini: new Set(["model", "temperature", "max_tokens", "top_p", "top_k", "stop", "timeout", "thinking_budget"]),
@@ -429,8 +431,8 @@ export const registrySpec = z
 
 export const providerSpec = z
   .object({
-    type: z.string(),
-    model: z.string().optional(),
+    type: z.string().describe("Provider: openai, anthropic, gemini, vercel-ai-gateway, or an injected provider"),
+    model: z.string().optional().describe("Explicit author/model ID required for vercel-ai-gateway"),
     // The only Python-legal value, and what the TS providers already do — a typo'd mode now
     // fails here instead of being silently ignored.
     structured_mode: z.literal("json_schema").optional(),
@@ -462,6 +464,10 @@ export const providerSpec = z
   })
   .strict()
   .superRefine((provider, ctx) => {
+    if (provider.type === "vercel-ai-gateway" &&
+        !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_./:-]+$/.test(provider.model ?? provider.params?.model ?? "")) {
+      ctx.addIssue({ code: "custom", message: "Vercel AI Gateway requires an explicit author/model ID", path: ["model"] });
+    }
     // Python ProviderSpec: a legacy top-level model and params.model must MATCH when
     // both set (then they are one value); a mismatch is a config error, not a merge.
     if (

@@ -208,6 +208,7 @@ from typeflux.providers import (
     AsyncModelProvider,
     ModelProvider,
     OpenAIProvider,
+    VercelAIGatewayProvider,
 )
 from typeflux.providers.errors import (
     ProviderAuthError,
@@ -280,6 +281,7 @@ __all__ = [
     "NoOpTraceReader",
     "NoOpTraceWriter",
     "OpenAIProvider",
+    "VercelAIGatewayProvider",
     "ObservationRecord",
     "ObservabilityBackend",
     "AdmissionContributor",
