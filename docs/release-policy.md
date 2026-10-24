@@ -156,3 +156,16 @@ here first.
 - [Editions & parity](editions.md)
 - [Production readiness](production-readiness.md) — release ≠ certification
 - [SECURITY.md](../SECURITY.md) — supported-versions security policy
+
+## Source verification prerequisite
+
+Every release must have accepted main CI for the exact source revision, including
+the declared journey tests. Release workflows fetch that receipt before publication
+and attach it to artifact byte hashes. A PR merge snapshot cannot substitute for a
+squash-merged main revision. MCP uses the protected `npm` environment, like the
+client and SDK train. See [development loop](development.md).
+
+Version bumps are release preparation, not a requirement for every MCP source or
+test change. The unpublished-drift sentinel still makes pending release work visible.
+The in-repository console consumes the candidate client; public package installation
+and byte-identity checks remain release obligations.

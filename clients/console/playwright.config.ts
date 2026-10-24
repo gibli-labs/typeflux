@@ -44,7 +44,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.PLAYWRIGHT_JSON_OUTPUT_FILE
+    ? [["list"], ["json", { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT_FILE }]]
+    : "list",
   use: {
     baseURL: `http://127.0.0.1:${CONSOLE_PORT}`,
     trace: "retain-on-failure",
@@ -56,7 +58,7 @@ export default defineConfig({
       command: API_COMMAND,
       cwd: API_CWD,
       port: API_PORT,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
     {
@@ -65,7 +67,7 @@ export default defineConfig({
       // default `localhost` can resolve to IPv6 only, refusing 127.0.0.1).
       command: `npm run dev -- --host 127.0.0.1 --port ${CONSOLE_PORT}`,
       port: CONSOLE_PORT,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
   ],

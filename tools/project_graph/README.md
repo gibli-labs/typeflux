@@ -113,7 +113,7 @@ uv run --project packages/python python -m tools.project_graph task issue-46 res
 
 Entries are append-only and chained by hashes, with serialized writes and exact
 input-tree identities. A changed tree makes previous results inapplicable. The
-fixed verifier registry supports graph, Python, TypeScript and console suites;
+shared development verifier registry covers the complete local/CI loop;
 catalog text cannot supply shell commands. A command's zero exit status is local
 execution evidence, not a complete behavioral-coverage claim. Output is represented
 by a digest instead of storing potentially sensitive raw logs. Journals are not
@@ -139,12 +139,13 @@ and stale results fail. Setup/install failures are classified as infrastructure
 candidates, never silently converted into a pass. Rerun the entire workflow when
 a new attempt is needed; successful jobs from older attempts are not reused.
 
-The aggregate executes the trusted base implementation with proposed source read
-as data. Its first introduction has an explicitly labeled advisory bootstrap,
-because no base implementation exists yet. Existing required checks/branch
-protection remain authoritative throughout; this change does not replace them or
-enable selective mandatory CI. Independent CodeQL, dependency-review and DCO gates
-remain independent; the aggregate describes the CI workflow only.
+A separate default-branch `CI acceptance` workflow executes the trusted validator.
+It reads candidate Git objects without a checkout and treats artifacts as bounded
+JSON data. It validates per-test receipts and declared journey outcomes alongside
+job success. The gate is required after its introducing change passes main CI;
+there is no fallback that executes candidate acceptance code. See
+[development loop](../../docs/development.md) for the required-check contract,
+settings reconciliation, and exact-source release prerequisites.
 
 ## Human views and release evidence
 
@@ -157,14 +158,15 @@ Pass `explore --revision <tested-merge-sha> --verification <graph-ci-receipt.jso
 to show results from an aggregate receipt. Both revision and input digest must
 match. CI also attaches this combined view after a passing aggregate. The offline
 viewer validates identity, not receipt authenticity; retrieve receipts from the
-trusted workflow run. Passing mapped jobs never imply production observations.
+trusted workflow run. Passing mapped jobs alone do not verify declared tests. The explorer shows per-test journey evidence and distinguishes it from production observations.
 
 `release --artifact <path>` (repeat for each artifact) hashes the actual files and
 binds them to a clean source tree and graph snapshot. Existing release workflows
 attach these receipts beside their checksums. For the TS train, the receipt uses
 the final anonymously verified registry bytes after the pipeline's canonical-byte
-reconciliation. Graph receipts list journey obligations as `not-recorded` and
-environment smoke/observation/recovery/drain requirements as pending; artifact
+reconciliation. Release workflows supply accepted main CI through `--verification`; local receipts
+without it retain `not-recorded` journey obligations. Environment smoke, observation,
+recovery and drain requirements remain pending; artifact
 identity alone cannot authorize promotion or certify a deployment.
 
 No runtime metadata or workflow execution-manifest changes are introduced.

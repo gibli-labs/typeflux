@@ -9,11 +9,20 @@ from .compiler import compile_graph
 from .repository import GraphError, Repository, digest
 
 
-def receipt(repo: Repository, artifacts: list[Path], environment: str = "unassigned") -> dict:
+def receipt(
+    repo: Repository,
+    artifacts: list[Path],
+    environment: str = "unassigned",
+    verification: dict | None = None,
+) -> dict:
     if repo.dirty:
         raise GraphError("release evidence requires a clean source checkout")
     if not artifacts:
         raise GraphError("at least one built artifact is required")
+    if verification is not None:
+        from tools.development.release_evidence import validate
+
+        validate(repo, verification)
     graph = compile_graph(repo)
     files = []
     for path in artifacts:
@@ -42,7 +51,8 @@ def receipt(repo: Repository, artifacts: list[Path], environment: str = "unassig
         "artifacts": sorted(files, key=lambda f: f["name"]),
         "environment": environment,
         "journeys": [n["id"] for n in graph["nodes"] if n["kind"] == "journey"],
-        "journeyEvidence": requirements,
+        "journeyEvidence": verification["journeyEvidence"] if verification else requirements,
+        "ciVerification": verification,
         "rollout": {
             "status": "pending",
             "requirements": [
@@ -51,6 +61,6 @@ def receipt(repo: Repository, artifacts: list[Path], environment: str = "unassig
                 "verified recovery and worker version/drain procedures",
             ],
         },
-        "meaning": "artifact identity and declared obligations; no deployment authorization or observed-success claim",
+        "meaning": "artifact identity and exact-source CI evidence when supplied; target-environment rollout remains separate",
     }
     return {**record, "digest": digest(record)}

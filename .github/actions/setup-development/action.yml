@@ -1,0 +1,30 @@
+name: Set up Typeflux development
+description: Frozen dependencies shared with local development; no publication credentials.
+inputs:
+  scope:
+    description: Dependency scope
+    default: all
+  python:
+    description: Python test runtime
+    default: '3.12'
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      with:
+        version: '0.13.5'
+        python-version: ${{ inputs.python }}
+        enable-cache: true
+    - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      if: inputs.scope != 'python'
+      with:
+        version: '12.15.0'
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+      if: inputs.scope != 'python'
+      with:
+        node-version: '24.22.1'
+    - name: Install frozen development dependencies
+      shell: bash
+      env:
+        SCOPE: ${{ inputs.scope }}
+      run: uv run --project packages/python python -m tools.development sync "$SCOPE"

@@ -29,74 +29,28 @@ The DCO check on pull requests enforces this. There is no CLA.
 | MCP server | `clients/mcp/` | Node 24.15+, npm |
 | Docs | `docs/` | Markdown |
 
-## Development setup
+## Development and validation
 
-```bash
-# Python
-cd packages/python
-uv sync --all-extras
+Follow [the development loop](docs/development.md) for pinned tool versions, frozen
+setup, focused checks and the full local/CI profile. From the repository root:
 
-# TypeScript workspace (from the repo root)
-pnpm install
-pnpm -r build
-
-# Shared contract generator (isolated TypeScript 5 compiler API)
-npm ci --prefix tools/openapi-generator
+```sh
+uv run --project packages/python python -m tools.development sync all
+uv run --project packages/python python -m tools.development run default
 ```
 
-## Validating changes
-
-Run the checks for every area you touched (CI runs the same commands):
-
-**Python** (from `packages/python/`):
-
-```bash
-uv run ruff check . ../../scripts
-uv run ruff format --check . ../../scripts
-uv run mypy src/typeflux
-uv run python -m build
-uv run pytest -q -m "not live"
-```
-
-**TypeScript workspace** (from the repo root):
-
-```bash
-pnpm -r build && pnpm -r typecheck && pnpm -r test
-```
-
-**Generated client** (from `clients/typescript/`): `npm ci && npm run generate`
-must leave `src/schema.ts` unchanged (`git diff --exit-code -- src/schema.ts`),
-then `npm run typecheck && npm run build`.
-
-**Console** (from `clients/console/`): `npm ci && npm run typecheck && npm test
-&& npm run build`. The console's pinned `@gibli-labs/control-plane-client`
-installs from GitHub Packages: `npm ci` needs `NODE_AUTH_TOKEN` set to a
-token with `read:packages` (`gh auth refresh -s read:packages` then
-`export NODE_AUTH_TOKEN=$(gh auth token)` works), otherwise it fails
-with a 401.
-
-**MCP server** (from `clients/mcp/` — reproduce CI's build order; the MCP
-bundle inlines the in-repo control-plane builds):
-
-```bash
-pnpm -r --filter "./packages/typescript/**" build   # from the repo root
-(cd clients/typescript && npm install && npm run build)
-cd clients/mcp && npm ci   # public npm only — no token needed
-npm test && npm run build && npm pack --dry-run
-```
-
-Any change under `clients/mcp/` must also bump the package version (CI
-enforces this).
-
-Tests marked `live` need real provider keys and a local Temporal dev server —
-they are optional for contributors; CI's non-live suite is the merge gate.
+The console uses the candidate generated client in this checkout. Contract, server,
+client and console changes are verified together; no registry token or intermediate
+client release is needed. Package versions change when preparing a release, rather
+than on every MCP test/documentation edit. The full profile includes isolated local
+Temporal with fake providers; optional live-provider suites still require their own
+credentials and are outside this profile.
 
 ## Contract-first rules
 
 `contracts/` is the language-neutral source of truth. Changing the
 control-plane OpenAPI contract, golden fixtures, or conformance schemas
-requires the conforming server implementations, regenerated clients, and
-version bumps to land in the same PR. Both SDK editions (Python and
+requires the conforming server implementations, regenerated clients, to land in the same PR. Prepare release version bumps when publishing. Both SDK editions (Python and
 TypeScript) must keep behavioral parity: a feature or fix that changes
 observable behavior in one edition needs the matching change (or a tracked
 issue) in the other.

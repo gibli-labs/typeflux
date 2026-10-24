@@ -159,12 +159,11 @@ needs no switcher and behaves exactly as before.
 
 ## Architecture notes
 
-- All contract types come from `@typeflux/control-plane-client`
-  (generated from the normative contract, consumed as a **pinned published
-  release** — no workspace link); the console declares no contract shapes by
-  hand. Picking up a contract change is a three-step loop: contract PR
-  (conformance-gated) → client release (`Release control-plane client`
-  workflow) → console bump PR updating the pin here.
+- All contract types come from the generated `@typeflux/control-plane-client`
+  in `../typescript`. Contract, client and console changes are tested together
+  in one PR. Build the candidate client before installing/running the console;
+  `python -m tools.development sync web` does this with frozen lockfiles.
+  Public-client installation remains a release-artifact check.
 - The substance lives in pure, unit-tested engine modules: `insights.ts`
   (per-workflow severity rules), `diff.ts` (drift classification),
   `topology.ts` (DAG layout), `driftFeed.ts` (project-level drift rows),
@@ -184,10 +183,6 @@ needs no switcher and behaves exactly as before.
   pages). New surfaces should recompose existing panels before adding code.
 - Dependencies are deliberately minimal: react, react-dom, the generated
   client, @tanstack/react-router + @tanstack/react-query; no UI framework.
-- **Repo migration:** the package is self-contained — the client dependency
-  is already a pinned published version (zero `file:`/`workspace:` links into
-  the monorepo), so moving the console to its own repository is copying this
-  directory.
 
 ```bash
 npm run typecheck   # strict tsc
@@ -203,4 +198,4 @@ control-plane API (over the examples project, registered under two ids in
 key read-only pages render and that switching project rescopes requests to
 `/api/v1/projects/{id}/...`. It is **non-live** — read endpoints need no
 Temporal. One-time setup: `npx playwright install chromium` (and `uv sync
---extra api` so the API can serve). CI runs this as the `console-e2e` job.
+--extra api` so the API can serve). CI runs independent Python and TypeScript browser jobs in the pinned Playwright image.

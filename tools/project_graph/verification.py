@@ -9,25 +9,28 @@ import signal
 import subprocess
 from pathlib import Path
 
+from tools.development.registry import DEFAULT
+
 from .collection import collection_environment
 from .records import Ledger
 from .repository import GraphError, Repository
 
 RUNNERS = {
-    "graph": (
-        "packages/python",
+    name: (
+        ".",
         (
             "uv",
             "run",
-            "pytest",
-            "-q",
-            "tests/test_project_graph.py",
-            "tests/test_graph_integration.py",
+            "--project",
+            "packages/python",
+            "python",
+            "-m",
+            "tools.development",
+            "run",
+            name,
         ),
-    ),
-    "python": ("packages/python", ("uv", "run", "pytest", "-q", "-m", "not live")),
-    "typescript": (".", ("pnpm", "-r", "test")),
-    "console": ("clients/console", ("npm", "test")),
+    )
+    for name in DEFAULT
 }
 
 

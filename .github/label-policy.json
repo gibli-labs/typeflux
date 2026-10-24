@@ -95,9 +95,22 @@
       "yaml-change"
     ],
     "protected_path_patterns": [
-      ".github/workflows/*",
-      "pyproject.toml",
-      "src/typeflux/yaml/spec.py"
+      ".github/**",
+      "tools/**",
+      "project-graph/policy.yaml",
+      "project-graph/schema/**",
+      "scripts/auto_fix_issue.py",
+      "scripts/install_development_skills.py",
+      "AGENTS.md",
+      "skills/**",
+      "**/pyproject.toml",
+      "**/uv.lock",
+      "**/package.json",
+      "**/package-lock.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "packages/python/src/typeflux/yaml/spec.py",
+      "contracts/**"
     ]
   }
 }

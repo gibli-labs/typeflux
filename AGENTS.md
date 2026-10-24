@@ -13,13 +13,10 @@
 - Do not open a pull request until the implementation is finished, committed, and locally validated for the requested scope.
 - Prefer pushing a completed branch once, then opening the PR. Avoid repeated half-finished pushes that trigger Cursor Bugbot, CodeQL, dependency review, and CI on incomplete diffs.
 - If a PR must be opened early for visibility, open it as a draft and clearly state what is incomplete. Mark it ready for review only after tests pass and the branch is no longer expected to churn.
-- Before opening or marking a PR ready, run the relevant focused tests plus the default non-live suite when practical (from `packages/python/`, prefixed with `uv run`):
-  - `ruff check . ../../scripts`
-  - `ruff format --check . ../../scripts`
-  - `mypy src/typeflux`
-  - `python -m build`
-  - `pytest -q -m "not live"`
-- For small documentation-only changes, use judgment and run the smallest useful validation.
+- Read `docs/development.md` for the maintained setup and verification commands. Run focused behavioral checks, then `uv run --project packages/python python -m tools.development run default` for implementation changes. The registry in `tools/development/` is shared with CI and auto-fix; do not copy its command list here.
+- For documentation-only changes, use the smallest useful validation. Full required CI remains mandatory; graph selection is advisory.
+- A verification receipt binds source inputs, check IDs and actual test outcomes. Missing, skipped, stale or cancelled evidence is not a pass. Inspect `.project-graph/evidence/` when diagnosing failures.
+- Before publication, the release workflow requires accepted CI for the exact main revision. PR merge snapshots and local task journals cannot substitute for that evidence.
 
 ## Review Bot Hygiene
 

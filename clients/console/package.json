@@ -14,7 +14,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@typeflux/control-plane-client": "1.15.1",
+    "@typeflux/control-plane-client": "file:../typescript",
     "@tanstack/react-query": "5.104.4",
     "@tanstack/react-router": "1.170.45",
     "ajv": "8.20.0",

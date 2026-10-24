@@ -4,13 +4,15 @@
 
 ## Linked Issue
 
-Closes #
+Refs #
+
+<!-- Use a closing keyword only when all issue acceptance criteria are complete. -->
 
 ## Graph Impact
 
 - Affected capabilities/journeys:
 - Unknown mappings or evidence gaps:
-- Review the `project-graph` CI artifact for base/head impact paths and the human explorer. Full CI remains required.
+- Review `project-graph` for impact and `accepted-ci-*` for exact-revision test evidence. Full CI remains required.
 
 ## Risk / Architecture Impact
 
@@ -26,7 +28,7 @@ Closes #
 
 ## Live Validation
 
-- Not run; non-live change.
+- Isolated Temporal/fake-provider evidence, external-provider checks, or a reason they are not applicable:
 
 ## Secrets / Data Handling
 

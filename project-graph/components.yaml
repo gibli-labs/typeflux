@@ -40,7 +40,7 @@ entities:
       - {relation: consumes, target: 'api:status_api_v1_projects__project__workflows__workflow_id__status_get'}
   - id: component.client
     kind: component
-    description: Generated control-plane HTTP client; consumers may pin published releases.
+    description: Generated control-plane HTTP client; consumers may pin published releases; the in-repository console consumes the candidate source.
     paths: [clients/typescript/**]
     links:
       - {relation: consumes, target: 'api:review_api_v1_projects__project__workflows__workflow_id__review_post'}
@@ -57,7 +57,7 @@ entities:
   - id: component.development
     kind: component
     description: Build, automation, generators, graph tooling and repository policy.
-    paths: [.github/**, scripts/**, tools/**, project-graph/**, AGENTS.md, package.json, pnpm-workspace.yaml, pnpm-lock.yaml, .gitignore]
+    paths: [.github/**, scripts/**, tools/**, skills/**, project-graph/**, AGENTS.md, package.json, pnpm-workspace.yaml, pnpm-lock.yaml, .gitignore]
   - id: component.documentation
     kind: component
     description: Repository documentation; capability-level coverage is intentionally incremental.

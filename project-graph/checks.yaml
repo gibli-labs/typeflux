@@ -4,7 +4,7 @@ entities:
     kind: check
     description: Python HTTP review and binding contract regressions.
     environment: python-non-live
-    ci: ['Tests (Python 3.12)', 'Control-plane conformance (python-cp)']
+    ci: [python-3.12]
     tests:
       - {path: packages/python/tests/test_controlplane_api.py, name: test_review_permission_denial_never_dispatches_signal}
       - {path: packages/python/tests/test_controlplane_api.py, name: test_review_and_cancel_return_no_content}
@@ -17,7 +17,7 @@ entities:
     kind: check
     description: TypeScript review dispatch, run pinning and backend failure regressions.
     environment: node-non-live
-    ci: [TypeScript SDK, 'Control-plane conformance (ts-cp)']
+    ci: [typescript]
     tests:
       - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'submitReview signals typeflux_submit_review with the command'}
       - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 're-pins to the described run id when the handle was id-only (TOCTOU guard)'}
@@ -29,7 +29,7 @@ entities:
     kind: check
     description: Browser review interaction against both read-API editions with controlled operation responses; not live Temporal evidence.
     environment: chromium-python-cp-and-ts-cp
-    ci: ['Web (client + console)']
+    ci: [browser-python, browser-typescript]
     tests:
       - {path: clients/console/e2e/review.spec.ts, name: review journey submits to the selected execution and observes progress}
       - {path: clients/console/e2e/review.spec.ts, name: review journey respects permission denial without submitting}
@@ -42,9 +42,9 @@ entities:
       - {relation: verifies, target: invariant.review-failure}
   - id: check.review-temporal
     kind: check
-    description: Real local Temporal with fake providers; both control planes acknowledge a review and observe workflow completion. Explicit local validation, not part of default non-live CI.
+    description: Real local Temporal with fake providers; both control planes acknowledge a review and observe workflow completion. Runs in isolated CI and local development without external provider credentials.
     environment: local-temporal
-    ci: []
+    ci: [temporal]
     tests:
       - {path: packages/python/tests/test_live_ts_binding.py, name: test_python_cp_operates_a_ts_execution_live}
       - {path: packages/typescript/temporal-controlplane/test/live-operate.test.ts, name: 'starts, reaches the review gate, approves to completion'}

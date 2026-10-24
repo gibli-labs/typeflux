@@ -1,0 +1,62 @@
+{
+  "python-3.11": {
+    "name": "Tests (Python 3.11)",
+    "verifier": "python"
+  },
+  "python-3.12": {
+    "name": "Tests (Python 3.12)",
+    "verifier": "python"
+  },
+  "python-3.13": {
+    "name": "Tests (Python 3.13)",
+    "verifier": "python"
+  },
+  "python-3.14": {
+    "name": "Tests (Python 3.14)",
+    "verifier": "python"
+  },
+  "python-3.15": {
+    "name": "Tests (Python 3.15)",
+    "verifier": "python"
+  },
+  "quality": {
+    "name": "Quality gates",
+    "verifier": "quality"
+  },
+  "web": {
+    "name": "Web (client + console)",
+    "verifier": "web"
+  },
+  "browser-python": {
+    "name": "Browser (python-cp)",
+    "verifier": "browser-python"
+  },
+  "browser-typescript": {
+    "name": "Browser (ts-cp)",
+    "verifier": "browser-typescript"
+  },
+  "conformance-python": {
+    "name": "Control-plane conformance (python-cp)",
+    "verifier": "conformance-python"
+  },
+  "conformance-typescript": {
+    "name": "Control-plane conformance (ts-cp)",
+    "verifier": "conformance-typescript"
+  },
+  "typescript": {
+    "name": "TypeScript SDK",
+    "verifier": "typescript"
+  },
+  "mcp": {
+    "name": "MCP server (typeflux-mcp)",
+    "verifier": "mcp"
+  },
+  "graph": {
+    "name": "Project graph (advisory)",
+    "verifier": "graph"
+  },
+  "temporal": {
+    "name": "Local Temporal journey",
+    "verifier": "temporal"
+  }
+}

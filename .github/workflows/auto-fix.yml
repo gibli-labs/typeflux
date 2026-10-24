@@ -23,6 +23,10 @@ on:
         options:
           - codex-exec
           - prompt-only
+      graph_capability:
+        description: "Optional modeled capability, e.g. capability.workflow-review"
+        type: string
+        required: false
       create_pr:
         description: "Push branch and open a PR after validation"
         required: true
@@ -110,14 +114,16 @@ jobs:
           CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
           AUTO_FIX_CODEX_PLAN_COMMAND: ${{ steps.preset.outputs.command }}
           ISSUE_NUMBER: ${{ inputs.issue_number }}
+          GRAPH_CAPABILITY: ${{ inputs.graph_capability }}
         run: |
           args=(plan "$ISSUE_NUMBER" --prompt-out "${{ runner.temp }}/auto-fix-planning-prompt.md")
+          if [[ -n "$GRAPH_CAPABILITY" ]]; then args+=(--graph-capability "$GRAPH_CAPABILITY"); fi
           if [[ -n "${AUTO_FIX_CODEX_PLAN_COMMAND}" ]]; then
             args+=(--codex-plan-command "${AUTO_FIX_CODEX_PLAN_COMMAND}")
             args+=(--plan-out "${{ runner.temp }}/auto-fix-plan.md")
             args+=(--comment)
           fi
-          uv run --no-project python scripts/auto_fix_issue.py "${args[@]}"
+          uv run --project packages/python python -m scripts.auto_fix_issue "${args[@]}"
 
       - name: Upload planning prompt
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -136,7 +142,7 @@ jobs:
     name: Auto-fix issue #${{ inputs.issue_number }}
     if: inputs.mode == 'run'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     # Write-capable automation sits behind the protected `auto-fix`
     # environment: its required-reviewer rule (owner-configured) is the
     # human approval gate (#905).
@@ -229,10 +235,13 @@ jobs:
           npm install -g @openai/codex@0.155.0
           codex --version
 
-      - name: Install package for validation
-        # The project lives at packages/python (#409); cwd stays the repo root so
-        # the automation's root-relative paths keep resolving.
-        run: uv sync --frozen --extra live --group dev --project packages/python
+      - uses: ./.github/actions/setup-development
+        with:
+          scope: all
+
+      - name: Install browser system dependencies
+        working-directory: clients/console
+        run: npm exec -- playwright install-deps chromium
 
       - name: Run Codex auto-fix
         env:
@@ -241,8 +250,10 @@ jobs:
           AUTO_FIX_CODEX_COMMAND: ${{ steps.preset.outputs.command }}
           AUTO_FIX_CODEX_PLAN_COMMAND: ${{ steps.preset.outputs.plan_command }}
           ISSUE_NUMBER: ${{ inputs.issue_number }}
+          GRAPH_CAPABILITY: ${{ inputs.graph_capability }}
         run: |
           args=(run "$ISSUE_NUMBER" --push)
+          if [[ -n "$GRAPH_CAPABILITY" ]]; then args+=(--graph-capability "$GRAPH_CAPABILITY"); fi
           args+=(--plan-out "${{ runner.temp }}/auto-fix-plan.md")
           args+=(--prompt-out "${{ runner.temp }}/auto-fix-implementation-prompt.md")
           args+=(--comment-plan)
@@ -252,12 +263,15 @@ jobs:
           if [[ "${{ inputs.draft_pr }}" == "true" ]]; then
             args+=(--draft-pr)
           fi
-          uv run --project packages/python python scripts/auto_fix_issue.py "${args[@]}"
+          uv run --project packages/python python -m scripts.auto_fix_issue "${args[@]}"
 
       - name: Upload run artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: auto-fix-run-${{ inputs.issue_number }}
+          include-hidden-files: true
           path: |
+            .project-graph/tasks/
+            .project-graph/evidence/
             ${{ runner.temp }}/auto-fix-plan.md
             ${{ runner.temp }}/auto-fix-implementation-prompt.md
