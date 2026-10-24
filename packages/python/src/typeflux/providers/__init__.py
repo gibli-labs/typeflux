@@ -21,6 +21,14 @@ from typeflux.providers.errors import (
 )
 from typeflux.providers.gemini import GeminiProvider
 from typeflux.providers.openai import OpenAIProvider
+from typeflux.providers.vercel_ai_gateway import VercelAIGatewayProvider
+
+register_provider_param_support(
+    VercelAIGatewayProvider.provider_name, VercelAIGatewayProvider.supported_provider_params
+)
+register_provider_artifact_support(
+    VercelAIGatewayProvider.provider_name, VercelAIGatewayProvider.supported_artifact_kinds
+)
 
 register_provider_param_support(
     AnthropicProvider.provider_name,
@@ -53,6 +61,7 @@ __all__ = [
     "GeminiProvider",
     "ModelProvider",
     "OpenAIProvider",
+    "VercelAIGatewayProvider",
     "ProviderAuthError",
     "ProviderConfigError",
     "ProviderError",

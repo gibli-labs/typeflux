@@ -51,3 +51,49 @@ entities:
     links:
       - {relation: verifies, target: invariant.review-progress}
       - {relation: verifies, target: invariant.execution-binding}
+  - id: check.gateway-python
+    kind: check
+    description: Mocked Python gateway configuration, activity validation, policy/cache identity, usage, errors, cancellation and real SDK serialization. Live smoke is separate and opt-in.
+    environment: python-non-live
+    ci: [python-3.12]
+    tests:
+      - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_structured_output_and_usage}
+      - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_activity_policy_cache_and_validation}
+      - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_failures_are_classified_and_redacted}
+      - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_transient_retry_uses_existing_policy}
+      - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_yaml_example_executes_validated_activity}
+      - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_rejects_unsupported_options_before_transport}
+      - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_async_timeout_and_cancellation}
+      - {path: packages/python/tests/test_vercel_ai_gateway_provider.py, name: test_gateway_real_sdk_wire_and_validation}
+    links:
+      - {relation: verifies, target: invariant.gateway-configuration}
+      - {relation: verifies, target: invariant.gateway-output}
+      - {relation: verifies, target: invariant.gateway-identity}
+      - {relation: verifies, target: invariant.gateway-failure}
+  - id: check.gateway-typescript
+    kind: check
+    description: Mocked TypeScript gateway activity, schema validation, model-aware policy/cache identity, token usage, retries and cancellation.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/temporal/test/vercel-ai-gateway-provider.test.ts, name: executes a validated activity and reports separate gateway model and upstream identity}
+      - {path: packages/typescript/temporal/test/vercel-ai-gateway-provider.test.ts, name: partitions cache and enforces policy using the constructor model before a cache hit}
+      - {path: packages/typescript/temporal/test/vercel-ai-gateway-provider.test.ts, name: repairs invalid output through the existing activity validation loop}
+      - {path: packages/typescript/temporal/test/vercel-ai-gateway-provider.test.ts, name: retries transient failures through the executor and propagates cancellation}
+      - {path: packages/typescript/temporal/test/vercel-ai-gateway-provider.test.ts, name: requires an explicit namespaced model and text input}
+    links:
+      - {relation: verifies, target: invariant.gateway-output}
+      - {relation: verifies, target: invariant.gateway-identity}
+      - {relation: verifies, target: invariant.gateway-failure}
+  - id: check.gateway-yaml
+    kind: check
+    description: TypeScript YAML gateway selection, lazy SDK configuration and example activity invocation without external credentials.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/temporal-yaml/test/vercel-ai-gateway.test.ts, name: configures the gateway SDK and executes the example activity}
+      - {path: packages/typescript/temporal-yaml/test/vercel-ai-gateway.test.ts, name: requires a gateway key without falling back to OpenAI credentials}
+      - {path: packages/typescript/temporal-yaml/test/vercel-ai-gateway.test.ts, name: rejects missing models and unsupported gateway options during load}
+    links:
+      - {relation: verifies, target: invariant.gateway-configuration}
+      - {relation: verifies, target: invariant.gateway-output}

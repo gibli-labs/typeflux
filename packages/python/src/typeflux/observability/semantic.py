@@ -350,6 +350,8 @@ class _LangfuseObservationHandle:
             updates["usage_details"] = details
         if usage.model:
             updates["model"] = usage.model
+        if identity := usage.response_identity():
+            updates["metadata"] = self._redact({"provider_response": identity})
         if updates:
             self._observation.update(**updates)
 

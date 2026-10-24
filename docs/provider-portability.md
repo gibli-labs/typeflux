@@ -133,3 +133,10 @@ are mutually exclusive (Vertex is keyless).
 - [Extending Typeflux Temporal](extending.md) — the `ModelProvider` capability
   contract, including `supported_provider_params` and `supported_artifact_kinds`.
 - [YAML Runtime](yaml.md) — declaring `provider_params` and `artifact_inputs`.
+
+## Vercel AI Gateway
+
+[Vercel AI Gateway](vercel-ai-gateway.md) is a first-class text/JSON Schema provider
+in both editions. Select `vercel-ai-gateway` and an explicit `author/model` ID;
+use the documented narrow parameter set and `AI_GATEWAY_API_KEY`. Gateway identity
+is distinct from the requested model and optional reported upstream host.

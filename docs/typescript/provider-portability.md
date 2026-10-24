@@ -86,3 +86,10 @@ Because clients are injected:
   injected-client divergences
 - [`@typeflux/temporal` README](../../packages/typescript/temporal) — the provider
   capability contract and adapter examples
+
+## Vercel AI Gateway
+
+Use `VercelAIGatewayProvider` with an injected `OpenAIChatTransport`, or YAML type
+`vercel-ai-gateway` with the optional OpenAI SDK environment adapter. The explicit
+constructor model participates in policy, cache identity and observations.
+See [configuration, limits and live smoke](../vercel-ai-gateway.md).

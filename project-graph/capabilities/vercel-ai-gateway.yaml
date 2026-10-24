@@ -1,0 +1,43 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.vercel-ai-gateway
+    kind: capability
+    description: Configure Vercel AI Gateway in either SDK or YAML, execute a structured-output activity, and inspect validated output with separate gateway, requested model, response identity and token usage.
+    editions: {python: supported, typescript: supported}
+    implementation:
+      - packages/python/src/typeflux/providers/vercel_ai_gateway.py
+      - packages/python/src/typeflux/providers/base.py
+      - packages/python/src/typeflux/providers/__init__.py
+      - packages/python/src/typeflux/yaml/spec.py
+      - packages/python/src/typeflux/yaml/runtime.py
+      - packages/python/src/typeflux/observability/semantic.py
+      - packages/python/src/typeflux/observability/otel.py
+      - packages/typescript/temporal/src/vercel-ai-gateway-provider.ts
+      - packages/typescript/temporal/src/openai-provider.ts
+      - packages/typescript/temporal/src/execute.ts
+      - packages/typescript/temporal/src/index.ts
+      - packages/typescript/temporal-yaml/src/provider-from-spec.ts
+      - packages/typescript/temporal-yaml/src/provider-transports-from-env.ts
+      - packages/typescript/temporal-yaml/src/spec.ts
+    documentation: [docs/vercel-ai-gateway.md, docs/provider-portability.md, docs/typescript/provider-portability.md]
+    examples:
+      - packages/python/examples/vercel_ai_gateway/typeflux.yaml
+      - packages/typescript/temporal-yaml/examples/vercel-ai-gateway/main.ts
+      - packages/typescript/temporal-yaml/examples/vercel-ai-gateway/typeflux.yaml
+    links:
+      - {relation: requires, target: invariant.gateway-configuration}
+      - {relation: requires, target: invariant.gateway-output}
+      - {relation: requires, target: invariant.gateway-identity}
+      - {relation: requires, target: invariant.gateway-failure}
+  - id: invariant.gateway-configuration
+    kind: invariant
+    description: Require an explicit author/model ID and gateway credentials; keep SDK dependencies optional and reject unsupported features before transport.
+  - id: invariant.gateway-output
+    kind: invariant
+    description: Only schema-validated activity output is accepted or cached; invalid output uses existing repair semantics and truncated output fails.
+  - id: invariant.gateway-identity
+    kind: invariant
+    description: Gateway identity and requested model govern policy, caching and typed metadata; reported model and upstream provider remain separate, optional observation data.
+  - id: invariant.gateway-failure
+    kind: invariant
+    description: Authentication is terminal, rate limits and transient failures use existing retry policy, cancellation propagates, and raw SDK secrets are excluded from errors and metadata.

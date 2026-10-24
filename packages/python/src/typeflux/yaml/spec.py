@@ -445,7 +445,7 @@ class VertexSpec(BaseModel):
 class ProviderSpec(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    type: Literal["fake", "openai", "anthropic", "gemini", "custom"]
+    type: Literal["fake", "openai", "anthropic", "gemini", "vercel-ai-gateway", "custom"]
     model: str | None = None
     structured_mode: Literal["json_schema"] = "json_schema"
     provider_class: str | None = Field(default=None, alias="class")
@@ -500,6 +500,18 @@ class ProviderSpec(BaseModel):
             self.model = self.params.model
         if self.model is None:
             self.model = DEFAULT_PROVIDER_MODELS.get(self.type)
+        if self.type == "vercel-ai-gateway":
+            from typeflux.providers.errors import ProviderConfigError
+            from typeflux.providers.vercel_ai_gateway import validate_gateway_model
+
+            try:
+                validate_gateway_model(self.model)
+            except ProviderConfigError as exc:
+                raise ValueError(str(exc)) from None
+            if self.base_url is not None:
+                raise ValueError(
+                    "Vercel AI Gateway uses its fixed endpoint; base_url is unsupported"
+                )
         return self
 
     def provider_params(self) -> ProviderParams:

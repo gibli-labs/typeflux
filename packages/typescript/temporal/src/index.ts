@@ -67,6 +67,7 @@ export {
   numberProviderParam,
   ProviderCacheUnavailableError,
   ProviderConfigError,
+  ProviderAuthError,
   ProviderPolicyError,
   ProviderRateLimitError,
   ProviderTransientError,
@@ -214,3 +215,5 @@ export type {
 export { hasTemplateVariables, renderMessages, renderTemplate } from "./render.js";
 export { serializeTraceRecord } from "./trace.js";
 export type { ObservationRecord, TraceRecord, TraceRetrievalInfo } from "./trace.js";
+
+export { VercelAIGatewayProvider, VERCEL_AI_GATEWAY_BASE_URL, VERCEL_AI_GATEWAY_PARAMS, validateGatewayModel } from "./vercel-ai-gateway-provider.js";

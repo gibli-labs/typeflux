@@ -1,0 +1,32 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: journey.vercel-ai-gateway
+    kind: journey
+    description: A developer selects a gateway model, runs a typed activity and inspects its output or actionable failure. Mocked evidence does not establish live gateway availability.
+    links:
+      - {relation: uses, target: capability.vercel-ai-gateway}
+    steps:
+      - id: configure
+        action: Select the gateway and an explicit model programmatically or through YAML and supply a secret reference.
+        outcome: Construct an optional SDK client or injected transport with the correct gateway identity and endpoint.
+        capabilities: [capability.vercel-ai-gateway]
+        checks: [check.gateway-python, check.gateway-typescript, check.gateway-yaml]
+        failures: [Missing credential, Missing model, Unsupported option, Missing optional SDK]
+      - id: execute
+        action: Execute an existing structured-output activity.
+        outcome: Validate the response with Pydantic or Zod before accepting and caching the output.
+        capabilities: [capability.vercel-ai-gateway]
+        checks: [check.gateway-python, check.gateway-typescript, check.gateway-yaml]
+        failures: [Invalid output, Truncated output, Refusal, Model does not support requested parameters]
+      - id: inspect
+        action: Inspect generation usage and provider/model identity.
+        outcome: Requested model remains authoritative for policy and cache partitioning while reported model and upstream host remain distinct.
+        capabilities: [capability.vercel-ai-gateway]
+        checks: [check.gateway-python, check.gateway-typescript]
+        failures: [Usage unavailable, Upstream identity not reported]
+      - id: recover
+        action: Handle an authentication failure, rate limit, transient error or cancellation.
+        outcome: Follow the existing retry classification without exposing SDK credentials or accepting partial output.
+        capabilities: [capability.vercel-ai-gateway]
+        checks: [check.gateway-python, check.gateway-typescript]
+        failures: [Authentication rejected, Retry budget exhausted, Timeout, Cancellation]

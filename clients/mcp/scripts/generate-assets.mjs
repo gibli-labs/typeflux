@@ -32,6 +32,7 @@ const DOC_SLUGS = [
   "control-plane",
   "control-plane-auth",
   "provider-portability",
+  "vercel-ai-gateway",
   "observability",
 ];
 
