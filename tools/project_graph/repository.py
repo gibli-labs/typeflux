@@ -71,7 +71,16 @@ class Repository:
                 if not safe_path(path):
                     raise GraphError(f"unsafe repository path: {path}")
                 self.modes[path] = mode.decode()
-                if kind != b"blob" or mode not in {b"100644", b"100755"}:
+                if mode == b"120000":
+                    self.omitted[path] = "symlink"
+                    target = git(self.root, "cat-file", "blob", oid.decode())
+                    self.special_inputs[path] = digest(
+                        {"symlink": hashlib.sha256(target).hexdigest()}
+                    )
+                elif mode == b"160000":
+                    self.omitted[path] = "gitlink"
+                    self.special_inputs[path] = digest({"gitlink": oid.decode()})
+                elif kind != b"blob" or mode not in {b"100644", b"100755"}:
                     self.omitted[path] = "non-regular file"
                     self.special_inputs[path] = oid.decode()
                 else:
@@ -93,6 +102,16 @@ class Repository:
                 offset += int(size) + 1
             self.dirty = False
         else:
+            gitlinks = {}
+            for entry in git(self.root, "ls-files", "--stage", "-z").split(b"\0"):
+                if not entry:
+                    continue
+                meta, raw_path = entry.split(b"\t", 1)
+                mode, oid, stage = meta.split()
+                if stage != b"0":
+                    raise GraphError("resolve unmerged index entries before graph compilation")
+                if mode == b"160000":
+                    gitlinks[raw_path.decode()] = oid.decode()
             paths = git(
                 self.root,
                 "ls-files",
@@ -111,9 +130,22 @@ class Repository:
                 # Do not follow file or directory symlinks outside the checkout.
                 if absolute.is_symlink() or not absolute.resolve().is_relative_to(self.root):
                     self.omitted[path] = "symlink"
-                    self.special_inputs[path] = digest(
-                        os.readlink(absolute) if absolute.is_symlink() else "symlink ancestor"
+                    target = (
+                        os.fsencode(os.readlink(absolute))
+                        if absolute.is_symlink()
+                        else b"symlink ancestor"
                     )
+                    self.special_inputs[path] = digest(
+                        {"symlink": hashlib.sha256(target).hexdigest()}
+                    )
+                elif path in gitlinks:
+                    oid = gitlinks[path]
+                    # An uninitialized submodule is still an indexed gitlink.
+                    # An initialized one may have moved to a different commit.
+                    if (absolute / ".git").exists():
+                        oid = git(absolute, "rev-parse", "--verify", "HEAD").decode().strip()
+                    self.omitted[path] = "gitlink"
+                    self.special_inputs[path] = digest({"gitlink": oid})
                 elif absolute.is_file():
                     self.files[path] = absolute.read_bytes()
                     self.modes[path] = "100755" if absolute.stat().st_mode & 0o111 else "100644"

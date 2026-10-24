@@ -239,3 +239,47 @@ def test_pre_graph_history_is_unknown_not_retroactively_mapped(graph_repo):
     result = impact(base, head)
     assert "src/worker.py" in result["unknownFiles"] and result["broadValidation"]
     assert any("base extraction" in reason for reason in result["reasons"])
+
+
+def test_clean_symlink_fingerprints_match_and_target_changes_are_detected(graph_repo):
+    link = graph_repo / "src/link"
+    link.symlink_to("worker.py")
+    run_git(graph_repo, "add", "src/link")
+    run_git(graph_repo, "commit", "-m", "link")
+    committed, working = Repository(graph_repo, "HEAD"), Repository(graph_repo)
+    assert committed.inputs == working.inputs
+    assert committed.tree_digest == working.tree_digest
+    assert impact(compile_graph(committed), compile_graph(working))["changedFiles"] == []
+    link.unlink()
+    link.symlink_to("missing.py")
+    assert impact(compile_graph(committed), compile_graph(Repository(graph_repo)))[
+        "changedFiles"
+    ] == ["src/link"]
+
+
+def test_uninitialized_gitlink_is_retained_in_worktree_inputs(graph_repo):
+    oid = run_git(graph_repo, "rev-parse", "HEAD")
+    run_git(graph_repo, "update-index", "--add", "--cacheinfo", f"160000,{oid},vendor")
+    run_git(graph_repo, "commit", "-m", "gitlink")
+    committed, working = Repository(graph_repo, "HEAD"), Repository(graph_repo)
+    assert committed.inputs == working.inputs
+    assert committed.tree_digest == working.tree_digest
+    assert impact(compile_graph(committed), compile_graph(working))["changedFiles"] == []
+
+
+def test_initialized_gitlink_detects_changed_commit(graph_repo):
+    child = graph_repo / "vendor"
+    run_git(graph_repo, "clone", "--no-hardlinks", str(graph_repo), str(child))
+    run_git(child, "config", "user.email", "graph@example.invalid")
+    run_git(child, "config", "user.name", "Graph Test")
+    oid = run_git(child, "rev-parse", "HEAD")
+    run_git(graph_repo, "update-index", "--add", "--cacheinfo", f"160000,{oid},vendor")
+    run_git(graph_repo, "commit", "-m", "gitlink")
+    committed = Repository(graph_repo, "HEAD")
+    assert committed.tree_digest == Repository(graph_repo).tree_digest
+    write(child, "src/worker.py", "next submodule version")
+    run_git(child, "add", "src/worker.py")
+    run_git(child, "commit", "-m", "advance child")
+    assert impact(compile_graph(committed), compile_graph(Repository(graph_repo)))[
+        "changedFiles"
+    ] == ["vendor"]
