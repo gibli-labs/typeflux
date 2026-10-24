@@ -1,0 +1,32 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.workflow-review
+    kind: capability
+    description: Inspect a paused execution, submit a permitted decision to the bound run, and observe resulting progress.
+    editions: {python: supported, typescript: supported, console: supported}
+    implementation:
+      - packages/python/src/typeflux/project/operations.py
+      - packages/python/src/typeflux/controlplane/api.py
+      - packages/typescript/temporal-controlplane/src/operations.ts
+      - clients/console/src/panels/runs.tsx
+    documentation: [docs/control-plane.md, docs/control-plane-auth.md, docs/editions.md]
+    examples:
+      - packages/python/examples/lifecycle_review/main.py
+      - packages/typescript/temporal-yaml/examples/lifecycle-review/main.ts
+    links:
+      - {relation: requires, target: invariant.review-permission}
+      - {relation: requires, target: invariant.execution-binding}
+      - {relation: requires, target: invariant.review-progress}
+      - {relation: requires, target: invariant.review-failure}
+  - id: invariant.review-permission
+    kind: invariant
+    description: Only an authorized caller may submit a review; rejected requests produce no signal.
+  - id: invariant.execution-binding
+    kind: invariant
+    description: Review targets the addressed project, workflow version and pinned execution run.
+  - id: invariant.review-progress
+    kind: invariant
+    description: A permitted decision progresses the waiting workflow along its configured route; HTTP acknowledgement alone is not completion.
+  - id: invariant.review-failure
+    kind: invariant
+    description: Invalid decisions, unavailable backends and uncertain delivery are surfaced honestly; recovery reconciles status before another decision.

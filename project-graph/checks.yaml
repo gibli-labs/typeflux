@@ -1,0 +1,53 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: check.review-python
+    kind: check
+    description: Python HTTP review and binding contract regressions.
+    environment: python-non-live
+    ci: ['Tests (Python 3.12)', 'Control-plane conformance (python-cp)']
+    tests:
+      - {path: packages/python/tests/test_controlplane_api.py, name: test_review_permission_denial_never_dispatches_signal}
+      - {path: packages/python/tests/test_controlplane_api.py, name: test_review_and_cancel_return_no_content}
+      - {path: packages/python/tests/test_controlplane_api.py, name: test_lifecycle_binding_error_maps_to_409}
+      - {path: packages/python/tests/test_project.py, name: test_project_cli_review_submits_the_decision_with_gate_semantics}
+    links:
+      - {relation: verifies, target: invariant.execution-binding}
+      - {relation: verifies, target: invariant.review-permission}
+  - id: check.review-typescript
+    kind: check
+    description: TypeScript review dispatch, run pinning and backend failure regressions.
+    environment: node-non-live
+    ci: [TypeScript SDK, 'Control-plane conformance (ts-cp)']
+    tests:
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'submitReview signals typeflux_submit_review with the command'}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 're-pins to the described run id when the handle was id-only (TOCTOU guard)'}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'a gRPC UNAVAILABLE on describe maps to 503 (top-level .code)'}
+    links:
+      - {relation: verifies, target: invariant.execution-binding}
+      - {relation: verifies, target: invariant.review-failure}
+  - id: check.review-browser
+    kind: check
+    description: Browser review interaction against both read-API editions with controlled operation responses; not live Temporal evidence.
+    environment: chromium-python-cp-and-ts-cp
+    ci: ['Web (client + console)']
+    tests:
+      - {path: clients/console/e2e/review.spec.ts, name: review journey submits to the selected execution and observes progress}
+      - {path: clients/console/e2e/review.spec.ts, name: review journey respects permission denial without submitting}
+      - {path: clients/console/e2e/review.spec.ts, name: review journey reports binding mismatch without offering a decision}
+      - {path: clients/console/e2e/review.spec.ts, name: review journey surfaces an invalid decision without claiming completion}
+      - {path: clients/console/e2e/review.spec.ts, name: review journey recovers after backend failure without automatic resubmission}
+    links:
+      - {relation: verifies, target: journey.review-workflow}
+      - {relation: verifies, target: invariant.review-progress}
+      - {relation: verifies, target: invariant.review-failure}
+  - id: check.review-temporal
+    kind: check
+    description: Real local Temporal with fake providers; both control planes acknowledge a review and observe workflow completion. Explicit local validation, not part of default non-live CI.
+    environment: local-temporal
+    ci: []
+    tests:
+      - {path: packages/python/tests/test_live_ts_binding.py, name: test_python_cp_operates_a_ts_execution_live}
+      - {path: packages/typescript/temporal-controlplane/test/live-operate.test.ts, name: 'starts, reaches the review gate, approves to completion'}
+    links:
+      - {relation: verifies, target: invariant.review-progress}
+      - {relation: verifies, target: invariant.execution-binding}

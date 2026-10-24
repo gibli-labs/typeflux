@@ -1,0 +1,110 @@
+[
+  {
+    "id": "python-review",
+    "search": "submit_review",
+    "entity": "capability.workflow-review",
+    "expected": [
+      "packages/python/src/typeflux/project/operations.py"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "python-http",
+    "search": "user_decision",
+    "entity": "capability.workflow-review",
+    "expected": [
+      "packages/python/src/typeflux/controlplane/api.py"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "typescript-review",
+    "search": "submitReview",
+    "entity": "capability.workflow-review",
+    "expected": [
+      "packages/typescript/temporal-controlplane/src/operations.ts"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "console-review",
+    "search": "handleReview",
+    "entity": "capability.workflow-review",
+    "expected": [
+      "clients/console/src/panels/runs.tsx"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "python-example",
+    "search": "run_demo",
+    "entity": "capability.workflow-review",
+    "expected": [
+      "packages/python/examples/lifecycle_review/main.py"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "typescript-example",
+    "search": "gate open",
+    "entity": "capability.workflow-review",
+    "expected": [
+      "packages/typescript/temporal-yaml/examples/lifecycle-review/main.ts"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "binding-tests",
+    "search": "LifecycleBindingError",
+    "entity": "check.review-python",
+    "expected": [
+      "packages/python/tests/test_controlplane_api.py"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "typescript-tests",
+    "search": "TOCTOU",
+    "entity": "check.review-typescript",
+    "expected": [
+      "packages/typescript/temporal-controlplane/test/operations.test.ts"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "browser-tests",
+    "search": "review journey",
+    "entity": "check.review-browser",
+    "expected": [
+      "clients/console/e2e/review.spec.ts"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "temporal-python",
+    "search": "operates_a_ts_execution",
+    "entity": "check.review-temporal",
+    "expected": [
+      "packages/python/tests/test_live_ts_binding.py"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "auth-docs",
+    "search": "review",
+    "entity": "capability.workflow-review",
+    "expected": [
+      "docs/control-plane-auth.md"
+    ],
+    "limit": 60
+  },
+  {
+    "id": "edition-docs",
+    "search": "parity",
+    "entity": "capability.workflow-review",
+    "expected": [
+      "docs/editions.md"
+    ],
+    "limit": 60
+  }
+]

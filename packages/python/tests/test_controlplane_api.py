@@ -1415,6 +1415,24 @@ def test_review_and_cancel_return_no_content(
     assert kinds["cancel"]["reason"] == "duplicate submission"
 
 
+def test_review_permission_denial_never_dispatches_signal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = _ops_token_client(tmp_path, monkeypatch)
+    response = client.post(
+        "/api/v1/workflows/workflow/review",
+        headers={"Authorization": "Bearer read-tok"},
+        json={
+            "environment_id": "local",
+            "execution_id": "case-1",
+            "command": {"user_decision": "approve"},
+        },
+    )
+    assert response.status_code == 403
+    assert not _FakeOperations.recorded
+    assert not _FakeOperations.calls
+
+
 def test_migrate_route_addresses_like_cancel_with_optional_run_id(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

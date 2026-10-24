@@ -18,3 +18,6 @@ node_modules/
 
 # Local MCP server config (absolute paths / tokens are per-machine)
 .mcp.json
+
+# Rebuildable development graph snapshots, evidence and local reports.
+.project-graph/

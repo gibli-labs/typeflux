@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "entities"],
+  "properties": {
+    "apiVersion": {"const": "typeflux.dev/graph/v1alpha1"},
+    "entities": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/entity"}}
+  },
+  "$defs": {
+    "strings": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "entity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "description"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^(component|capability|journey|invariant|check)\\.[a-z0-9][a-z0-9.-]*$"},
+        "kind": {"enum": ["component", "capability", "journey", "invariant", "check"]},
+        "description": {"type": "string", "minLength": 1},
+        "paths": {"$ref": "#/$defs/strings"},
+        "exclude": {"$ref": "#/$defs/strings"},
+        "documentation": {"$ref": "#/$defs/strings"},
+        "examples": {"$ref": "#/$defs/strings"},
+        "implementation": {"$ref": "#/$defs/strings"},
+        "editions": {"type": "object", "additionalProperties": {"enum": ["supported", "partial", "unsupported", "shared"]}},
+        "ci": {"$ref": "#/$defs/strings"},
+        "environment": {"type": "string"},
+        "tests": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+          "required": ["path", "name"], "properties": {"path": {"type": "string"}, "name": {"type": "string", "minLength": 1}}}},
+        "links": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+          "required": ["relation", "target"], "properties": {"relation": {"type": "string"}, "target": {"type": "string"}}}},
+        "steps": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false,
+          "required": ["id", "action", "outcome", "capabilities", "checks", "failures"],
+          "properties": {
+            "id": {"type": "string"}, "action": {"type": "string"}, "outcome": {"type": "string"},
+            "capabilities": {"$ref": "#/$defs/strings"}, "checks": {"$ref": "#/$defs/strings"},
+            "failures": {"$ref": "#/$defs/strings"}
+          }}}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "component"}}}, "then": {"required": ["paths"]}},
+        {"if": {"properties": {"kind": {"const": "journey"}}}, "then": {"required": ["steps"]}},
+        {"if": {"properties": {"kind": {"const": "check"}}}, "then": {"required": ["tests", "environment", "ci"]}}
+      ]
+    }
+  }
+}

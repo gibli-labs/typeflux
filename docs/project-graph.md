@@ -1,7 +1,9 @@
 # Project graph and agentic development proposal
 
-Status: proposed. This document defines staged implementation work; the graph
-compiler, query commands, and CI integration described below are not shipped.
+Status: foundation implemented. The [repository-local tool](../tools/project_graph/README.md)
+provides deterministic compilation, context/impact/explanation queries, test
+collection and a workflow-review pilot. The CI, task/evidence and explorer work
+below remains staged; research/evaluation claims are not established by implementation.
 
 Implementation tracking: [issue 46](https://github.com/gibli-labs/typeflux/issues/46).
 

@@ -76,11 +76,11 @@ jobs:
 
       - name: Run Ruff lint
         working-directory: packages/python
-        run: uv run ruff check . ../../scripts
+        run: uv run ruff check --config pyproject.toml . ../../scripts ../../tools/project_graph
 
       - name: Run Ruff format check
         working-directory: packages/python
-        run: uv run ruff format --check . ../../scripts
+        run: uv run ruff format --check --config pyproject.toml . ../../scripts ../../tools/project_graph
 
       - name: Run mypy
         working-directory: packages/python
