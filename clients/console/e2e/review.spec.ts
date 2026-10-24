@@ -1,11 +1,15 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test, type ApiHealth } from "./fixtures";
 
 import { EXPECT } from "./expectations";
 
 // Browser contract tests: real console + real lane's read endpoints, with controlled
 // operation responses. Temporal progress is independently verified by the two live
 // control-plane harnesses; these fixtures must never be reported as live evidence.
-async function reviewFixture(page: Page, options: { canReview?: boolean; statusError?: number; reviewError?: number } = {}) {
+async function reviewFixture(page: Page, apiHealth: ApiHealth, options: { canReview?: boolean; statusError?: number; reviewError?: number } = {}) {
+  apiHealth.allow({ method: "GET", path: /\/correlation$/, status: 503, reason: "Synthetic review execution has no Temporal correlation" });
+  if (options.statusError) apiHealth.allow({ method: "GET", path: /\/status$/, status: options.statusError, reason: "Deliberate execution binding error" });
+  if (options.reviewError) apiHealth.allow({ method: "POST", path: /\/review$/, status: options.reviewError, reason: "Deliberate review rejection or outage" });
   await page.addInitScript((project) => localStorage.setItem("typeflux.project", project), EXPECT.defaultProject);
   let state = "waiting_for_review";
   let reviewError = options.reviewError;
@@ -27,6 +31,11 @@ async function reviewFixture(page: Page, options: { canReview?: boolean; statusE
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    // The addressed execution is synthetic, so its listing is controlled too.
+    if (path.endsWith("/executions")) return route.fulfill({ json: {
+      logical_workflow: EXPECT.workflowId, current_workflow_type: EXPECT.workflowName, executions: [],
+    } });
+    if (path.endsWith("/correlation")) return route.fulfill({ status: 503, json: { error: "unavailable", message: "No Temporal correlation for the synthetic review execution" } });
     if (path.endsWith("/meta") && options.canReview === false) {
       const response = await route.fetch();
       const body = await response.json();
@@ -53,8 +62,8 @@ async function reviewFixture(page: Page, options: { canReview?: boolean; statusE
   return { submissions, requests, recover: () => { reviewError = undefined; } };
 }
 
-test("review journey submits to the selected execution and observes progress", async ({ page }) => {
-  const fixture = await reviewFixture(page);
+test("review journey submits to the selected execution and observes progress", async ({ page, apiHealth }) => {
+  const fixture = await reviewFixture(page, apiHealth);
   await expect(page.locator("#status")).toContainText("waiting_for_review");
   await page.getByRole("button", { name: "approve → finalize", exact: true }).click();
   await expect(page.locator("#status").getByText("completed", { exact: true })).toBeVisible();
@@ -64,34 +73,35 @@ test("review journey submits to the selected execution and observes progress", a
   await expect(page.getByRole("button", { name: "approve → finalize", exact: true })).toBeDisabled();
 });
 
-test("review journey respects permission denial without submitting", async ({ page }) => {
-  const fixture = await reviewFixture(page, { canReview: false });
+test("review journey respects permission denial without submitting", async ({ page, apiHealth }) => {
+  const fixture = await reviewFixture(page, apiHealth, { canReview: false });
   await expect(page.getByRole("button", { name: "approve → finalize", exact: true })).toBeDisabled();
   expect(fixture.submissions).toHaveLength(0);
 });
 
-test("review journey reports binding mismatch without offering a decision", async ({ page }) => {
-  const fixture = await reviewFixture(page, { statusError: 409 });
+test("review journey reports binding mismatch without offering a decision", async ({ page, apiHealth }) => {
+  const fixture = await reviewFixture(page, apiHealth, { statusError: 409 });
   await expect(page.getByText("execution binding mismatch", { exact: false }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "approve → finalize", exact: true })).toHaveCount(0);
   expect(fixture.submissions).toHaveLength(0);
 });
 
-test("review journey surfaces an invalid decision without claiming completion", async ({ page }) => {
-  await reviewFixture(page, { reviewError: 422 });
+test("review journey surfaces an invalid decision without claiming completion", async ({ page, apiHealth }) => {
+  await reviewFixture(page, apiHealth, { reviewError: 422 });
   await page.getByRole("button", { name: "approve → finalize", exact: true }).click();
   await expect(page.getByText("invalid decision", { exact: false }).first()).toBeVisible();
   await expect(page.locator("#status")).toContainText("waiting_for_review");
 });
 
-test("review journey recovers after backend failure without automatic resubmission", async ({ page }) => {
-  const fixture = await reviewFixture(page, { reviewError: 503 });
+test("review journey recovers after backend failure without automatic resubmission", async ({ page, apiHealth }) => {
+  const fixture = await reviewFixture(page, apiHealth, { reviewError: 503 });
   const decision = page.getByRole("button", { name: "approve → finalize", exact: true });
   await decision.click();
   await expect(page.getByText("backend unavailable", { exact: false }).first()).toBeVisible();
   expect(fixture.submissions).toHaveLength(1);
   fixture.recover();
   // A fresh inspection reconciles the status before an explicit operator retry.
+  await apiHealth.settle();
   await page.reload();
   await expect(page.locator("#status")).toContainText("waiting_for_review");
   await decision.click();

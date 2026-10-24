@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 import { EXPECT, LANE, rx } from "./expectations";
 
@@ -8,7 +8,29 @@ import { EXPECT, LANE, rx } from "./expectations";
  * pages only — no operations, so no Temporal connection is needed.
  */
 
-test("overview renders bundles and the project switch rescopes requests", async ({ page }) => {
+test("fixture bundles resolve across projects and environments without credentials", async ({ request }) => {
+  for (const project of [EXPECT.defaultProject, EXPECT.secondProject]) {
+    const prefix = `/api/v1/projects/${project}`;
+    const workflowsResponse = await request.get(`${prefix}/workflows`);
+    const environmentsResponse = await request.get(`${prefix}/environments`);
+    expect(workflowsResponse.ok()).toBe(true);
+    expect(environmentsResponse.ok()).toBe(true);
+    const { workflows } = await workflowsResponse.json() as { workflows: Array<{ id: string }> };
+    const { environments } = await environmentsResponse.json() as { environments: Array<{ id: string }> };
+    expect(workflows.map(({ id }) => id)).toContain(EXPECT.compositionWorkflowId);
+    expect(environments.map(({ id }) => id)).toEqual(expect.arrayContaining([EXPECT.environment, EXPECT.secondEnvironment]));
+    for (const { id: workflow } of workflows) {
+      for (const { id: environment } of environments) {
+        const response = await request.get(`${prefix}/workflows/${workflow}/bundle`, { params: { environment_id: environment } });
+        // This one conformance workflow deliberately references an undeclared profile.
+        const expectedStatus = LANE === "ts-cp" && workflow === "broken" ? 422 : 200;
+        expect(response.status(), `${project}/${workflow} in ${environment}`).toBe(expectedStatus);
+      }
+    }
+  }
+});
+
+test("overview renders bundles and the project switch rescopes requests", async ({ page, apiHealth }) => {
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
 
@@ -41,6 +63,7 @@ test("overview renders bundles and the project switch rescopes requests", async 
 
   // Switching rescopes every request to the project's scoped routes — this
   // exercises the fetch middleware + the /api/v1/projects/{id}/... routing.
+  await apiHealth.settle();
   const scoped = page.waitForResponse((r) =>
     r.url().includes(`/api/v1/projects/${EXPECT.secondProject}/workflows`),
   );
@@ -69,7 +92,7 @@ test("deployments and workflow-detail pages render", async ({ page }) => {
   expect(errors, "no uncaught page errors").toEqual([]);
 });
 
-test("a run URL cold-loads with the execution addressed (#580)", async ({ page }) => {
+test("a run URL cold-loads with the execution addressed (#580)", async ({ page, apiHealth }) => {
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
 
@@ -79,7 +102,9 @@ test("a run URL cold-loads with the execution addressed (#580)", async ({ page }
   // single-worker dev API for ~30s and starves the following tests (#581
   // tracks fixing that server-side; the stub is scoping, not a workaround
   // we intend to keep once reads are isolated from the Temporal tier).
-  await page.route(/\/api\/v1\/workflows\/[^/]+\/(status|correlation)/, (route) =>
+  const unavailable = /\/workflows\/[^/]+\/(status|correlation)$/;
+  apiHealth.allow({ method: "GET", path: unavailable, status: 500, reason: "This test stubs unavailable run inspection" });
+  await page.route(/\/api\/v1\/(?:projects\/[^/]+\/)?workflows\/[^/]+\/(status|correlation)(?:\?|$)/, (route) =>
     route.fulfill({
       status: 500,
       contentType: "application/json",
@@ -152,9 +177,8 @@ test("the drift page renders the N-way environment matrix with diff links (#611)
     .locator("#env-matrix tr", { has: page.getByText(EXPECT.workflowId, { exact: true }) })
     .first();
   await expect(matrixRow).toBeVisible();
-  // The fixture's other environment (cloud/unreachable per lane) does not
-  // resolve locally — the honest cell state is the unlinked "—" badge, and the not-comparable
-  // wiring shows through the badge presence. Link hrefs are pinned by the engine unit tests.
+  // Both environment bundles resolve without connecting to their Temporal endpoints.
+  // The matrix renders its comparison badge; link hrefs are pinned by engine unit tests.
   await expect(matrixRow.locator(".badge").first()).toBeVisible();
 });
 
@@ -196,7 +220,8 @@ test("the drift page aggregates plan, environment, and prompt drift (#583)", asy
   expect(errors, "no uncaught page errors").toEqual([]);
 });
 
-test("the drift page's Temporal-tier drain + pin-skew classes check on demand and degrade honestly (#577)", async ({ page }) => {
+test("the drift page's Temporal-tier drain + pin-skew classes check on demand and degrade honestly (#577)", async ({ page, apiHealth }) => {
+  apiHealth.allow({ method: "GET", path: /\/workflows\/[^/]+\/versions$/, status: 503, reason: "This test probes version drain without Temporal" });
   // The two Temporal-tier reads answer only at their client bound against a dead-but-routable
   // cluster (ts-cp lane), so both probes fire concurrently and the test is given headroom.
   test.setTimeout(60_000);
@@ -458,7 +483,12 @@ test("in-app navigation carries the environment through links (#578)", async ({ 
   expect(errors, "no uncaught page errors").toEqual([]);
 });
 
-test("a foreign-runtime project degrades honestly — never a raw error (#621 slice 3)", async ({ page }) => {
+test("a foreign-runtime project degrades honestly — never a raw error (#621 slice 3)", async ({ page, apiHealth }) => {
+  apiHealth.allow({
+    method: "GET", status: 501,
+    path: new RegExp(`^/api/v1/projects/${rx(EXPECT.foreignProject)}/(?:validate|deployments|workflows/[^/]+/bundle)$`),
+    reason: "This test deliberately selects a project the server cannot resolve",
+  });
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
 
@@ -468,6 +498,7 @@ test("a foreign-runtime project degrades honestly — never a raw error (#621 sl
   // variants.
   await page.goto("/");
   await expect(page.locator(".project-switcher")).toBeVisible();
+  await apiHealth.settle();
   await page.locator(".project-switcher").selectOption(EXPECT.foreignProject);
 
   // The switcher itself says why the project is limited here.
@@ -484,6 +515,7 @@ test("a foreign-runtime project degrades honestly — never a raw error (#621 sl
 
   // First-class navigation targets degrade too — the Deployments route is
   // resolution-backed on the Python edition (codex).
+  await apiHealth.settle();
   await page.goto("/#/deployments");
   await expect(page.getByText(/cannot resolve the project's declared runtime/).first()).toBeVisible();
   await expect(page.locator(".error-panel")).toHaveCount(0);

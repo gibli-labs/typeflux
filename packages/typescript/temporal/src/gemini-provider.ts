@@ -176,8 +176,7 @@ export interface GeminiGenerateContentTransport {
 }
 
 export interface GeminiProviderOptions {
-  /** Default model when a call doesn't set one. For cross-run cache correctness, pass the
-   * effective model via `executeActivity`'s options (it enters the cache key). */
+  /** Default model, exposed to execution policy, cache identity and observations. */
   model?: string;
   /** `maxOutputTokens` cap (omitted from the request when unset — Gemini has its own default). */
   maxOutputTokens?: number;
@@ -191,12 +190,12 @@ export class GeminiProvider implements ModelProvider {
   readonly supportsSessionCache = true;
   readonly sessionCacheStyle = "reference" as const;
   private readonly transport: GeminiGenerateContentTransport;
-  private readonly defaultModel: string;
+  readonly defaultProviderParams: Readonly<{ model: string }>;
   private readonly maxOutputTokens: number | undefined;
 
   constructor(transport: GeminiGenerateContentTransport, options: GeminiProviderOptions = {}) {
     this.transport = transport;
-    this.defaultModel = options.model ?? DEFAULT_MODEL;
+    this.defaultProviderParams = Object.freeze({ model: options.model ?? DEFAULT_MODEL });
     this.maxOutputTokens = options.maxOutputTokens;
     if (this.maxOutputTokens !== undefined && this.maxOutputTokens < 1) {
       throw new ProviderConfigError("GeminiProvider: maxOutputTokens must be >= 1", { provider: "gemini" });
@@ -204,7 +203,7 @@ export class GeminiProvider implements ModelProvider {
   }
 
   async structuredCall(params: StructuredCallParams): Promise<unknown> {
-    const model = params.model ?? this.defaultModel;
+    const model = params.model ?? this.defaultProviderParams.model;
     // Fail LOUD on a malformed engaged handle rather than silently dropping the cached
     // prefix (Python _resolve_gemini_cache_id); undefined = not caching.
     const cachedContent = resolveGeminiCacheId(params.cachedSession, model);
@@ -330,7 +329,7 @@ export class GeminiProvider implements ModelProvider {
         { provider: "gemini" },
       );
     }
-    const model = params.model ?? this.defaultModel;
+    const model = params.model ?? this.defaultProviderParams.model;
     // Oversize reference artifacts (e.g. a >20MB video) ride the Files API and are
     // referenced by uri inside the cached content, not inlined — caches.create has the
     // same inline cap as a normal request (Python #358 parity).

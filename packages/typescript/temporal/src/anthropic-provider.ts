@@ -111,8 +111,7 @@ export interface AnthropicMessagesTransport {
 }
 
 export interface AnthropicProviderOptions {
-  /** Default model when a call doesn't set one. For cross-run cache correctness, pass
-   * the effective model via `executeActivity`'s options (it enters the cache key). */
+  /** Default model, exposed to execution policy, cache identity and observations. */
   model?: string;
   /** `max_tokens` for the response (required by Anthropic; default `4096`). */
   maxTokens?: number;
@@ -126,12 +125,12 @@ export class AnthropicProvider implements ModelProvider {
   readonly supportsSessionCache = true;
   readonly sessionCacheStyle = "prefix" as const;
   private readonly transport: AnthropicMessagesTransport;
-  private readonly defaultModel: string | undefined;
+  readonly defaultProviderParams: Readonly<{ model?: string }>;
   private readonly maxTokens: number;
 
   constructor(transport: AnthropicMessagesTransport, options: AnthropicProviderOptions = {}) {
     this.transport = transport;
-    this.defaultModel = options.model;
+    this.defaultProviderParams = Object.freeze(options.model === undefined ? {} : { model: options.model });
     this.maxTokens = options.maxTokens ?? DEFAULT_MAX_TOKENS;
     if (this.maxTokens < 1) {
       throw new ProviderConfigError("AnthropicProvider: maxTokens must be >= 1", { provider: "anthropic" });
@@ -139,7 +138,7 @@ export class AnthropicProvider implements ModelProvider {
   }
 
   async structuredCall(params: StructuredCallParams): Promise<unknown> {
-    const model = params.model ?? this.defaultModel;
+    const model = params.model ?? this.defaultProviderParams.model;
     if (model === undefined) {
       throw new ProviderConfigError("AnthropicProvider: a model is required (set it on the call or via options.model)", {
         provider: "anthropic",
@@ -268,7 +267,7 @@ export class AnthropicProvider implements ModelProvider {
       supported: true,
       style: "prefix",
       cache_id: null,
-      model: params.model ?? this.defaultModel ?? null,
+      model: params.model ?? this.defaultProviderParams.model ?? null,
       created_at: null,
       ttl_seconds: null,
       reference_cached: false,

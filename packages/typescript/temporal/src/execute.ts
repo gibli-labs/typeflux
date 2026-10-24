@@ -1161,6 +1161,19 @@ async function finalizeOutput<In extends z.ZodType, Out extends z.ZodType>(
   );
 }
 
+function resolveModel(
+  options: Pick<ExecuteActivityOptions, "model" | "provider">,
+  providerParams: Record<string, unknown>,
+): string | undefined {
+  const paramsModel = providerParams["model"];
+  const defaultModel = options.provider.defaultProviderParams?.["model"];
+  // Empty/non-string parameter models do not select a model. Mirror the
+  // provider's fallback so policy and cache still see the model it will use.
+  return options.model ??
+    (typeof paramsModel === "string" && paramsModel !== "" ? paramsModel : undefined) ??
+    (typeof defaultModel === "string" ? defaultModel : undefined);
+}
+
 /**
  * Resolve the messages + effective model for a call: use caller-supplied
  * `messages`, else resolve the activity's `prompt` ref via `registry` and render
@@ -1186,11 +1199,9 @@ async function resolveCall<In extends z.ZodType, Out extends z.ZodType>(
     // The same params-model fallback as the registry path (Bugbot #526): a model
     // inside the call/activity params must select the call's model, not only fold
     // into the cache key while a different model actually runs.
-    const paramsModel = providerParams["model"];
     return {
       messages: options.messages,
-      model:
-        options.model ?? (typeof paramsModel === "string" && paramsModel !== "" ? paramsModel : undefined),
+      model: resolveModel(options, providerParams),
       providerParams,
       promptMessages: options.messages,
       resolvedPromptVersion: null,
@@ -1212,14 +1223,10 @@ async function resolveCall<In extends z.ZodType, Out extends z.ZodType>(
       { temperature: resolved.temperature, model: resolved.model },
       descriptor.providerParams,
     );
-    // Python truthiness: an empty-string params model never selects a model.
-    const paramsModel = providerParams["model"];
-    const paramsModelOrUndefined =
-      typeof paramsModel === "string" && paramsModel !== "" ? paramsModel : undefined;
     const promptParamsModel = resolved.providerParams?.["model"];
     return {
       messages,
-      model: options.model ?? paramsModelOrUndefined,
+      model: resolveModel(options, providerParams),
       providerParams,
       promptMessages: resolved.messages,
       resolvedPromptVersion: resolved.resolvedVersion ?? null,
@@ -1350,10 +1357,7 @@ export async function prepareSessionCache<In extends z.ZodType, Out extends z.Zo
     prefixSource = options.messages;
     effectiveParams = mergeProviderParams(options.provider.defaultProviderParams, options.providerParams, descriptor.providerParams);
     // Same params-model fallback as the registry branch (Bugbot #526).
-    const messagesParamsModel = effectiveParams["model"];
-    effectiveModel =
-      options.model ??
-      (typeof messagesParamsModel === "string" && messagesParamsModel !== "" ? messagesParamsModel : undefined);
+    effectiveModel = resolveModel(options, effectiveParams);
   } else if (options.registry !== undefined) {
     // UNRENDERED (Python parity): the stable prefix must not interpolate any item.
     const resolved = await options.registry.resolve(descriptor.prompt);
@@ -1368,9 +1372,7 @@ export async function prepareSessionCache<In extends z.ZodType, Out extends z.Zo
       { temperature: resolved.temperature, model: resolved.model },
       descriptor.providerParams,
     );
-    const paramsModel = effectiveParams["model"];
-    effectiveModel =
-      options.model ?? (typeof paramsModel === "string" && paramsModel !== "" ? paramsModel : undefined);
+    effectiveModel = resolveModel(options, effectiveParams);
   } else {
     throw new Error(
       `prepareSessionCache for ${JSON.stringify(descriptor.name)} requires either ` +
@@ -2131,9 +2133,8 @@ export async function executeActivity<In extends z.ZodType, Out extends z.ZodTyp
     // Provider-limits admission (#529 PR B; Python worker parity): one slot held for
     // the WHOLE generation loop (validation attempts + transient retries), keyed per
     // provider/model. Selection + wait metadata land on the activity observation
-    // (Python's provider_call_metadata). NOTE: a provider-constructor default model
-    // is invisible here (as it is to the cache key) — model-level limits apply when
-    // the model comes from the call/prompt/spec merge.
+    // (Python's provider_call_metadata). Declared provider defaults participate in
+    // the same model resolution as policy, cache identity and observations.
     const controller = options.providerLimitController;
     if (controller === undefined) {
       return await runGenerationLoop();

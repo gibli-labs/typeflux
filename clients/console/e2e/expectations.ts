@@ -95,7 +95,7 @@ interface LaneExpectations {
   annotations: { count: number; staleAckPattern?: string };
 }
 
-export const EXPECT: LaneExpectations = {
+export const EXPECT: LaneExpectations = ({
   "python-cp": {
     defaultProject: "examples",
     secondProject: "examples_b",
@@ -170,4 +170,4 @@ export const EXPECT: LaneExpectations = {
     // (expires 2026-01-01), so the console derives its stale-ack warning on the project feed.
     annotations: { count: 2, staleAckPattern: "runtime.pin.*" },
   },
-}[LANE];
+} satisfies Record<Lane, LaneExpectations>)[LANE];

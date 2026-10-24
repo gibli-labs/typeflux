@@ -68,6 +68,15 @@ Because clients are injected:
 
 ## What this means for authors
 
+OpenAI, Anthropic and Gemini expose their constructor model through
+`ModelProvider.defaultProviderParams` (including Gemini's implicit model).
+Execution resolves it before policy checks, cross-run caching, observations and
+session-cache preparation; callers do not need to repeat it in `options.model`.
+The precedence is provider defaults < call `providerParams` < prompt parameters
+< activity parameters, with explicit `options.model` overriding all of them.
+Custom providers may opt into the same contract; providers that omit it retain
+their existing behavior.
+
 - **Pin the divergent params your provider requires.** For Anthropic and Gemini,
   set `provider_params.maxTokens` large enough for the activity's output (and, for
   Gemini, its thinking). A truncated extraction fails loud instead of producing

@@ -57,6 +57,14 @@ export default defineConfig({
       // Serve the lane's fixture registry under two ids; read endpoints are non-live.
       command: API_COMMAND,
       cwd: API_CWD,
+      // The examples' cloud overlay interpolates these values even for bundle
+      // reads. Use an unreachable loopback fixture, never an inherited cluster;
+      // credentials remain scrubbed by the shared development runner.
+      env: LANE === "python-cp" ? {
+        TEMPORAL_ADDRESS: "127.0.0.1:1",
+        TEMPORAL_NAMESPACE: "browser-fixture",
+        TEMPORAL_TLS: "false",
+      } : {},
       port: API_PORT,
       reuseExistingServer: false,
       timeout: 120_000,

@@ -29,6 +29,13 @@ and `graph`. A scope installs prerequisites; it does not certify any tests passe
 No provider/API credentials are needed for the default checks. Port 7233 must be
 free for isolated Temporal verification: the runner refuses to reuse another server.
 
+Browser fixtures run separately from Temporal. The Python API receives fixed local
+Temporal address/namespace values so all example environment bundles can be read
+without credentials. Both browser editions assert background API responses and
+wait for pending reads; deliberate outage and invalid-fixture responses are scoped
+explicitly in `clients/console/e2e/fixtures.ts` and the relevant specs. The bundle
+matrix also checks every fixture workflow/environment under both project IDs.
+
 ## Implement and verify
 
 1. Read `AGENTS.md`, the issue and relevant source. Retrieve graph context for a
