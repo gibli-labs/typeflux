@@ -10,6 +10,8 @@ uv run --project packages/python python -m tools.project_graph explain file:clie
 uv run --project packages/python python -m tools.project_graph impact --base <indexed-base-sha> --head <indexed-head-sha>
 uv run --project packages/python python -m tools.project_graph --output .project-graph/collection.json collect
 uv run --project packages/python python -m tools.project_graph --output .project-graph/navigation.json benchmark
+uv run --project packages/python python -m tools.project_graph --output .project-graph/impact.json report --base <base-sha>
+uv run --project packages/python python -m tools.project_graph --output .project-graph/explorer.html explore --base <base-sha>
 ```
 
 Omitting `--revision`/`--head` reads the working tree, including nonignored new files.
@@ -97,3 +99,74 @@ revision. Keep held-out acceptance tests outside agent context. Record correctne
 human correction time, elapsed time, spend, infrastructure failures, missed
 dependencies and successive-change quality. Model/spend approval and environment
 rollout evidence remain tracked by issue #46.
+
+## Task and verification records
+
+The local ignored journal is separate from the graph and from CI receipts:
+
+```sh
+uv run --project packages/python python -m tools.project_graph task issue-46 create --intent "Improve workflow review" --acceptance "Observe the correct execution progress" --capability capability.workflow-review
+uv run --project packages/python python -m tools.project_graph task issue-46 transition --state implementing
+uv run --project packages/python python -m tools.project_graph verify issue-46 graph
+uv run --project packages/python python -m tools.project_graph task issue-46 resume
+```
+
+Entries are append-only and chained by hashes, with serialized writes and exact
+input-tree identities. A changed tree makes previous results inapplicable. The
+fixed verifier registry supports graph, Python, TypeScript and console suites;
+catalog text cannot supply shell commands. A command's zero exit status is local
+execution evidence, not a complete behavioral-coverage claim. Output is represented
+by a digest instead of storing potentially sensitive raw logs. Journals are not
+cryptographic attestations against a malicious local editor.
+
+Before an external effect, record `task <id> effect --key <stable-operation-key>
+--state pending`. After observing its receipt, append `--state confirmed --receipt
+<reference>`. If the outcome is uncertain, leave it pending and reconcile with the
+external system. Only a confirmed absence (`not-applied`, with evidence) permits
+another pending attempt for the same key. This tool records and guards attempts;
+it does not itself create PRs or publish artifacts. The existing auto-fix wrapper's
+approval and side-effect checks still apply.
+
+## Advisory CI and trusted policy
+
+Every PR generates impact and offline HTML views. `project-graph/policy.yaml`
+contains required job identities, not commands. Planning and aggregation use the
+union of base and proposed obligations; removals cannot weaken their own change.
+The aggregate fetches receipts using read-only GitHub permissions and verifies
+the run, attempt, PR head, integration commit parents and every expected job.
+Only completed `success` passes: missing, cancelled, neutral, skipped, duplicate
+and stale results fail. Setup/install failures are classified as infrastructure
+candidates, never silently converted into a pass. Rerun the entire workflow when
+a new attempt is needed; successful jobs from older attempts are not reused.
+
+The aggregate executes the trusted base implementation with proposed source read
+as data. Its first introduction has an explicitly labeled advisory bootstrap,
+because no base implementation exists yet. Existing required checks/branch
+protection remain authoritative throughout; this change does not replace them or
+enable selective mandatory CI. Independent CodeQL, dependency-review and DCO gates
+remain independent; the aggregate describes the CI workflow only.
+
+## Human views and release evidence
+
+Open the generated HTML locally to browse capabilities, component dependencies,
+journey steps/failure paths, and explained base/head impact. Search and navigation
+operate offline. Repository text is rendered as text, not HTML or executable code.
+Each page identifies its revision and evidence class. Missing execution/telemetry
+evidence is displayed as unknown; no production observations are invented.
+Pass `explore --revision <tested-merge-sha> --verification <graph-ci-receipt.json>`
+to show results from an aggregate receipt. Both revision and input digest must
+match. CI also attaches this combined view after a passing aggregate. The offline
+viewer validates identity, not receipt authenticity; retrieve receipts from the
+trusted workflow run. Passing mapped jobs never imply production observations.
+
+`release --artifact <path>` (repeat for each artifact) hashes the actual files and
+binds them to a clean source tree and graph snapshot. Existing release workflows
+attach these receipts beside their checksums. For the TS train, the receipt uses
+the final anonymously verified registry bytes after the pipeline's canonical-byte
+reconciliation. Graph receipts list journey obligations as `not-recorded` and
+environment smoke/observation/recovery/drain requirements as pending; artifact
+identity alone cannot authorize promotion or certify a deployment.
+
+No runtime metadata or workflow execution-manifest changes are introduced.
+Runtime telemetry integrations must continue to use typed metadata contributors,
+keep tags low-cardinality, and exclude reviewer identities, notes and secrets.

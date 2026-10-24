@@ -484,3 +484,101 @@ jobs:
           '
           npm pack --dry-run
           npm run verify:pack
+
+  project-graph:
+    name: Project graph (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: '3.12'
+          version: '0.13.5'
+      - name: Install graph development dependencies
+        run: uv sync --project packages/python --frozen --group dev
+      - name: Compile graph, explain impact and render human views
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          uv run --project packages/python python -m tools.project_graph validate
+          uv run --project packages/python python -m tools.project_graph --output .project-graph/impact.json report --base "$BASE_SHA" --head "$GITHUB_SHA"
+          uv run --project packages/python python -m tools.project_graph --output .project-graph/explorer.html explore --base "$BASE_SHA" --revision "$GITHUB_SHA"
+          uv run --project packages/python python -m tools.project_graph --output .project-graph/navigation.json benchmark --revision "$GITHUB_SHA"
+          echo '### Project graph' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Advisory impact, evidence gaps and an offline human explorer are attached as project-graph artifacts. All existing CI remains mandatory.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload graph reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: project-graph
+          path: .project-graph/
+          include-hidden-files: true
+          if-no-files-found: error
+
+  graph-aggregate:
+    name: CI evidence aggregate
+    if: always()
+    needs: [tests, quality, web, conformance, sdk-typescript, mcp, project-graph]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the tested source as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out trusted base tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: '3.12'
+          version: '0.13.5'
+      - name: Install trusted graph dependencies
+        run: uv sync --project trusted/packages/python --frozen --group dev
+      - name: Read CI receipts from GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/graph-run.json"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest&per_page=100" > "$RUNNER_TEMP/graph-jobs.json"
+      - name: Verify every base and proposed required job on this run
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          tools_root="$GITHUB_WORKSPACE/trusted"
+          if [ ! -f "$tools_root/tools/project_graph/ci.py" ]; then
+            # One-time bootstrap of the new advisory validator. Existing branch
+            # protection stays authoritative. Future runs execute base code only.
+            tools_root="$GITHUB_WORKSPACE/source"
+            echo 'Bootstrap: candidate aggregate implementation; existing required checks remain authoritative.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          PYTHONPATH="$tools_root" uv run --project trusted/packages/python python -m tools.project_graph \
+            --root "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/graph-ci-receipt.json" aggregate \
+            --base "$BASE_SHA" --head "$GITHUB_SHA" --expected-head "$HEAD_SHA" --tested-revision "$GITHUB_SHA" \
+            --run "$RUNNER_TEMP/graph-run.json" --jobs "$RUNNER_TEMP/graph-jobs.json" \
+            --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT"
+          PYTHONPATH="$tools_root" uv run --project trusted/packages/python python -m tools.project_graph \
+            --root "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/graph-verified.html" explore \
+            --revision "$GITHUB_SHA" --base "$BASE_SHA" --verification "$RUNNER_TEMP/graph-ci-receipt.json"
+      - name: Upload CI verification receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: graph-ci-receipt
+          path: |
+            ${{ runner.temp }}/graph-ci-receipt.json
+            ${{ runner.temp }}/graph-verified.html
+          if-no-files-found: error

@@ -351,6 +351,18 @@ jobs:
           (cd dist-train && shasum -a 256 -- *.tgz > SHA256SUMS)
           cat dist-train/SHA256SUMS
 
+      - name: Set up graph evidence tooling
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: '3.12'
+          version: '0.13.5'
+      - name: Bind served artifact bytes to the project graph
+        run: |
+          uv sync --project packages/python --frozen --group dev
+          args=()
+          for artifact in dist-train/*.tgz; do args+=(--artifact "$artifact"); done
+          uv run --project packages/python python -m tools.project_graph --output dist-train/project-graph.json release "${args[@]}"
+
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -369,10 +381,10 @@ jobs:
 
           $changelog_section"
           if gh release view "ts-v$RELEASE_VERSION" >/dev/null 2>&1; then
-            gh release upload "ts-v$RELEASE_VERSION" dist-train/*.tgz dist-train/SHA256SUMS --clobber
+            gh release upload "ts-v$RELEASE_VERSION" dist-train/*.tgz dist-train/SHA256SUMS dist-train/project-graph.json --clobber
           else
             gh release create "ts-v$RELEASE_VERSION" \
               --title "@typeflux TS SDK $RELEASE_VERSION" \
               --notes "$notes" \
-              dist-train/*.tgz dist-train/SHA256SUMS
+              dist-train/*.tgz dist-train/SHA256SUMS dist-train/project-graph.json
           fi

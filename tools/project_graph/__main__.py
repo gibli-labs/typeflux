@@ -29,9 +29,16 @@ def main(argv=None) -> int:
     sub = commands.add_parser("impact")
     sub.add_argument("--base", required=True)
     sub.add_argument("--head", help="Commit/ref; omitted reads the working tree")
+    from .integration import register
+
+    register(commands)
     args = parser.parse_args(argv)
     try:
-        if args.command == "impact":
+        if args.command in {"report", "explore", "aggregate", "release", "task", "verify"}:
+            from .integration import execute
+
+            result = execute(args)
+        elif args.command == "impact":
             result = impact(
                 compile_for_impact(Repository(args.root, args.base)),
                 compile_for_impact(Repository(args.root, args.head)),
@@ -70,14 +77,22 @@ def main(argv=None) -> int:
                 repo = Repository(args.root, args.revision)
                 tasks = json.loads(repo.text("project-graph/evaluation/navigation.json"))
                 result = benchmark(repo, graph, tasks)
-        rendered = json.dumps(result, indent=2, sort_keys=True) + "\n"
-        if args.format == "text":
+        rendered = (
+            result
+            if isinstance(result, str)
+            else json.dumps(result, indent=2, sort_keys=True) + "\n"
+        )
+        if args.format == "text" and isinstance(result, dict):
             rendered = render_text(result)
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(rendered)
         else:
             print(rendered, end="")
+        if args.command == "aggregate" and not result["passed"]:
+            return 1
+        if args.command == "verify" and result["payload"]["result"] != "passed":
+            return 1
         return 0
     except (GraphError, ValueError, OSError) as error:
         print(f"project-graph: {error}", file=sys.stderr)

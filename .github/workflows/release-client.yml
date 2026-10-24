@@ -190,6 +190,19 @@ jobs:
           fi
           echo "anonymous fetch verified: sha256 $published_sha"
 
+      - name: Set up graph evidence tooling
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: '3.12'
+          version: '0.13.5'
+      - name: Bind verified artifact bytes to the project graph
+        working-directory: .
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          uv sync --project packages/python --frozen --group dev
+          uv run --project packages/python python -m tools.project_graph --output .project-graph/release-client.json release --artifact "clients/typescript/$TARBALL"
+
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -202,10 +215,10 @@ jobs:
           Generated from the normative control-plane contract; the major version tracks the contract's API major.
           Tarball sha256: $SHA256"
           if gh release view "client-v$RELEASE_VERSION" >/dev/null 2>&1; then
-            gh release upload "client-v$RELEASE_VERSION" "$TARBALL" "$TARBALL.sha256" --clobber
+            gh release upload "client-v$RELEASE_VERSION" "$TARBALL" "$TARBALL.sha256" "../../.project-graph/release-client.json" --clobber
           else
             gh release create "client-v$RELEASE_VERSION" \
               --title "@typeflux/control-plane-client $RELEASE_VERSION" \
               --notes "$notes" \
-              "$TARBALL" "$TARBALL.sha256"
+              "$TARBALL" "$TARBALL.sha256" "../../.project-graph/release-client.json"
           fi

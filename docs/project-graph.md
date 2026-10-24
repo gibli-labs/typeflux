@@ -1,9 +1,12 @@
 # Project graph and agentic development proposal
 
-Status: foundation implemented. The [repository-local tool](../tools/project_graph/README.md)
-provides deterministic compilation, context/impact/explanation queries, test
-collection and a workflow-review pilot. The CI, task/evidence and explorer work
-below remains staged; research/evaluation claims are not established by implementation.
+Status: repository tooling implemented. The [local tool](../tools/project_graph/README.md)
+provides deterministic compilation, context/impact queries, test collection, task
+and verification journals, advisory CI aggregation, a human explorer and release
+identity receipts. Workflow review is the first detailed journey. Larger matched
+agent trials and target-environment rollout/recovery evidence remain pending;
+implementation and the navigation diagnostic do not establish productivity or CI
+selection safety. Full mandatory CI and existing release approvals remain in force.
 
 Implementation tracking: [issue 46](https://github.com/gibli-labs/typeflux/issues/46).
 
