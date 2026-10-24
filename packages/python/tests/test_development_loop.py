@@ -247,3 +247,52 @@ def test_delayed_run_cannot_overwrite_newer_acceptance(monkeypatch):
     assert not acceptance.is_latest("owner/repo", run, 1)
     monkeypatch.setattr(acceptance, "api", lambda path: {"workflow_runs": [{"id": 6}, {"id": 5}]})
     assert not acceptance.is_latest("owner/repo", run, 2)
+
+
+def test_conversation_protection_changes_only_the_requested_graphql_field(monkeypatch):
+    from tools.development import protection
+
+    calls = []
+
+    def api(path, payload):
+        calls.append((path, payload))
+        if len(calls) == 1:
+            return {
+                "data": {
+                    "repository": {
+                        "ref": {"branchProtectionRule": {"id": "rule-id", "pattern": "main"}}
+                    }
+                }
+            }
+        return {
+            "data": {
+                "updateBranchProtectionRule": {
+                    "branchProtectionRule": {"requiresConversationResolution": True}
+                }
+            }
+        }
+
+    monkeypatch.setattr(protection, "api", api)
+    protection.require_conversation_resolution("owner/repo")
+    assert [path for path, _ in calls] == ["graphql", "graphql"]
+    assert calls[0][1]["variables"] == {"owner": "owner", "name": "repo"}
+    assert calls[1][1]["variables"]["input"] == {
+        "branchProtectionRuleId": "rule-id",
+        "requiresConversationResolution": True,
+    }
+
+
+@pytest.mark.parametrize("rule", [None, {"id": "shared-rule", "pattern": "*"}])
+def test_conversation_protection_refuses_missing_or_shared_rules(monkeypatch, rule):
+    from tools.development import protection
+
+    calls = []
+
+    def api(path, payload):
+        calls.append(payload)
+        return {"data": {"repository": {"ref": {"branchProtectionRule": rule}}}}
+
+    monkeypatch.setattr(protection, "api", api)
+    with pytest.raises(GraphError, match="scoped to main"):
+        protection.require_conversation_resolution("owner/repo")
+    assert len(calls) == 1
