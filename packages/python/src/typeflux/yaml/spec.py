@@ -16,6 +16,7 @@ from typeflux.core.artifacts import (
 )
 from typeflux.core.contracts import ChatMessage, ProviderParams
 from typeflux.core.subjects import SubjectInput
+from typeflux.providers.typesafe import DEFAULT_TYPESAFE_MODEL
 from typeflux.yaml.overrides import YamlOverrideProvenance
 from typeflux.yaml.payload_codec import PayloadCodecSpec
 from typeflux.yaml.secrets import SecretValueSpec, secret_value_configured
@@ -422,6 +423,7 @@ DEFAULT_PROVIDER_MODELS = {
     "openai": DEFAULT_OPENAI_MODEL,
     "anthropic": DEFAULT_ANTHROPIC_MODEL,
     "gemini": DEFAULT_GEMINI_MODEL,
+    "typesafe": DEFAULT_TYPESAFE_MODEL,
 }
 
 
@@ -445,7 +447,9 @@ class VertexSpec(BaseModel):
 class ProviderSpec(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    type: Literal["fake", "openai", "anthropic", "gemini", "vercel-ai-gateway", "custom"]
+    type: Literal[
+        "fake", "openai", "anthropic", "gemini", "vercel-ai-gateway", "typesafe", "custom"
+    ]
     model: str | None = None
     structured_mode: Literal["json_schema"] = "json_schema"
     provider_class: str | None = Field(default=None, alias="class")
@@ -500,6 +504,8 @@ class ProviderSpec(BaseModel):
             self.model = self.params.model
         if self.model is None:
             self.model = DEFAULT_PROVIDER_MODELS.get(self.type)
+        if self.type == "typesafe" and self.base_url is not None:
+            raise ValueError("TypeSafe uses its fixed endpoint; base_url is unsupported")
         if self.type == "vercel-ai-gateway":
             from typeflux.providers.errors import ProviderConfigError
             from typeflux.providers.vercel_ai_gateway import validate_gateway_model

@@ -140,3 +140,11 @@ are mutually exclusive (Vertex is keyless).
 in both editions. Select `vercel-ai-gateway` and an explicit `author/model` ID;
 use the documented narrow parameter set and `VERCEL_API_KEY`. Gateway identity
 is distinct from the requested model and optional reported upstream host.
+
+## TypeSafe / Jev
+
+[TypeSafe / Jev](typesafe.md) is available in both SDKs and YAML as `typesafe`.
+It evaluates native Choice, Score and Noul questions and preserves their full
+answers for deterministic routing and review decisions. Its first system message
+is a JSON question map; subsequent text supplies state. It does not generate
+arbitrary JSON. Only `model` and `timeout` parameters are supported.

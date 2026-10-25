@@ -14,6 +14,9 @@ import {
   type ModelProvider,
   OpenAIProvider,
   VercelAIGatewayProvider,
+  TypeSafeProvider,
+  DEFAULT_TYPESAFE_MODEL,
+  type TypeSafeTransport,
   type OpenAIChatTransport,
 } from "@typeflux/temporal";
 
@@ -24,6 +27,7 @@ const DEFAULT_MODELS = {
   openai: "gpt-4o-mini",
   anthropic: "claude-sonnet-4-6",
   gemini: "gemini-2.5-flash",
+  typesafe: DEFAULT_TYPESAFE_MODEL,
 } as const;
 
 /**
@@ -57,6 +61,7 @@ export const ENGINE_PROVIDER_RETRY_DEFAULTS = {
 
 /** The injected thin transports, keyed by provider type — supply the one(s) your spec uses. */
 export interface ProviderTransports {
+  typesafe?: TypeSafeTransport;
   openai?: OpenAIChatTransport;
   "vercel-ai-gateway"?: OpenAIChatTransport;
   anthropic?: AnthropicMessagesTransport;
@@ -66,7 +71,7 @@ export interface ProviderTransports {
 /**
  * Construct the `ModelProvider` the spec's `runtime.provider.type` selects, wired to the
  * matching injected transport. Throws if the type has no provided transport or is
- * unsupported (openai / anthropic / gemini / vercel-ai-gateway).
+ * unsupported (openai / anthropic / gemini / vercel-ai-gateway / typesafe).
  */
 export function providerFromSpec(spec: TypefluxYamlSpec, transports: ProviderTransports): ModelProvider {
   const providerSpec = spec.runtime.provider;
@@ -76,6 +81,11 @@ export function providerFromSpec(spec: TypefluxYamlSpec, transports: ProviderTra
   // `model: ${MODEL:-}` env default) must fall back to the built-in default rather than
   // sending `model: ""` to the vendor — parity with Python's `provider.model or DEFAULT`.
   switch (type) {
+    case "typesafe": {
+      return new TypeSafeProvider(requireTransport(transports.typesafe, type), {
+        model: providerSpec.model || providerSpec.params?.model || DEFAULT_TYPESAFE_MODEL,
+      });
+    }
     case "vercel-ai-gateway": {
       return new VercelAIGatewayProvider(requireTransport(transports[type], type), {
         model: providerSpec.model ?? providerSpec.params?.model ?? "",
@@ -96,7 +106,7 @@ export function providerFromSpec(spec: TypefluxYamlSpec, transports: ProviderTra
     default:
       throw new Error(
         `providerFromSpec: unsupported provider type ${JSON.stringify(type)} ` +
-          `(supported: openai, anthropic, gemini, vercel-ai-gateway)`,
+          `(supported: openai, anthropic, gemini, vercel-ai-gateway, typesafe)`,
       );
   }
 }

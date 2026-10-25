@@ -39,7 +39,7 @@ const ISOLATED_ENV_NAMES = new Set([
   "TEMPORAL_TLS",
   "TEMPORAL_WORKFLOW_ID",
 ]);
-const ISOLATED_ENV_PREFIXES = ["AI_GATEWAY_", "VERCEL_", "ANTHROPIC_", "GEMINI_", "LANGCHAIN_", "LANGFUSE_", "LANGSMITH_", "OPENAI_", "TEMPORAL_"];
+const ISOLATED_ENV_PREFIXES = ["TYPESAFE_", "AI_GATEWAY_", "VERCEL_", "ANTHROPIC_", "GEMINI_", "LANGCHAIN_", "LANGFUSE_", "LANGSMITH_", "OPENAI_", "TEMPORAL_"];
 
 // Parity with the Python guard (ipaddress.is_loopback): the unspecified
 // addresses 0.0.0.0 and :: are NOT loopback and stay blocked.

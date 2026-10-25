@@ -1,0 +1,88 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.typesafe
+    kind: capability
+    description: Execute native TypeSafe Jev Choice, Score and Noul decisions from both SDKs and YAML, preserving answer distributions for deterministic workflow routing and human review fallback.
+    editions: {python: supported, typescript: supported}
+    implementation:
+      - packages/python/src/typeflux/providers/typesafe.py
+      - packages/python/src/typeflux/providers/__init__.py
+      - packages/python/src/typeflux/__init__.py
+      - packages/python/src/typeflux/yaml/spec.py
+      - packages/python/src/typeflux/yaml/runtime.py
+      - packages/typescript/temporal/src/typesafe-provider.ts
+      - packages/typescript/temporal/src/index.ts
+      - packages/typescript/temporal-yaml/src/provider-from-spec.ts
+      - packages/typescript/temporal-yaml/src/provider-transports-from-env.ts
+      - packages/typescript/temporal-yaml/src/spec.ts
+    documentation: [docs/typesafe.md, docs/provider-portability.md, docs/typescript/provider-portability.md]
+    examples:
+      - packages/python/examples/typesafe_decisions/main.py
+      - packages/python/examples/typesafe_decisions/schemas.py
+      - packages/python/examples/typesafe_decisions/typeflux.yaml
+      - packages/typescript/temporal-yaml/examples/typesafe-decisions/main.ts
+      - packages/typescript/temporal-yaml/examples/typesafe-decisions/typeflux.yaml
+    links:
+      - {relation: requires, target: invariant.typesafe-decisions}
+      - {relation: requires, target: invariant.typesafe-identity-failure}
+  - id: invariant.typesafe-decisions
+    kind: invariant
+    description: The first system message supplies explicit native questions, subsequent text supplies state, and matching native answer types and ranges are checked before Pydantic or Zod activity validation; workflow rules own thresholds and model decisions never count as human approval.
+  - id: invariant.typesafe-identity-failure
+    kind: invariant
+    description: Requested model controls policy and cache identity, resolved model and tokens use existing observations, credentials use TYPESAFE_API_KEY or an explicit secret, unsupported features fail before transport, and sanitized failures follow Typeflux retry and cancellation behavior with SDK retries disabled.
+  - id: check.typesafe-python
+    kind: check
+    description: Offline Python native answers, model identity, policy/cache, errors, async cancellation, YAML and official SDK serialization; live provider availability is separate opt-in evidence.
+    environment: python-non-live
+    ci: [python-3.12]
+    tests:
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_native_decisions_usage_and_overrides}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_activity_policy_cache_and_retry}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_errors_are_classified_and_redacted}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_rejects_invalid_questions_before_transport}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_rejects_malformed_answers}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_async_and_cancellation}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_yaml_and_auth}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_official_sdk_wire}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_official_sdk_errors}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_yaml_example_executes}
+    links:
+      - {relation: verifies, target: invariant.typesafe-decisions}
+      - {relation: verifies, target: invariant.typesafe-identity-failure}
+  - id: check.typesafe-typescript
+    kind: check
+    description: Offline native decisions, policy/cache identity, transport failures, retry, cancellation, YAML and official SDK request serialization.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/temporal/test/typesafe-provider.test.ts, name: preserves native decisions and usage through activity validation}
+      - {path: packages/typescript/temporal/test/typesafe-provider.test.ts, name: partitions caches by model and honors explicit overrides}
+      - {path: packages/typescript/temporal/test/typesafe-provider.test.ts, name: retries overload through the executor and propagates cancellation}
+      - {path: packages/typescript/temporal/test/typesafe-provider.test.ts, name: rejects sampling params and malformed answers}
+      - {path: packages/typescript/temporal-yaml/test/typesafe.test.ts, name: configures the official SDK and executes native decisions}
+      - {path: packages/typescript/temporal-yaml/test/typesafe.test.ts, name: requires its own key and honors explicit credentials}
+      - {path: packages/typescript/temporal-yaml/test/typesafe.test.ts, name: rejects unsupported generation parameters at load}
+      - {path: packages/typescript/temporal-yaml/test/typesafe-wire.test.ts, name: serializes native decisions with the official SDK and preserves timeout and cancellation options}
+      - {path: packages/typescript/temporal-yaml/test/typesafe-wire.test.ts, name: classifies official SDK HTTP errors and retry hints}
+    links:
+      - {relation: verifies, target: invariant.typesafe-decisions}
+      - {relation: verifies, target: invariant.typesafe-identity-failure}
+  - id: journey.typesafe
+    kind: journey
+    description: Configure Jev, execute typed questions and use their validated answers as workflow routing evidence without treating a model judgment as human review approval.
+    links:
+      - {relation: uses, target: capability.typesafe}
+    steps:
+      - id: configure
+        action: Select typesafe, supply credentials and declare a JSON question map with an output schema.
+        outcome: Optional SDK or injected transport exposes its model and rejects unsupported parameters.
+        capabilities: [capability.typesafe]
+        checks: [check.typesafe-python, check.typesafe-typescript]
+        failures: [Missing credentials, Invalid questions, Unsupported parameters]
+      - id: decide
+        action: Execute the decision activity with text state.
+        outcome: Native answers retain probabilities and confidence and pass activity output validation before caching.
+        capabilities: [capability.typesafe]
+        checks: [check.typesafe-python, check.typesafe-typescript]
+        failures: [Malformed response, Output validation failure, Authentication failure, Retry exhaustion, Cancellation]

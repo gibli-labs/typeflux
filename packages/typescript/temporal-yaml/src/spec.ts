@@ -249,6 +249,7 @@ export const providerParamsSpec = z
  * Unknown provider types (`custom`/`fake`) skip the check (their provider is injected).
  */
 const SUPPORTED_PROVIDER_PARAMS: Record<string, ReadonlySet<string>> = {
+  typesafe: new Set(["model", "timeout"]),
   "vercel-ai-gateway": VERCEL_AI_GATEWAY_PARAMS,
   openai: new Set(["model", "temperature", "max_tokens", "top_p", "stop", "seed", "timeout", "frequency_penalty", "presence_penalty"]),
   anthropic: new Set(["model", "temperature", "max_tokens", "top_p", "top_k", "stop", "timeout"]),
@@ -431,7 +432,7 @@ export const registrySpec = z
 
 export const providerSpec = z
   .object({
-    type: z.string().describe("Provider: openai, anthropic, gemini, vercel-ai-gateway, or an injected provider"),
+    type: z.string().describe("Provider: openai, anthropic, gemini, vercel-ai-gateway, typesafe, or an injected provider"),
     model: z.string().optional().describe("Explicit author/model ID required for vercel-ai-gateway"),
     // The only Python-legal value, and what the TS providers already do — a typo'd mode now
     // fails here instead of being silently ignored.

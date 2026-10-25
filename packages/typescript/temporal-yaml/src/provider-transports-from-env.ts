@@ -27,7 +27,7 @@
  * pass your own `provider` or `transports` and this module never runs.
  */
 
-import { VERCEL_AI_GATEWAY_BASE_URL } from "@typeflux/temporal";
+import { VERCEL_AI_GATEWAY_BASE_URL, TYPESAFE_BASE_URL } from "@typeflux/temporal";
 
 import { resolveOptionalSecretText } from "./secret-references.js";
 
@@ -220,6 +220,17 @@ export async function providerTransportsFromSpec(
 ): Promise<ProviderTransports | undefined> {
   const type = spec.runtime.provider.type;
   switch (type) {
+    case "typesafe": {
+      const apiKey = resolveProviderApiKey(spec, environment) ?? environment["TYPESAFE_API_KEY"];
+      if (!apiKey?.trim()) throw missingKeyError(type, "TYPESAFE_API_KEY");
+      let sdk: typeof import("@typesafe-ai/sdk");
+      try { sdk = await import("@typesafe-ai/sdk"); }
+      catch (error) { throw missingSdkError(type, "@typesafe-ai/sdk", "typesafe", error); }
+      const client = new sdk.TypeSafeClient({ apiKey, baseURL: TYPESAFE_BASE_URL, retry: { maxRetries: 0 }, logLevel: "off" });
+      return { typesafe: { systemOne: (request, options) =>
+        client.systemOne(request, vendorRequestOptions(options)),
+      } };
+    }
     case "vercel-ai-gateway":
     case "openai": {
       // The spec's api_key slot wins over the vendor's standard variable

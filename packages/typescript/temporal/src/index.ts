@@ -217,3 +217,5 @@ export { serializeTraceRecord } from "./trace.js";
 export type { ObservationRecord, TraceRecord, TraceRetrievalInfo } from "./trace.js";
 
 export { VercelAIGatewayProvider, VERCEL_AI_GATEWAY_BASE_URL, VERCEL_AI_GATEWAY_PARAMS, validateGatewayModel } from "./vercel-ai-gateway-provider.js";
+
+export { TypeSafeProvider, DEFAULT_TYPESAFE_MODEL, TYPESAFE_BASE_URL, TYPESAFE_PARAMS, type TypeSafeJsonValue, type TypeSafeContent, type TypeSafeQuestion, type TypeSafeRequest, type TypeSafeTransport } from "./typesafe-provider.js";

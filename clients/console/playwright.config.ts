@@ -44,6 +44,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
+  // Bundle/policy fan-out can take over 5 seconds on CI. Match the API-health
+  // fixture's bounded wait while keeping every rendering and error assertion.
+  expect: { timeout: 15_000 },
   reporter: process.env.PLAYWRIGHT_JSON_OUTPUT_FILE
     ? [["list"], ["json", { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT_FILE }]]
     : "list",
