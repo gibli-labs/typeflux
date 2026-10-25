@@ -166,10 +166,24 @@ export class TypeSafeProvider implements ModelProvider {
     return response["answers"];
   }
 }
+function retryHint(error: unknown): number | undefined {
+  const info = error as { retryAfterMs?: unknown; headers?: { get?: (name: string) => unknown } } | null;
+  const milliseconds = info?.retryAfterMs;
+  if (typeof milliseconds === "number" && Number.isFinite(milliseconds) && milliseconds >= 0) return milliseconds / 1000;
+  // Server errors expose headers without the rate-limit-only retryAfterMs.
+  try {
+    const raw = info?.headers?.get?.("retry-after-ms");
+    if (typeof raw === "string" && /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(raw.trim())) {
+      const ms = Number(raw);
+      if (Number.isFinite(ms) && ms >= 0) return ms / 1000;
+    }
+  } catch { /* Ignore malformed headers on injected transport errors. */ }
+  return retryAfterSecondsFrom(error);
+}
 function transportError(error: unknown): Error {
   const info = error as { status?: unknown; statusCode?: unknown; name?: string; code?: string } | null;
   const status = info?.status ?? info?.statusCode;
-  const hint = retryAfterSecondsFrom(error);
+  const hint = retryHint(error);
   const options = hint === undefined ? undefined : { retryAfterSeconds: hint };
   if (status === 401 || status === 403) return new ProviderAuthError("TypeSafe authentication failed", { provider: "typesafe" });
   if (status === 429) return new ProviderRateLimitError("TypeSafe rate limit", options);

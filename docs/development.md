@@ -35,6 +35,8 @@ without credentials. Both browser editions assert background API responses and
 wait for pending reads; deliberate outage and invalid-fixture responses are scoped
 explicitly in `clients/console/e2e/fixtures.ts` and the relevant specs. The bundle
 matrix also checks every fixture workflow/environment under both project IDs.
+Browser assertions use a 15-second default wait, matching the API-health fixture,
+so bundle and policy fan-out can settle on CI before data-backed UI is asserted.
 
 ## Implement and verify
 

@@ -27,7 +27,7 @@ entities:
       - {relation: verifies, target: invariant.review-failure}
   - id: check.review-browser
     kind: check
-    description: Browser review interaction against both read-API editions with self-contained bundle fixtures, unexpected background API failure assertions and controlled operation responses; not live Temporal evidence.
+    description: Browser review interaction against both read-API editions with self-contained bundle fixtures, a bounded 15-second default assertion wait for API-backed rendering, unexpected background API failure assertions and controlled operation responses; not live Temporal evidence.
     environment: chromium-python-cp-and-ts-cp
     ci: [browser-python, browser-typescript]
     tests:

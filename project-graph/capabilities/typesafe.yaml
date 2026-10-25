@@ -45,6 +45,7 @@ entities:
       - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_async_and_cancellation}
       - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_yaml_and_auth}
       - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_official_sdk_wire}
+      - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_official_sdk_errors}
       - {path: packages/python/tests/test_typesafe_provider.py, name: test_typesafe_yaml_example_executes}
     links:
       - {relation: verifies, target: invariant.typesafe-decisions}
@@ -63,6 +64,7 @@ entities:
       - {path: packages/typescript/temporal-yaml/test/typesafe.test.ts, name: requires its own key and honors explicit credentials}
       - {path: packages/typescript/temporal-yaml/test/typesafe.test.ts, name: rejects unsupported generation parameters at load}
       - {path: packages/typescript/temporal-yaml/test/typesafe-wire.test.ts, name: serializes native decisions with the official SDK and preserves timeout and cancellation options}
+      - {path: packages/typescript/temporal-yaml/test/typesafe-wire.test.ts, name: classifies official SDK HTTP errors and retry hints}
     links:
       - {relation: verifies, target: invariant.typesafe-decisions}
       - {relation: verifies, target: invariant.typesafe-identity-failure}

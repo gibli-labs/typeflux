@@ -108,8 +108,9 @@ def test_typesafe_native_decisions_usage_and_overrides():
 
 
 def test_typesafe_activity_policy_cache_and_retry():
-    error = RuntimeError("fixture-secret")
-    error.status_code = 529
+    sdk = pytest.importorskip("typesafe_sdk")
+    httpx = pytest.importorskip("httpx2")
+    error = sdk.TypeSafeInternalServerError(529, "fixture-secret", httpx.Headers())
     provider, call = fixture(Mock(side_effect=[error, RESPONSE, RESPONSE]))
     registry = InlinePromptRegistry(
         {"p": ResolvedPrompt(ref=PromptRef("p"), messages=tuple(MESSAGES))}
@@ -277,6 +278,51 @@ def test_typesafe_official_sdk_wire():
         "questions": QUESTIONS,
         "state": MESSAGES[1].content,
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize(
+    "status,headers,error_type,delay",
+    [
+        (401, {}, ProviderAuthError, None),
+        (403, {}, ProviderAuthError, None),
+        (408, {}, ProviderTransientError, None),
+        (409, {}, ProviderTransientError, None),
+        (429, {"retry-after": "2"}, ProviderRateLimitError, 2),
+        (429, {"retry-after-ms": "1250", "retry-after": "9"}, ProviderRateLimitError, 1.25),
+        (503, {"retry-after": "2"}, ProviderTransientError, 2),
+        (529, {"retry-after-ms": "1250"}, ProviderTransientError, 1.25),
+        (422, {}, ProviderConfigError, None),
+    ],
+)
+async def test_typesafe_official_sdk_errors(asynchronous, status, headers, error_type, delay):
+    sdk = pytest.importorskip("typesafe_sdk")
+    httpx = pytest.importorskip("httpx2")
+    respond = Mock(
+        return_value=httpx.Response(status, json={"message": "fixture-secret"}, headers=headers)
+    )
+    options = dict(
+        api_key="fixture-key",
+        transport=httpx.MockTransport(respond),
+        retry=sdk.RetryPolicy(max_retries=0),
+        compression=False,
+    )
+    with pytest.raises(error_type) as raised:
+        if asynchronous:
+            async with sdk.AsyncTypeSafeClient(**options) as client:
+                provider = TypeSafeProvider(async_typesafe_client=client)
+                await provider.async_structured_call(messages=MESSAGES, output_schema=Output)
+        else:
+            with sdk.TypeSafeClient(**options) as client:
+                provider = TypeSafeProvider(typesafe_client=client)
+                provider.structured_call(messages=MESSAGES, output_schema=Output)
+    assert respond.call_count == 1  # SDK retries remain disabled.
+    assert raised.value.original is None
+    assert raised.value.__cause__ is None
+    assert "fixture-secret" not in str(raised.value)
+    if isinstance(raised.value, ProviderTransientError):
+        assert raised.value.retry_after_seconds == delay
 
 
 @pytest.mark.asyncio

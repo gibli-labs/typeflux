@@ -333,8 +333,34 @@ def _result(
     return schema.model_validate(response["answers"])
 
 
+def _retry_hint(exc: Exception) -> float | None:
+    milliseconds = getattr(exc, "retry_after_ms", None)
+    if (
+        isinstance(milliseconds, (int, float))
+        and not isinstance(milliseconds, bool)
+        and math.isfinite(milliseconds)
+        and milliseconds >= 0
+    ):
+        return milliseconds / 1000
+    # Official SDK errors carry headers directly, including millisecond hints
+    # on server errors that do not expose the rate-limit-only retry_after_ms.
+    headers = getattr(exc, "headers", None)
+    if headers is not None:
+        for name, scale in (("retry-after-ms", 1000), ("retry-after", 1)):
+            try:
+                value = float(headers.get(name))
+            except (AttributeError, TypeError, ValueError):
+                continue
+            if math.isfinite(value) and value >= 0:
+                return value / scale
+    seconds = retry_after_seconds(exc)
+    return seconds if seconds is not None and math.isfinite(seconds) else None
+
+
 def _raise_error(exc: Exception) -> NoReturn:
-    status = getattr(exc, "status_code", None)
+    status = getattr(exc, "status", None)
+    if type(status) is not int:
+        status = getattr(exc, "status_code", None)
     status = status if type(status) is int else None
     if status in (401, 403):
         raise ProviderAuthError(
@@ -345,7 +371,7 @@ def _raise_error(exc: Exception) -> NoReturn:
             "TypeSafe rate limit",
             provider="typesafe",
             status_code=status,
-            retry_after_seconds=retry_after_seconds(exc),
+            retry_after_seconds=_retry_hint(exc),
         ) from None
     if (
         status in (408, 409)
@@ -356,6 +382,6 @@ def _raise_error(exc: Exception) -> NoReturn:
             "TypeSafe transient transport failure",
             provider="typesafe",
             status_code=status,
-            retry_after_seconds=retry_after_seconds(exc),
+            retry_after_seconds=_retry_hint(exc),
         ) from None
     raise _config("rejected the decision request") from None
