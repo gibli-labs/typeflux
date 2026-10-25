@@ -315,6 +315,9 @@ importers:
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.2
+      '@typesafe-ai/sdk':
+        specifier: ^0.7.0
+        version: 0.7.0
       langsmith:
         specifier: ^0.11.0
         version: 0.11.0(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(openai@7.40.0(ws@8.22.0)(zod@4.6.7))(ws@8.22.0)
@@ -1035,6 +1038,10 @@ packages:
 
   '@types/retry@0.12.0':
     resolution: {integrity: sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==}
+
+  '@typesafe-ai/sdk@0.7.0':
+    resolution: {integrity: sha512-Yg3OZArCQMJx98ut8QVkhx3rFo9ON7pz8Hjzv8c3FGz69Sk8jYftLOlz+Wf6kq6jol/1m08aBnjRAzJr2x3GoQ==}
+    engines: {node: '>=22'}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -2631,6 +2638,8 @@ snapshots:
       undici-types: 7.24.6
 
   '@types/retry@0.12.0': {}
+
+  '@typesafe-ai/sdk@0.7.0': {}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true

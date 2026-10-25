@@ -102,3 +102,11 @@ Use `VercelAIGatewayProvider` with an injected `OpenAIChatTransport`, or YAML ty
 `vercel-ai-gateway` with the optional OpenAI SDK environment adapter. The explicit
 constructor model participates in policy, cache identity and observations.
 See [configuration, limits and live smoke](../vercel-ai-gateway.md).
+
+## TypeSafe / Jev
+
+[TypeSafe / Jev](../typesafe.md) is available in both SDKs and YAML as `typesafe`.
+It evaluates native Choice, Score and Noul questions and preserves their full
+answers for deterministic routing and review decisions. Its first system message
+is a JSON question map; subsequent text supplies state. It does not generate
+arbitrary JSON. Only `model` and `timeout` parameters are supported.

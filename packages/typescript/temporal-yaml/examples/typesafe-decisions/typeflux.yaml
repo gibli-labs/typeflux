@@ -1,0 +1,33 @@
+project: examples.typesafe_decisions
+name: typesafe_decisions
+task_queue: typesafe-decisions
+runtime:
+  temporal: {address: "${TEMPORAL_ADDRESS:-localhost:7233}"}
+  registry:
+    type: inline
+    prompts:
+      decide:
+        messages:
+          - role: system
+            content: |
+              {"route":{"type":"choice","instructions":"Which team should handle this ticket?","criteria":{"billing":"Invoices, refunds and payments","technical":"Bugs and integration problems","human_review":"Ambiguous requests or cases needing human judgment"}}}
+          - role: user
+            content: "{{ text }}"
+  provider:
+    type: typesafe
+    model: jev-1.14.0
+    api_key: {value_from: {env: TYPESAFE_API_KEY}}
+    params: {timeout: 30}
+activities:
+  definitions:
+    - name: decide
+      input: schemas:Input
+      output: schemas:Output
+      prompt: decide
+      validation_retries: 0
+workflow:
+  name: TypeSafeDecisionWorkflow
+  input: schemas:Input
+  output: schemas:Output
+  steps:
+    - {id: decide, activity: decide}

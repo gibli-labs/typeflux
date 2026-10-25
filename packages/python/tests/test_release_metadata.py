@@ -60,12 +60,14 @@ def test_optional_extras_are_split_and_live_stays_aggregate() -> None:
     assert extras["langfuse"] == ["langfuse>=5,<6"]
     assert extras["langsmith"] == ["langsmith[otel]>=0.8.18,<1"]
     assert extras["openai"] == ["openai>=3.36,<4"]
+    assert extras["typesafe"] == ["typesafe-sdk>=0.7.5,<0.8"]
     assert sorted(extras["live"]) == sorted(
         extras["anthropic"]
         + extras["gemini"]
         + extras["langfuse"]
         + extras["langsmith"]
         + extras["openai"]
+        + extras["typesafe"]
     )
 
 
@@ -106,6 +108,7 @@ def test_built_distributions_include_license_version_and_extras(tmp_path: Path) 
         "langsmith",
         "live",
         "openai",
+        "typesafe",
     ]
     assert any(
         requirement.startswith("fastapi")
