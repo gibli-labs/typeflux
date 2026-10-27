@@ -27,7 +27,7 @@ entities:
     kind: check
     description: Builder, trace inspection and golden-lock checks for absent Temporal context and existing Temporal manifests.
     environment: python-non-live
-    ci: [python]
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
     tests:
       - {path: packages/python/tests/test_manifest.py, name: test_workflow_manifest_without_temporal_context}
       - {path: packages/python/tests/test_observability.py, name: test_trace_inspection_without_temporal_context}
