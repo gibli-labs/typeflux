@@ -2019,6 +2019,28 @@ def test_manifest_views_preserve_manifest_identity_fields() -> None:
     ]
 
 
+def test_trace_inspection_without_temporal_context() -> None:
+    trace = _trace(
+        "trace-local",
+        workflow_name="SupportWorkflow",
+        activity_name="classify_ticket",
+        prompt_ref="support/classify",
+    )
+    workflow = trace.metadata["typeflux"]["execution_manifest"]
+    workflow.pop("task_queue")
+    workflow.pop("temporal_run_id", None)
+
+    inspection = inspect_trace(InMemoryTraceStore([trace]), "trace-local")
+    summary = inspection.to_summary_dict()["workflow"]
+    exported = inspection.to_manifest_dict()["workflow"]
+    assert summary["workflow_name"] == "SupportWorkflow"
+    assert summary["workflow_contract_hash"] == workflow["workflow_contract_hash"]
+    assert exported["activities"][0]["activity_name"] == "classify_ticket"
+    for payload in (summary, exported, TraceSummaryView.from_trace(trace).to_public_dict()):
+        assert "task_queue" not in payload
+        assert "temporal_run_id" not in payload
+
+
 def test_manifest_view_rejects_incomplete_activity_payload() -> None:
     try:
         ActivityExecutionManifestView.from_payload({"activity_name": "missing"})

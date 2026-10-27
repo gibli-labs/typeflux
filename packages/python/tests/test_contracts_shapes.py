@@ -123,6 +123,13 @@ def build_goldens() -> dict[str, object]:
         code_provenance=_PROVENANCE,
         sdk_version="0.0.0-golden",
     )
+    workflow_without_temporal = build_workflow_execution_manifest(
+        workflow_name="SupportTriageWorkflow",
+        workflow_id="wf-golden",
+        activities=workflow.activities,
+        code_provenance=_PROVENANCE,
+        sdk_version="0.0.0-golden",
+    )
 
     start = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
     end = datetime(2026, 1, 1, 0, 0, 1, tzinfo=UTC)
@@ -156,6 +163,9 @@ def build_goldens() -> dict[str, object]:
         "prompt-ref/golden/prompt_ref.json": _norm(prompt_ref.to_dict()),
         "manifest/golden/activity_execution.json": _norm(execution.to_dict()),
         "manifest/golden/workflow_execution.json": _norm(workflow.to_dict()),
+        "manifest/golden/workflow_execution_without_temporal.json": _norm(
+            workflow_without_temporal.to_dict()
+        ),
         "trace/golden/trace_record.json": _norm(trace.model_dump(mode="json", exclude_none=True)),
     }
 

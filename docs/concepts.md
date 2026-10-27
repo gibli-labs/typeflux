@@ -355,11 +355,17 @@ Manifests are Typeflux's reproducibility contract.
 
 Workflow execution manifests describe:
 
-- workflow name, ID, run ID, and task queue
+- workflow name and invocation ID, plus Temporal run ID and task queue when available
 - YAML project/name when available
 - expected activity roll-up
 - code provenance and package version
 - workflow manifest hash
+
+The manifest builder can also describe direct, in-process orchestration: omit
+`task_queue` and `temporal_run_id` rather than supplying placeholder values.
+Trace inspection accepts these manifests. Temporal context changes the execution
+manifest hash but not the planned workflow contract hash. This manifest support
+does not change the YAML runtime's current requirement for Temporal.
 
 Activity execution manifests describe:
 

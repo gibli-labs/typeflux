@@ -8,6 +8,11 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Allow workflow manifests without a Temporal task queue in both SDK builders
+  and Python trace inspection. Omitted/null queue and run context is excluded
+  from serialization; existing Temporal manifests and hashes are unchanged.
+  This is the manifest foundation for Typeflux Local (#89), not a local YAML runtime.
+
 - Migrate Langfuse to Python SDK 5 and scoped JavaScript SDK 6 with dedicated
   OpenTelemetry providers, explicit span completion and terminal shutdown.
   Require Cloud or self-hosted 4.59.0+. Replace deprecated trace reads with
