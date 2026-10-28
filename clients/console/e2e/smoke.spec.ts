@@ -619,11 +619,13 @@ test("the enforcement feed serves the fixture's real verdicts with loud partial 
   expect(errors, "no uncaught page errors").toEqual([]);
 });
 
-test("the security-posture persona view shows runtime controls and policy-enforced controls (#721)", async ({ page }) => {
+test("the security-posture persona view shows runtime controls and policy-enforced controls (#721)", async ({ page, apiHealth }) => {
+  const delivered = await delayFixtureData(page);
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
 
   await page.goto(`/#/personas/security?env=${EXPECT.environment}`);
+  await apiHealth.waitForData(governanceReads);
   await expect(page.getByRole("heading", { name: "Security posture" })).toBeVisible();
 
   // The policy-enforced controls table renders from policy definitions (redaction requirement,
@@ -638,6 +640,7 @@ test("the security-posture persona view shows runtime controls and policy-enforc
   ).toBeVisible({ timeout: 20_000 });
 
   expect(errors, "no uncaught page errors").toEqual([]);
+  expect(delivered(), "controlled slow fixture responses were exercised").toBeGreaterThan(0);
 });
 
 test("the operations persona view rolls up failure-first executions and degrades on no Temporal (#721)", async ({ page }) => {
