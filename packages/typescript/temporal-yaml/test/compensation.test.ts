@@ -8,11 +8,11 @@ import { z } from "zod";
 import type { ModelProvider, StructuredCallParams } from "@typeflux/temporal";
 
 import { assembleYamlRuntime } from "../src/runtime.js";
-import { loadYamlSpec } from "../src/loader.js";
-import { workflowCompensationError, workflowPlanFromSpec } from "../src/build-workflow.js";
-import { workflowPlanDigest } from "../src/frozen-version.js";
+import { loadYamlSpec } from "@typeflux/yaml/loader";
+import { workflowCompensationError, workflowPlanFromSpec } from "@typeflux/yaml/build-workflow";
+import { workflowPlanDigest } from "@typeflux/yaml/frozen-version";
 import { LifecycleRuntime } from "../src/lifecycle.js";
-import { planUnsupportedReason, type LifecyclePlan, type WorkflowPlan } from "../src/workflow-plan.js";
+import { planUnsupportedReason, type LifecyclePlan, type WorkflowPlan } from "@typeflux/yaml/workflow-plan";
 
 class StaticProvider implements ModelProvider {
   structuredCall(_params: StructuredCallParams): unknown {

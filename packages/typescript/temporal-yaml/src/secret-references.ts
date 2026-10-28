@@ -12,7 +12,7 @@
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /** One secret slot's provenance (Python `SecretReferenceRecord`). */
 export interface SecretReferenceRecord {

@@ -6,8 +6,8 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { loadYamlSpec } from "../src/loader.js";
-import { workflowPlanFromSpec } from "../src/build-workflow.js";
+import { loadYamlSpec } from "@typeflux/yaml/loader";
+import { workflowPlanFromSpec } from "@typeflux/yaml/build-workflow";
 import type { WorkflowLifecycleStatus } from "../src/lifecycle.js";
 
 const harness = vi.hoisted(() => ({
@@ -42,7 +42,7 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
 });
 
 import { typefluxYamlWorkflow } from "../src/workflows.js";
-import type { WorkflowPlan } from "../src/workflow-plan.js";
+import type { WorkflowPlan } from "@typeflux/yaml/workflow-plan";
 
 /** The composition spec under test (the design's §3.1 shape + an early-exit tail). */
 const yamlSpec = (options?: { lifecycle?: boolean; maxBytes?: number; earlyExit?: boolean; midBranchGate?: boolean }) => `

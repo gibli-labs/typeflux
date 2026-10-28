@@ -44,7 +44,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Literal, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar
 
 from typeflux.core.subjects import normalize_subject_ids
 from typeflux.execution.cache import (
@@ -56,10 +56,9 @@ from typeflux.project.erase_executions import (
     SubjectExecutionDeletionReport,
     delete_executions_for_subject,
 )
-from typeflux.yaml.subject_keystore import (
-    SubjectKeystore,
-    subject_key_state,
-)
+
+if TYPE_CHECKING:
+    from typeflux.yaml.subject_keystore import SubjectKeystore
 
 __all__ = [
     "ERASURE_SURFACES",
@@ -400,6 +399,8 @@ def _shred_subjects(
 
     entries: list[KeystoreShredEntry] = []
     failures: list[SubjectSurfaceFailure] = []
+    from typeflux.yaml.subject_keystore import subject_key_state
+
     for subject_id in subject_ids:
         try:
             if dry_run:

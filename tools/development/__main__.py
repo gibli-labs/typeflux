@@ -132,6 +132,7 @@ class Runner:
                 ("uv", "run", "--no-sync", "python", "-m", "build"),
             ):
                 self.command(*command, cwd="packages/python")
+            self.command(sys.executable, "scripts/verify_python_planning_install.py")
         elif check == "python":
             self.pytest("-m", "not live")
         elif check == "typescript":
@@ -147,6 +148,7 @@ class Runner:
             )
             for path in sorted((self.root / "packages/typescript").glob("*/package.json")):
                 self.vitest(str(path.parent.relative_to(self.root)))
+            self.command("node", "scripts/verify-yaml-planning-pack.mjs")
         elif check == "web":
             for command in ("generate", "typecheck", "build"):
                 self.command("npm", "run", command, cwd="clients/typescript")

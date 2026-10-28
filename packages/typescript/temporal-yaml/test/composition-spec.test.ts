@@ -10,10 +10,10 @@ import { describe, expect, it } from "vitest";
 
 import { canonicalJson } from "@typeflux/temporal";
 
-import { workflowPlanDigest } from "../src/frozen-version.js";
-import { loadYamlSpec } from "../src/loader.js";
-import { workflowPlanFromSpec, workflowSchemaChainError } from "../src/build-workflow.js";
-import type { ParallelPlanStep, WorkflowPlan } from "../src/workflow-plan.js";
+import { workflowPlanDigest } from "@typeflux/yaml/frozen-version";
+import { loadYamlSpec } from "@typeflux/yaml/loader";
+import { workflowPlanFromSpec, workflowSchemaChainError } from "@typeflux/yaml/build-workflow";
+import type { ParallelPlanStep, WorkflowPlan } from "@typeflux/yaml/workflow-plan";
 
 const here = dirname(fileURLToPath(import.meta.url));
 

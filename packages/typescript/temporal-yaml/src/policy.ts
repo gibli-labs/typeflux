@@ -20,9 +20,9 @@
 import { parseDocument } from "yaml";
 import { z } from "zod";
 
-import { MAX_PARALLEL_NESTING_DEPTH } from "./build-workflow.js";
-import { assertSafeKeys } from "./overrides.js";
-import { RISK_TIER_ORDER } from "./spec.js";
+import { MAX_PARALLEL_NESTING_DEPTH } from "@typeflux/yaml/build-workflow";
+import { assertSafeKeys } from "@typeflux/yaml/overrides";
+import { RISK_TIER_ORDER } from "@typeflux/yaml/spec";
 
 /** Non-empty AND trimmed (Python `_validate_non_empty_string`). */
 const trimmedNonEmpty = (field: string) =>

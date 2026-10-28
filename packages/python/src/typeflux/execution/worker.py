@@ -7,6 +7,7 @@ from typing import Any, cast
 
 from pydantic import BaseModel
 
+from typeflux._temporal import require_temporal
 from typeflux.core.artifacts import ArtifactPolicy
 from typeflux.core.contracts import (
     AIActivity,
@@ -71,7 +72,7 @@ def _activity_info() -> Any:
     try:
         from temporalio import activity as temporal_activity
     except ModuleNotFoundError as exc:
-        raise RuntimeError("temporalio is required to run Temporal activities") from exc
+        raise RuntimeError("Temporal activities require: pip install 'typeflux[temporal]'") from exc
     return temporal_activity.info()
 
 
@@ -166,6 +167,8 @@ def build_temporal_activity(
     tenant_resolver: Callable[[BaseModel], Mapping[str, str]] | None = None,
     cache_store: CacheStore | None = None,
 ):
+    require_temporal()
+
     async def temporal_activity_fn(
         input_value: BaseModel,
         map_context: MapActivityContext | None = None,
@@ -578,10 +581,8 @@ class TypefluxWorker:
         )
 
     def build_worker(self) -> Any:
-        try:
-            from temporalio.worker import Worker
-        except ModuleNotFoundError as exc:
-            raise RuntimeError("temporalio is required to create a TypefluxWorker") from exc
+        require_temporal()
+        from temporalio.worker import Worker
 
         temporal_activities = [
             build_temporal_activity(

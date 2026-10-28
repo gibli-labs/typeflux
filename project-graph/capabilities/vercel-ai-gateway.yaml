@@ -18,7 +18,7 @@ entities:
       - packages/typescript/temporal/src/index.ts
       - packages/typescript/temporal-yaml/src/provider-from-spec.ts
       - packages/typescript/temporal-yaml/src/provider-transports-from-env.ts
-      - packages/typescript/temporal-yaml/src/spec.ts
+      - packages/typescript/yaml/src/spec.ts
     documentation: [docs/vercel-ai-gateway.md, docs/provider-portability.md, docs/typescript/provider-portability.md]
     examples:
       - packages/python/examples/vercel_ai_gateway/typeflux.yaml

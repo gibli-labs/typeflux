@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { type SecretValueSpec, temporalTlsSpec, type TemporalTlsSpec } from "./spec.js";
+import { type SecretValueSpec, temporalTlsSpec, type TemporalTlsSpec } from "@typeflux/yaml/spec";
 
 /** The `@temporalio/common` `TLSConfig` shape (structural — no dependency). */
 export interface TemporalTlsOptions {

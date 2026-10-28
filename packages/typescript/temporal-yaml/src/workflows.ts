@@ -66,7 +66,7 @@ import {
   type SubworkflowPlanStep,
   type WorkflowPlan,
   type WorkflowPlanStep,
-} from "./workflow-plan.js";
+} from "@typeflux/yaml/workflow-plan";
 
 /** One recorded compensation to run on unwind (#299 D299-2): the LIFO entry. */
 interface CompensationEntry {

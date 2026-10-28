@@ -7,7 +7,7 @@
 
 import { type ActivityObserver, type RedactionConfig, type TraceTransport, TraceWriter } from "@typeflux/temporal";
 
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /** Observability backend types that emit traces (vs `none`, which records nothing). */
 const TRACING_TYPES = new Set(["langfuse", "langsmith", "custom"]);

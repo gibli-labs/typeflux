@@ -22,7 +22,7 @@ import { canonicalJson } from "@typeflux/temporal";
 import { parseDocument } from "yaml";
 import { z } from "zod";
 
-import { assertSafeKeys, validateYamlOverrides, yamlOverridePaths } from "./overrides.js";
+import { assertSafeKeys, validateYamlOverrides, yamlOverridePaths } from "@typeflux/yaml/overrides";
 
 export const PROFILE_KINDS = ["provider", "registry", "runtime"] as const;
 export type ProfileKind = (typeof PROFILE_KINDS)[number];

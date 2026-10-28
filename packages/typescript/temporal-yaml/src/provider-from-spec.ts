@@ -17,7 +17,7 @@ import {
   type OpenAIChatTransport,
 } from "@typeflux/temporal";
 
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /** Per-provider default models (parity with the Python `DEFAULT_*_MODEL` constants). */
 const DEFAULT_MODELS = {

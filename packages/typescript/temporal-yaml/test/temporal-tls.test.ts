@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { loadYamlSpec } from "../src/loader.js";
+import { loadYamlSpec } from "@typeflux/yaml/loader";
 import { temporalConnectionOptions, type TemporalTlsOptions, temporalTlsOptions } from "../src/temporal-tls.js";
 
 // `~` expansion is part of the mapping contract, so `homedir()` must be steerable:

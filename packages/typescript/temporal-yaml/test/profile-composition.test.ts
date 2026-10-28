@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { providerParamsRecord } from "../src/spec.js";
+import { providerParamsRecord } from "@typeflux/yaml/spec";
 
 import { loadEnvironmentSpec } from "../src/environment-spec.js";
 import { resolveEnvironmentWorkflow } from "../src/environment-overlay.js";

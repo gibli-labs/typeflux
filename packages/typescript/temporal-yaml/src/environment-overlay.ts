@@ -20,11 +20,11 @@
  */
 
 import { loadEnvironmentSpec, type ProjectEnvironmentSpec } from "./environment-spec.js";
-import { type LoadYamlSpecOptions, loadYamlSpec } from "./loader.js";
-import { deepMerge } from "./overrides.js";
+import { type LoadYamlSpecOptions, loadYamlSpec } from "@typeflux/yaml/loader";
+import { deepMerge } from "@typeflux/yaml/overrides";
 import type { ProjectValidationIssue } from "./project-resolve.js";
 import type { TypefluxProjectSpec } from "./project-spec.js";
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /**
  * The environment's effective overrides for one workflow (Python `_merged_overrides`):

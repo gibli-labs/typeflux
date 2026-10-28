@@ -27,7 +27,7 @@ This is a polyglot monorepo:
 
 ```
 packages/python/      The Python SDK: src, tests, examples, pyproject, uv.lock
-packages/typescript/  The TypeScript SDK: four packages (core, worker, yaml, controlplane)
+packages/typescript/  The TypeScript SDK: five packages (core, shared YAML, Temporal worker/YAML, controlplane)
 contracts/            Language-neutral cross-SDK contracts (schemas, manifests, traces)
 clients/              Control-plane API client + console + MCP server
 docs/                 Documentation
@@ -43,8 +43,8 @@ Install from the public registries — no credentials, no checkout:
 
 ```bash
 # Python SDK (3.11+); provider integrations are extras
-pip install typeflux
-pip install "typeflux[openai]"               # or [anthropic], [gemini], [langfuse], [api], [live]
+pip install "typeflux[temporal]"
+pip install "typeflux[temporal,openai]"               # or [temporal,anthropic], [temporal,gemini], [api], [live]
 
 # TypeScript SDK (Node 24.15+)
 npm install @typeflux/temporal               # core: typed AI activities
@@ -54,6 +54,11 @@ npm install @typeflux/temporal-controlplane  # control-plane server
 # MCP server — no install at all
 npx -y typeflux-mcp
 ```
+
+The base Python package (`pip install typeflux`) and TypeScript `@typeflux/yaml`
+support [shared YAML planning](docs/yaml-planning.md) without Temporal. YAML
+workflow execution still uses the Temporal integration; the local runner is tracked
+in [#89](https://github.com/gibli-labs/typeflux/issues/89).
 
 A local [Temporal dev server](https://docs.temporal.io/cli#server) is the only
 other prerequisite for running workflows (`temporal server start-dev`). No paid

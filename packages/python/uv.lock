@@ -1850,11 +1850,9 @@ name = "typeflux"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "cryptography" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "temporalio" },
 ]
 
 [package.optional-dependencies]
@@ -1862,8 +1860,10 @@ anthropic = [
     { name = "anthropic" },
 ]
 api = [
+    { name = "cryptography" },
     { name = "fastapi" },
     { name = "jsonschema" },
+    { name = "temporalio" },
     { name = "uvicorn" },
 ]
 gemini = [
@@ -1877,13 +1877,19 @@ langsmith = [
 ]
 live = [
     { name = "anthropic" },
+    { name = "cryptography" },
     { name = "google-genai" },
     { name = "langfuse" },
     { name = "langsmith", extra = ["otel"] },
     { name = "openai" },
+    { name = "temporalio" },
 ]
 openai = [
     { name = "openai" },
+]
+temporal = [
+    { name = "cryptography" },
+    { name = "temporalio" },
 ]
 
 [package.dev-dependencies]
@@ -1896,6 +1902,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
+    { name = "typeflux", extra = ["temporal"] },
     { name = "types-pyyaml" },
 ]
 
@@ -1903,7 +1910,7 @@ dev = [
 requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=2.1,<3" },
     { name = "anthropic", marker = "extra == 'live'", specifier = ">=2.1,<3" },
-    { name = "cryptography", specifier = ">=42" },
+    { name = "cryptography", marker = "extra == 'temporal'", specifier = ">=42" },
     { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.115,<1" },
     { name = "google-genai", marker = "extra == 'gemini'", specifier = ">=2.32,<3" },
     { name = "google-genai", marker = "extra == 'live'", specifier = ">=2.32,<3" },
@@ -1917,10 +1924,12 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "python-dotenv", specifier = ">=1,<2" },
     { name = "pyyaml", specifier = ">=6,<7" },
-    { name = "temporalio", specifier = ">=1.8,<2" },
+    { name = "temporalio", marker = "extra == 'temporal'", specifier = ">=1.8,<2" },
+    { name = "typeflux", extras = ["temporal"], marker = "extra == 'api'" },
+    { name = "typeflux", extras = ["temporal"], marker = "extra == 'live'" },
     { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.30,<1" },
 ]
-provides-extras = ["anthropic", "api", "gemini", "langfuse", "langsmith", "openai", "live"]
+provides-extras = ["temporal", "anthropic", "api", "gemini", "langfuse", "langsmith", "openai", "live"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1932,6 +1941,7 @@ dev = [
     { name = "pytest", specifier = ">=8,<10" },
     { name = "pytest-asyncio", specifier = ">=0.23,<2" },
     { name = "ruff", specifier = ">=0.8,<1" },
+    { name = "typeflux", extras = ["temporal"] },
     { name = "types-pyyaml", specifier = ">=6,<7" },
 ]
 

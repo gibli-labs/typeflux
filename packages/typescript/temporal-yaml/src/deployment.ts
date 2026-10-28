@@ -38,7 +38,7 @@ import {
 import type { ComposedProjectPolicy } from "./policy-composition.js";
 import type { TypefluxProjectSpec } from "./project-spec.js";
 import { validateProjectBundle, withEnvironmentContext, type ProjectBundleSources } from "./project-validation.js";
-import type { SecretValueSpec, TypefluxYamlSpec } from "./spec.js";
+import type { SecretValueSpec, TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /** Matched against the substring after the image reference's last `@` (linear-time on attacker input). */
 const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-fA-F]{64}$/;

@@ -10,9 +10,9 @@ import {
   workflowPlanFromSpec,
   workflowSchemaChainError,
   type SubworkflowSpecResolver,
-} from "../src/build-workflow.js";
-import { workflowPlanDigest } from "../src/frozen-version.js";
-import { loadYamlSpec } from "../src/loader.js";
+} from "@typeflux/yaml/build-workflow";
+import { workflowPlanDigest } from "@typeflux/yaml/frozen-version";
+import { loadYamlSpec } from "@typeflux/yaml/loader";
 import type { SubworkflowMapPlanStep, SubworkflowPlanStep, TypefluxYamlSpec } from "../src/index.js";
 
 /** A minimal single-activity child workflow spec (Item -> Assessment). */
@@ -303,8 +303,8 @@ workflow:
 
 describe("child identity memo — key-set drift guard (#55 review round)", () => {
   it("child memo keys = top-level identity memo keys + typeflux_parent_workflow_id", async () => {
-    const { childIdentityMemo } = await import("../src/workflow-plan.js");
-    const { workflowIdentityMemo } = await import("../src/frozen-version.js");
+    const { childIdentityMemo } = await import("@typeflux/yaml/workflow-plan");
+    const { workflowIdentityMemo } = await import("@typeflux/yaml/frozen-version");
     const child = loadYamlSpec(childSpecText());
     const childPlan = workflowPlanFromSpec(child);
     const digest = workflowPlanDigest(childPlan);

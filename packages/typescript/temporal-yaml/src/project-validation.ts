@@ -19,17 +19,17 @@
 import { resolveOptionalSecretText } from "./secret-references.js";
 import { resolveEnvironmentWorkflow, stringifyEnvValue, validateEnvironmentWorkflowReferences } from "./environment-overlay.js";
 import type { ProjectEnvironmentSpec } from "./environment-spec.js";
-import { projectSubworkflowResolver, workflowPlanFromSpec, workflowSchemaChainError } from "./build-workflow.js";
-import { workflowPlanDigest } from "./frozen-version.js";
+import { projectSubworkflowResolver, workflowPlanFromSpec, workflowSchemaChainError } from "@typeflux/yaml/build-workflow";
+import { workflowPlanDigest } from "@typeflux/yaml/frozen-version";
 import type { PolicyValidationCheck } from "./policy-enforcement.js";
 import type { TypefluxProjectPolicySpec } from "./policy.js";
 import { PROFILE_KINDS, type ProfileKind, type ProjectProfileSpec, composeProfileOverrides } from "./profile.js";
 import { validateWorkflowPolicyCompliance } from "./project-enforcement.js";
 import { type ProjectValidationIssue, validateProjectPolicyReferences } from "./project-resolve.js";
 import type { TypefluxProjectSpec } from "./project-spec.js";
-import { loadYamlSpec } from "./loader.js";
-import type { TypefluxYamlSpec, WorkflowStepSpec } from "./spec.js";
-import { flattenPlanSteps, type WorkflowPlan } from "./workflow-plan.js";
+import { loadYamlSpec } from "@typeflux/yaml/loader";
+import type { TypefluxYamlSpec, WorkflowStepSpec } from "@typeflux/yaml/spec";
+import { flattenPlanSteps, type WorkflowPlan } from "@typeflux/yaml/workflow-plan";
 
 /** The per-workflow resolved-bundle result (Python `ProjectResolvedWorkflowValidation`). */
 export interface ProjectResolvedWorkflowValidation {

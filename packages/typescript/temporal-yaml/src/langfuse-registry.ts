@@ -35,7 +35,7 @@ import {
   type RegistryTransport,
 } from "@typeflux/temporal";
 
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /**
  * The slice of the official SDK's prompt client this module reads (structural —
