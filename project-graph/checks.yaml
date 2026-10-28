@@ -99,3 +99,19 @@ entities:
     links:
       - {relation: verifies, target: invariant.gateway-configuration}
       - {relation: verifies, target: invariant.gateway-output}
+
+  - id: check.browser-data-readiness
+    kind: check
+    description: Completed successful fixture data precedes drift/governance content assertions under controlled six-second delays; missing, failed and permanently pending data remain bounded failures.
+    environment: chromium-python-cp-and-ts-cp
+    ci: [browser-python, browser-typescript]
+    tests:
+      - {path: clients/console/e2e/smoke.spec.ts, name: 'the drift page renders the N-way environment matrix with diff links (#611)'}
+      - {path: clients/console/e2e/smoke.spec.ts, name: 'the governance page shows coverage, gaps, and structured policies (#587)'}
+      - {path: clients/console/e2e/smoke.spec.ts, name: 'the governance persona view leads with coverage, policy hashes, and the enforcement feed (#721/#723)'}
+      - {path: clients/console/e2e/readiness.spec.ts, name: data readiness requires the named successful GET and preserves missing-content failures}
+      - {path: clients/console/e2e/readiness.spec.ts, name: data readiness rejects unexpected API errors even after a successful retry}
+      - {path: clients/console/e2e/readiness.spec.ts, name: allowed unavailable responses settle but cannot satisfy successful data readiness}
+      - {path: clients/console/e2e/readiness.spec.ts, name: permanently pending API reads fail within the readiness budget with their URL}
+    links:
+      - {relation: verifies, target: invariant.browser-data-readiness}

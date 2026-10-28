@@ -1,4 +1,6 @@
 import { expect, test } from "./fixtures";
+import { delayFixtureData } from "./delayed-data";
+import { matrixReads, governanceReads } from "./data-reads";
 
 import { EXPECT, LANE, rx } from "./expectations";
 
@@ -168,8 +170,10 @@ test("probe results are cached across navigation (#580)", async ({ page }) => {
   expect(errors, "no uncaught page errors").toEqual([]);
 });
 
-test("the drift page renders the N-way environment matrix with diff links (#611)", async ({ page }) => {
+test("the drift page renders the N-way environment matrix with diff links (#611)", async ({ page, apiHealth }) => {
+  const delivered = await delayFixtureData(page);
   await page.goto(`/#/drift?env=${EXPECT.environment}`);
+  await apiHealth.waitForData(matrixReads);
   await expect(page.getByRole("heading", { name: /Environment matrix/ })).toBeVisible();
   // The matrix renders one row per workflow with a linkable state badge per other env.
   const matrixRow = page
@@ -180,6 +184,7 @@ test("the drift page renders the N-way environment matrix with diff links (#611)
   // Both environment bundles resolve without connecting to their Temporal endpoints.
   // The matrix renders its comparison badge; link hrefs are pinned by engine unit tests.
   await expect(matrixRow.locator(".badge").first()).toBeVisible();
+  expect(delivered(), "controlled slow fixture responses were exercised").toBeGreaterThan(0);
 });
 
 test("the drift page aggregates plan, environment, and prompt drift (#583)", async ({ page }) => {
@@ -393,13 +398,15 @@ test("the governance page renders the policy coverage matrix (#612)", async ({ p
   await expect(row.locator(".badge").first()).toBeVisible();
 });
 
-test("the governance page shows coverage, gaps, and structured policies (#587)", async ({ page }) => {
+test("the governance page shows coverage, gaps, and structured policies (#587)", async ({ page, apiHealth }) => {
+  const delivered = await delayFixtureData(page);
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
 
   await page.goto(`/#/governance?env=${EXPECT.environment}`);
+  await apiHealth.waitForData(governanceReads);
   await expect(page.getByRole("heading", { name: "Governance gaps" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Policy coverage" })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "Policy coverage", exact: true })).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByRole("heading", { name: "Policies" })).toBeVisible();
@@ -422,6 +429,7 @@ test("the governance page shows coverage, gaps, and structured policies (#587)",
   ).toBeVisible({ timeout: 15_000 });
 
   expect(errors, "no uncaught page errors").toEqual([]);
+  expect(delivered(), "controlled slow fixture responses were exercised").toBeGreaterThan(0);
 });
 
 test("the environment page renders the resolved-workflows slice (#605)", async ({ page }) => {
@@ -523,11 +531,13 @@ test("a foreign-runtime project degrades honestly — never a raw error (#621 sl
   expect(errors, "no uncaught page errors").toEqual([]);
 });
 
-test("the governance persona view leads with coverage, policy hashes, and the enforcement feed (#721/#723)", async ({ page }) => {
+test("the governance persona view leads with coverage, policy hashes, and the enforcement feed (#721/#723)", async ({ page, apiHealth }) => {
+  const delivered = await delayFixtureData(page);
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
 
   await page.goto(`/#/personas/governance?env=${EXPECT.environment}`);
+  await apiHealth.waitForData(governanceReads);
   await expect(page.getByRole("heading", { name: "Governance coverage" })).toBeVisible();
 
   // The policy-hash table renders each declared policy with a source-of-truth affordance that
@@ -549,6 +559,7 @@ test("the governance persona view leads with coverage, policy hashes, and the en
   ).toBeVisible({ timeout: 20_000 });
 
   expect(errors, "no uncaught page errors").toEqual([]);
+  expect(delivered(), "controlled slow fixture responses were exercised").toBeGreaterThan(0);
 });
 
 test("the enforcement feed serves the fixture's real verdicts with loud partial state (#723)", async ({ page }) => {
