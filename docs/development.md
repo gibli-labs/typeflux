@@ -35,6 +35,13 @@ without credentials. Both browser editions assert background API responses and
 wait for pending reads; deliberate outage and invalid-fixture responses are scoped
 explicitly in `clients/console/e2e/fixtures.ts` and the relevant specs. The bundle
 matrix also checks every fixture workflow/environment under both project IDs.
+The drift/governance/security smoke checks wait up to 15 seconds for named successful GET
+responses and pending API reads before asserting content. Their real fixture
+responses include a controlled six-second delay to guard against headings being
+mistaken for data readiness. Content assertions retain the default five-second
+budget; retries remain disabled. Failure probes cover missing data, unexpected
+errors retained after a later success, allowed outages and permanently pending
+requests. Allowlisted error responses never count as successful data.
 
 ## Implement and verify
 
