@@ -14,6 +14,11 @@ heading as part of the release PR or tag preparation.
   setup. Omitted engine behavior remains Temporal. This is a planning boundary;
   local execution and CLI support are still pending. See [local runtime](docs/local-runtime.md).
 
+- Allow workflow manifests without a Temporal task queue in both SDK builders
+  and Python trace inspection. Omitted/null queue and run context is excluded
+  from serialization; existing Temporal manifests and hashes are unchanged.
+  This is the manifest foundation for Typeflux Local (#89), not a local YAML runtime.
+
 - Make the Python Temporal integration optional. Existing workflow/worker users
   must install `typeflux[temporal]` (or combine it with provider extras); `api`
   and `live` continue to include it. Add shared Python YAML planning and the

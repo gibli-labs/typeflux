@@ -369,7 +369,8 @@ function activityContractPayload(activity: string | Json): string | Json {
 export interface WorkflowExecutionManifestSpec {
   workflowName: string;
   workflowId: string;
-  taskQueue: string;
+  /** Omit when the invocation has no Temporal task queue. Not part of the workflow contract hash. */
+  taskQueue?: string | null;
   activities: (string | Json)[];
   /** Already-resolved code-provenance dict (the `CodeProvenance.to_dict()` shape). */
   codeProvenance: Json;

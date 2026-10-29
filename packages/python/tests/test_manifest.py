@@ -31,6 +31,7 @@ from typeflux.manifests import (
     schema_hash,
 )
 from typeflux.manifests import provenance as provenance_module
+from typeflux.manifests.provenance import CodeProvenance
 from typeflux.metadata import RuntimePlacementContributor
 
 
@@ -40,6 +41,45 @@ class Input(BaseModel):
 
 class Output(BaseModel):
     label: str
+
+
+def test_workflow_manifest_without_temporal_context() -> None:
+    provenance = CodeProvenance(available=False, source="test")
+    local = build_workflow_execution_manifest(
+        workflow_name="DemoWorkflow",
+        workflow_id="invocation-1",
+        activities=["classify"],
+        code_provenance=provenance,
+        sdk_version="test",
+    )
+    explicit_none = build_workflow_execution_manifest(
+        workflow_name="DemoWorkflow",
+        workflow_id="invocation-1",
+        task_queue=None,
+        temporal_run_id=None,
+        activities=["classify"],
+        code_provenance=provenance,
+        sdk_version="test",
+    )
+
+    assert local.to_dict() == explicit_none.to_dict()
+    assert local.task_queue is None
+    assert "task_queue" not in local.to_dict()
+    assert "temporal_run_id" not in local.to_dict()
+    assert local.to_dict()["workflow_id"] == "invocation-1"
+    assert local.to_dict()["activities"] == ["classify"]
+
+    temporal = build_workflow_execution_manifest(
+        workflow_name="DemoWorkflow",
+        workflow_id="invocation-1",
+        task_queue="demo",
+        temporal_run_id="run-1",
+        activities=["classify"],
+        code_provenance=provenance,
+        sdk_version="test",
+    )
+    assert local.workflow_contract_hash == temporal.workflow_contract_hash
+    assert local.manifest_hash != temporal.manifest_hash
 
 
 def test_workflow_execution_manifest_hash_is_stable(monkeypatch: pytest.MonkeyPatch) -> None:

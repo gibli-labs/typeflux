@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import type { ChatMessage, SchemaIdentity } from "../src/index.js";
+import type { ChatMessage, SchemaIdentity, WorkflowExecutionManifestSpec } from "../src/index.js";
 import {
   buildActivityExecutionManifest,
   buildActivityRollupEntry,
@@ -34,6 +34,36 @@ const outputSchema: SchemaIdentity = {
 };
 const promptRef = { name: "support/classify", label: "production" };
 const promptMessages: ChatMessage[] = [{ role: "user", content: "Classify: {{ text }}" }];
+
+function workflowSpec(taskQueue?: string | null): WorkflowExecutionManifestSpec {
+  return {
+    workflowName: "SupportTriageWorkflow",
+    workflowId: "wf-golden",
+    ...(taskQueue === undefined ? {} : { taskQueue }),
+    activities: [buildActivityRollupEntry({
+      activityName: "classify_ticket",
+      inputSchema,
+      outputSchema,
+      promptRef,
+      resolvedPromptVersion: "commit-abc123",
+      promptMessages,
+      providerModel: "fake-model",
+      providerModelSource: "prompt_config",
+      providerParams: { model: "fake-model", max_tokens: 4096 },
+    })],
+    codeProvenance: {
+      available: true,
+      source: "golden",
+      git_ref: "refs/heads/main",
+      git_sha: "0000000000000000000000000000000000000000",
+      dirty: false,
+      deployment_id: "golden-deployment",
+      environment: "golden",
+      package_version: "0.0.0-golden",
+    },
+    sdkVersion: "0.0.0-golden",
+  };
+}
 
 describe("full manifest builder (#425)", () => {
   it("reproduces the activity execution manifest golden byte-for-byte", () => {
@@ -103,34 +133,26 @@ describe("full manifest builder (#425)", () => {
   });
 
   it("reproduces the workflow execution manifest golden byte-for-byte", () => {
-    const rollup = buildActivityRollupEntry({
-      activityName: "classify_ticket",
-      inputSchema,
-      outputSchema,
-      promptRef,
-      resolvedPromptVersion: "commit-abc123",
-      promptMessages,
-      providerModel: "fake-model",
-      providerModelSource: "prompt_config",
-      providerParams: { model: "fake-model", max_tokens: 4096 },
-    });
-    const manifest = buildWorkflowExecutionManifest({
-      workflowName: "SupportTriageWorkflow",
-      workflowId: "wf-golden",
-      taskQueue: "support-ai",
-      activities: [rollup],
-      codeProvenance: {
-        available: true,
-        source: "golden",
-        git_ref: "refs/heads/main",
-        git_sha: "0000000000000000000000000000000000000000",
-        dirty: false,
-        deployment_id: "golden-deployment",
-        environment: "golden",
-        package_version: "0.0.0-golden",
-      },
-      sdkVersion: "0.0.0-golden",
-    });
+    const manifest = buildWorkflowExecutionManifest(workflowSpec("support-ai"));
     expect(manifest).toEqual(golden("workflow_execution.json"));
+  });
+
+  it("reproduces the workflow manifest without Temporal context golden", () => {
+    const manifest = buildWorkflowExecutionManifest(workflowSpec());
+    expect(manifest).toEqual(golden("workflow_execution_without_temporal.json"));
+    expect(manifest).not.toHaveProperty("task_queue");
+    expect(manifest).not.toHaveProperty("temporal_run_id");
+    expect(buildWorkflowExecutionManifest({
+      ...workflowSpec(null), temporalRunId: null,
+    })).toEqual(manifest);
+  });
+
+  it("keeps workflow contract identity independent of optional Temporal context", () => {
+    const local = buildWorkflowExecutionManifest(workflowSpec());
+    const temporal = buildWorkflowExecutionManifest({
+      ...workflowSpec("support-ai"), temporalRunId: "run-golden",
+    });
+    expect(local["workflow_contract_hash"]).toBe(temporal["workflow_contract_hash"]);
+    expect(local["manifest_hash"]).not.toBe(temporal["manifest_hash"]);
   });
 });
