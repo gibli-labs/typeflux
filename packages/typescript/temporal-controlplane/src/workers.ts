@@ -15,6 +15,8 @@
  * catches only the timeout).
  */
 
+import { requireTemporalEngine } from "@typeflux/temporal-yaml";
+
 import type { TypefluxYamlSpec } from "@typeflux/temporal-yaml";
 
 import {
@@ -90,7 +92,8 @@ export async function workflowTaskQueueWorkers(
 ): Promise<ApiWorkflowTaskQueueWorkers> {
   // Python `task_queue or resolved.spec.task_queue` — truthiness on purpose: an empty-string
   // override falls back to the resolved queue (the pinned "" parity rule).
-  const queue = options.taskQueue || spec.task_queue;
+  const defaultQueue = requireTemporalEngine(spec);
+  const queue = options.taskQueue || defaultQueue;
   const factory = options.clientFactory ?? defaultTaskQueueClient;
 
   // A config error in the connection mapping (bad TLS block, required-but-unset api_key) is a 422

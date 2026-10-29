@@ -24,6 +24,8 @@
  * and deploy time.
  */
 
+import { requireTemporalEngine } from "@typeflux/yaml/engine";
+
 import { createHash } from "node:crypto";
 import { basename, isAbsolute, posix, relative, sep } from "node:path";
 
@@ -606,7 +608,7 @@ function configMapEntries(
   const entries: Record<string, string> = {
     TEMPORAL_ADDRESS: temporal.address ?? "localhost:7233",
     TEMPORAL_NAMESPACE: temporal.namespace ?? "default",
-    TEMPORAL_TASK_QUEUE: spec.task_queue,
+    TEMPORAL_TASK_QUEUE: requireTemporalEngine(spec),
     TEMPORAL_TLS: tlsEnvValue(spec),
     TYPEFLUX_EXPECTED_POLICY_HASH: policy.policyHash,
   };
@@ -761,7 +763,7 @@ function workerPlan(
     workflow_path: resolved.workflowPath,
     environment_id: environmentId,
     environment_name: resolved.environmentName,
-    task_queue: spec.task_queue,
+    task_queue: requireTemporalEngine(spec),
     project_path_in_image: projectPathInImage,
     command,
     config_map_name: configMapName,
@@ -814,15 +816,16 @@ export function buildProjectDeploymentPlan(
     if (resolved === undefined) {
       throw new ProjectDeploymentError(`project deployment references an unknown workflow: '${workflowId}'`);
     }
+    const taskQueue = requireTemporalEngine(resolved.spec);
     if (options.allowSharedTaskQueue !== true) {
-      const previous = taskQueues.get(resolved.spec.task_queue);
+      const previous = taskQueues.get(taskQueue);
       if (previous !== undefined) {
         throw new ProjectDeploymentError(
           `project deployment would create separate workers for workflows '${previous}' and '${workflowId}' on ` +
-            `shared task queue '${resolved.spec.task_queue}'; pass --allow-shared-task-queue to allow this`,
+            `shared task queue '${taskQueue}'; pass --allow-shared-task-queue to allow this`,
         );
       }
-      taskQueues.set(resolved.spec.task_queue, workflowId);
+      taskQueues.set(taskQueue, workflowId);
     }
     workers.push(
       workerPlan(project, sources, workflowId, options.environmentId, resolved, policyIds, configEnvNames, inImagePath, resolveSubworkflowSpec),

@@ -16,6 +16,8 @@
  * deferred: `code` (git shim) — optional in the contract.
  */
 
+import { requireTemporalEngine } from "@typeflux/temporal-yaml";
+
 import { activitySlotJsonSchema, schemaHash } from "@typeflux/temporal";
 import {
   type AppliedComponentProfile,
@@ -366,7 +368,7 @@ function bundleWorkflowIdentity(context: ResolvedBundleContext, plan: WorkflowPl
     spec_digest: digest,
     spec_digest_algorithm: SPEC_DIGEST_ALGORITHM,
     generator_version: String(PLAN_INTERPRETER_VERSION),
-    task_queue: spec.task_queue,
+    task_queue: requireTemporalEngine(spec),
     observability_trace_name: `TypefluxWorkflow:${spec.workflow.name}`,
     input_schema: bundleSchemaSlot(spec.workflow.input, "input", schemas),
     output_schema: bundleSchemaSlot(outputRef, "output", schemas),

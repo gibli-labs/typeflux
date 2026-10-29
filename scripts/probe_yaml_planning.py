@@ -13,7 +13,14 @@ from typeflux.execution import execute_ai_activity
 from typeflux.project import load_project_spec, resolve_project_workflow
 from typeflux.prompts import InlinePromptRegistry
 from typeflux.testing import FakeProvider
-from typeflux.yaml import collect_activities, create_workflow, load_yaml_spec, plan_workflow
+from typeflux.yaml import (
+    RuntimeCapabilityError,
+    collect_activities,
+    create_workflow,
+    load_yaml_spec,
+    plan_workflow,
+    validate_local_capabilities,
+)
 from typeflux.yaml.planning import evaluate_when_gate, when_gate_from_spec
 
 
@@ -51,6 +58,20 @@ def main() -> None:
         yaml_path = root / "typeflux.yaml"
         yaml_path.write_text(SPEC)
         spec = load_yaml_spec(yaml_path, load_dotenv=False, env={})
+        local_path = root / "local-workflow.yaml"
+        local_path.write_text(
+            SPEC.replace("task_queue: existing-temporal-default\n", "").replace(
+                "  temporal: {}", "  engine: local"
+            )
+        )
+        local = load_yaml_spec(local_path, load_dotenv=False, env={})
+        assert validate_local_capabilities(local) == ("demo",)
+        try:
+            create_workflow(local, {})
+        except RuntimeCapabilityError as exc:
+            assert exc.path == "runtime.engine"
+        else:
+            raise AssertionError("local selection reached the Temporal generator")
         activities = collect_activities(spec)
         result = execute_ai_activity(
             activity=activities["echo"],
@@ -73,9 +94,19 @@ def main() -> None:
             "environments: {local: local.yaml}\n"
         )
         resolved = resolve_project_workflow(
-            load_project_spec(project_path), workflow_id="demo", environment_id="local", base_env={}
+            load_project_spec(project_path),
+            workflow_id="demo",
+            environment_id="local",
+            base_env={},
         )
         assert plan_workflow(resolved.spec, collect_activities(resolved.spec)).steps == plan.steps
+        project_path.write_text(
+            project_path.read_text().replace("path: typeflux.yaml", "path: local-workflow.yaml")
+        )
+        local_resolved = resolve_project_workflow(
+            load_project_spec(project_path), workflow_id="demo", environment_id="local", base_env={}
+        )
+        assert validate_local_capabilities(local_resolved.spec) == ("demo",)
 
         invalid = spec.model_copy(deep=True)
         invalid.workflow.steps[0].when.path = "future.text"

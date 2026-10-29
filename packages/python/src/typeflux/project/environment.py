@@ -648,8 +648,11 @@ def resolve_subworkflows_for(
       child-start options, overriding intermediate specs' own config (TS
       start-context parity, #55 §6).
     """
+    from typeflux.yaml.engine import require_temporal_engine
     from typeflux.yaml.imports import collect_activities
     from typeflux.yaml.workflow import collect_subworkflow_references
+
+    require_temporal_engine(resolved.spec)
 
     out_classes: dict[str, type] = {}
     out_activities: dict[str, Any] = {}

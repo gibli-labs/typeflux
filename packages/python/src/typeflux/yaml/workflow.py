@@ -28,6 +28,7 @@ from typeflux.execution.session_cache import (
     cache_prep_activity_name,
     cache_release_activity_name,
 )
+from typeflux.yaml.engine import require_temporal_engine
 from typeflux.yaml.identity import registered_workflow_type, workflow_spec_digest
 from typeflux.yaml.imports import import_type_ref
 from typeflux.yaml.planning import (
@@ -263,6 +264,7 @@ def create_workflow(
     subworkflows: Mapping[str, ResolvedSubworkflow] | None = None,
     inherited_search_attribute: Any = _INHERITED_SEARCH_ATTRIBUTE_UNSET,
 ) -> type:
+    require_temporal_engine(spec)
     require_temporal()
     plan = plan_workflow(spec, activities, subworkflows=subworkflows)
     input_type, output_type = plan.input_type, plan.output_type

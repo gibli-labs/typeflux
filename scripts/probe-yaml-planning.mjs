@@ -4,7 +4,7 @@ import { executeActivity } from "@typeflux/temporal";
 import { FakeProvider } from "@typeflux/temporal/testing";
 import {
   defineActivitiesFromSpec, evaluatePlanWhen, inlineRegistryFromSpec,
-  loadYamlSpec, workflowPlanFromSpec,
+  loadYamlSpec, workflowPlanFromSpec, validateLocalCapabilities, requireTemporalEngine, RuntimeCapabilityError,
 } from "@typeflux/yaml";
 
 const yaml = `
@@ -27,6 +27,10 @@ workflow:
       activity: echo
       when: {path: input.text, neq: stop}
 `;
+const local = loadYamlSpec(yaml.replace("task_queue: existing-temporal-default\n", "")
+  .replace("  temporal: {}", "  engine: local"));
+assert.deepEqual(validateLocalCapabilities(local), ["demo"]);
+assert.throws(() => requireTemporalEngine(local), RuntimeCapabilityError);
 const spec = loadYamlSpec(yaml);
 const plan = workflowPlanFromSpec(spec);
 assert.equal(plan.steps.length, 1);

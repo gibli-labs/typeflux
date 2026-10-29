@@ -1,0 +1,432 @@
+{
+  "base": {
+    "project": "local_fixture",
+    "name": "root",
+    "runtime": {
+      "engine": "local",
+      "registry": {
+        "type": "inline",
+        "prompts": {
+          "echo": "Echo {{text}}"
+        }
+      },
+      "provider": {
+        "type": "fake"
+      }
+    },
+    "activities": {
+      "definitions": [
+        {
+          "name": "echo",
+          "input": "schemas:Value",
+          "output": "schemas:Value",
+          "prompt": "echo"
+        }
+      ]
+    },
+    "workflow": {
+      "name": "Root",
+      "input": "schemas:Value",
+      "output": "schemas:Value",
+      "steps": [
+        {
+          "id": "echo",
+          "activity": "echo"
+        }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "name": "omitted Temporal configuration",
+      "patches": []
+    },
+    {
+      "name": "empty Temporal block",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "temporal"
+          ],
+          "value": {}
+        }
+      ]
+    },
+    {
+      "name": "bounded provider retries",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "provider_retry"
+          ],
+          "value": {
+            "max_attempts": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "explicit task queue",
+      "patches": [
+        {
+          "path": [
+            "task_queue"
+          ],
+          "value": "worker-q"
+        }
+      ],
+      "errorPath": "task_queue"
+    },
+    {
+      "name": "explicit empty task queue",
+      "patches": [
+        {
+          "path": [
+            "task_queue"
+          ],
+          "value": ""
+        }
+      ],
+      "errorPath": "task_queue"
+    },
+    {
+      "name": "explicit default address",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "temporal"
+          ],
+          "value": {
+            "address": "localhost:7233"
+          }
+        }
+      ],
+      "errorPath": "runtime.temporal.address"
+    },
+    {
+      "name": "explicit default namespace",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "temporal"
+          ],
+          "value": {
+            "namespace": "default"
+          }
+        }
+      ],
+      "errorPath": "runtime.temporal.namespace"
+    },
+    {
+      "name": "explicit false TLS",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "temporal"
+          ],
+          "value": {
+            "tls": false
+          }
+        }
+      ],
+      "errorPath": "runtime.temporal.tls"
+    },
+    {
+      "name": "explicit blank credential",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "temporal"
+          ],
+          "value": {
+            "api_key": ""
+          }
+        }
+      ],
+      "errorPath": "runtime.temporal.api_key"
+    },
+    {
+      "name": "activity retries",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "activity_retry"
+          ],
+          "value": {}
+        }
+      ],
+      "errorPath": "runtime.activity_retry"
+    },
+    {
+      "name": "activity retry override",
+      "patches": [
+        {
+          "path": [
+            "activities",
+            "definitions",
+            "0",
+            "retry"
+          ],
+          "value": {}
+        }
+      ],
+      "errorPath": "activities.definitions[0].retry"
+    },
+    {
+      "name": "activity execution timeout",
+      "patches": [
+        {
+          "path": [
+            "activities",
+            "definitions",
+            "0",
+            "start_to_close_timeout_seconds"
+          ],
+          "value": 10
+        }
+      ],
+      "errorPath": "activities.definitions[0].start_to_close_timeout_seconds"
+    },
+    {
+      "name": "activity heartbeat",
+      "patches": [
+        {
+          "path": [
+            "activities",
+            "definitions",
+            "0",
+            "heartbeat_timeout_seconds"
+          ],
+          "value": 5
+        }
+      ],
+      "errorPath": "activities.definitions[0].heartbeat_timeout_seconds"
+    },
+    {
+      "name": "lifecycle progress",
+      "patches": [
+        {
+          "path": [
+            "workflow",
+            "lifecycle"
+          ],
+          "value": {
+            "progress": true
+          }
+        }
+      ],
+      "errorPath": "workflow.lifecycle"
+    },
+    {
+      "name": "policy gated declaration",
+      "patches": [
+        {
+          "path": [
+            "workflow",
+            "risk_tier"
+          ],
+          "value": "policy_gated"
+        }
+      ],
+      "errorPath": "workflow.risk_tier"
+    },
+    {
+      "name": "human gated declaration",
+      "patches": [
+        {
+          "path": [
+            "workflow",
+            "risk_tier"
+          ],
+          "value": "human_gated"
+        }
+      ],
+      "errorPath": "workflow.risk_tier"
+    },
+    {
+      "name": "prohibited declaration",
+      "patches": [
+        {
+          "path": [
+            "workflow",
+            "risk_tier"
+          ],
+          "value": "prohibited"
+        }
+      ],
+      "errorPath": "workflow.risk_tier"
+    },
+    {
+      "name": "safe declaration",
+      "patches": [
+        {
+          "path": [
+            "workflow",
+            "risk_tier"
+          ],
+          "value": "safe"
+        }
+      ]
+    },
+    {
+      "name": "compensation",
+      "patches": [
+        {
+          "path": [
+            "workflow",
+            "steps",
+            "0",
+            "compensate"
+          ],
+          "value": {
+            "activity": "undo"
+          }
+        }
+      ],
+      "errorPath": "workflow.steps[0].compensate"
+    },
+    {
+      "name": "unreachable compensation",
+      "patches": [
+        {
+          "path": [
+            "workflow",
+            "steps"
+          ],
+          "value": [
+            {
+              "id": "branches",
+              "parallel": {
+                "branches": [
+                  {
+                    "id": "hidden",
+                    "when": {
+                      "path": "input.text",
+                      "eq": "never"
+                    },
+                    "steps": [
+                      {
+                        "id": "inside",
+                        "activity": "echo",
+                        "compensate": {
+                          "activity": "undo"
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "collect": {
+                  "output": "schemas:Collected"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "errorPath": "workflow.steps[0].parallel.branches[0].steps[0].compensate"
+    },
+    {
+      "name": "provider call limits",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "provider_limits"
+          ],
+          "value": {
+            "default": {
+              "max_concurrent": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "payload codec before key resolution",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "temporal"
+          ],
+          "value": {
+            "payload_codec": {
+              "type": "aes",
+              "current": "k1",
+              "keys": [
+                {
+                  "id": "k1",
+                  "value_from": {
+                    "env": "NEVER_RESOLVE_THIS_LOCAL_CODEC_KEY"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "errorPath": "runtime.temporal.payload_codec"
+    },
+    {
+      "name": "Temporal search attribute",
+      "patches": [
+        {
+          "path": [
+            "runtime",
+            "temporal"
+          ],
+          "value": {
+            "workflow_search_attribute": "WorkflowName"
+          }
+        }
+      ],
+      "errorPath": "runtime.temporal.workflow_search_attribute"
+    },
+    {
+      "name": "review gate",
+      "patches": [
+        {
+          "path": [
+            "workflow",
+            "steps"
+          ],
+          "value": [
+            {
+              "id": "echo",
+              "activity": "echo"
+            },
+            {
+              "id": "finish",
+              "activity": "echo"
+            }
+          ]
+        },
+        {
+          "path": [
+            "workflow",
+            "lifecycle"
+          ],
+          "value": {
+            "enabled": true,
+            "review": {
+              "after_step": "echo",
+              "user_decisions": {
+                "approve": {
+                  "route": "finish"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "errorPath": "workflow.lifecycle"
+    }
+  ]
+}

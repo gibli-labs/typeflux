@@ -16,6 +16,13 @@
     "runtime": {
       "type": "object",
       "properties": {
+        "engine": {
+          "type": "string",
+          "enum": [
+            "local",
+            "temporal"
+          ]
+        },
         "temporal": {
           "type": "object",
           "properties": {
@@ -1037,7 +1044,6 @@
         }
       },
       "required": [
-        "temporal",
         "registry",
         "provider"
       ],
@@ -1619,7 +1625,6 @@
   "required": [
     "project",
     "name",
-    "task_queue",
     "runtime",
     "activities",
     "workflow"

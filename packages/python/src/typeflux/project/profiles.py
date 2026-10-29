@@ -46,7 +46,9 @@ PROFILE_KINDS: tuple[ProfileKind, ...] = ("provider", "registry", "runtime")
 _OWNED_RUNTIME_KEYS: dict[ProfileKind, frozenset[str]] = {
     "provider": frozenset({"provider"}),
     "registry": frozenset({"registry"}),
-    "runtime": frozenset({"temporal", "observability", "provider_retry", "provider_limits"}),
+    "runtime": frozenset(
+        {"engine", "temporal", "observability", "provider_retry", "provider_limits"}
+    ),
 }
 
 

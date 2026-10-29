@@ -8,7 +8,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import { main } from "../src/worker-entry.js";
 
@@ -218,4 +218,18 @@ describe("typeflux-yaml-worker --preflight (#687 review — one options assembly
     // with no bindings the spec's schema refs fail by name, never silently.
     await expect(main(["--preflight"])).rejects.toThrow(/resolver\.schemas/);
   });
+});
+
+
+it("rejects local engine before the worker executable connects", async () => {
+  const dir = writeFixture();
+  writeFileSync(join(dir, "typeflux.yaml"), SPEC.replace("runtime:\n", "runtime:\n  engine: local\n"));
+  process.env.TYPEFLUX_YAML_PATH = join(dir, "typeflux.yaml");
+  process.env.TYPEFLUX_WORKER_BINDINGS = join(dir, "bindings.mjs");
+  const { NativeConnection } = await import("@temporalio/worker");
+  const connect = vi.spyOn(NativeConnection, "connect").mockRejectedValue(new Error("connection reached"));
+  try {
+    await expect(main([])).rejects.toThrow(/Temporal entry point/);
+    expect(connect).not.toHaveBeenCalled();
+  } finally { connect.mockRestore(); }
 });

@@ -56,7 +56,7 @@ export interface ProjectWorkflowSummaryValidation {
   yamlProject: string;
   yamlName: string;
   workflowName: string;
-  taskQueue: string;
+  taskQueue?: string;
 }
 
 /** The full bundle report (Python `ProjectValidationReport`, injection subset — no manifest/file paths). */
@@ -311,7 +311,7 @@ export function validateProjectBundle(
         yamlProject: spec.project,
         yamlName: spec.name,
         workflowName: spec.workflow.name,
-        taskQueue: spec.task_queue,
+        ...(spec.task_queue !== undefined ? {taskQueue: spec.task_queue} : {}),
       });
       idsByWorkflowName.set(spec.workflow.name, [...(idsByWorkflowName.get(spec.workflow.name) ?? []), workflow.id]);
     } catch (error) {
@@ -724,7 +724,7 @@ function validateResolvedWorkflow(
     yamlProject: spec.project,
     yamlName: spec.name,
     workflowName: spec.workflow.name,
-    taskQueue: spec.task_queue,
+    ...(spec.task_queue !== undefined ? {taskQueue: spec.task_queue} : {}),
     workflowPath,
     environmentProfilePath: safeGet(project.environments, environmentId) ?? "",
     checks,

@@ -34,6 +34,7 @@
  * example; a production image forks it to its project's bindings.
  */
 
+import { requireTemporalWorkflowGraph } from "@typeflux/yaml/engine";
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -237,6 +238,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   const bindings = await loadBindings();
   const target = resolveTarget(args);
   const options = runtimeOptions(bindings, target);
+  requireTemporalWorkflowGraph(target.spec, options.subworkflows);
 
   // #715 slice 4 (Bugbot): this entrypoint is BY DESIGN a split-process worker —
   // something else starts the workflows — so buildRuntime's sole-owner in-memory

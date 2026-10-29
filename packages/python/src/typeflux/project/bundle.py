@@ -35,6 +35,7 @@ from typeflux.project.spec import (
     TypefluxProjectSpec,
 )
 from typeflux.project.validation import validate_project_bundle
+from typeflux.yaml.engine import require_temporal_engine
 from typeflux.yaml.identity import GENERATOR_VERSION, SPEC_DIGEST_ALGORITHM
 from typeflux.yaml.secrets import secret_reference_records
 from typeflux.yaml.spec import TypefluxYamlSpec
@@ -476,6 +477,7 @@ def resolve_workflow_bundle(
         environment_id=environment_id,
         base_env=base_env,
     )
+    require_temporal_engine(resolved.spec)
     summary = resolved.summary()
     report = validate_project_bundle(
         project,
@@ -584,7 +586,7 @@ def _bundle_workflow_identity(
         spec_digest=getattr(workflow_cls, "__typeflux_spec_digest__"),
         spec_digest_algorithm=SPEC_DIGEST_ALGORITHM,
         generator_version=GENERATOR_VERSION,
-        task_queue=spec.task_queue,
+        task_queue=require_temporal_engine(spec),
         observability_trace_name=workflow_trace_name(spec.workflow.name),
         input_schema=_workflow_io_schema(workflow_cls, "input_value"),
         output_schema=_workflow_io_schema(workflow_cls, "return"),

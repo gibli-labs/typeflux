@@ -71,3 +71,6 @@ does not emit new execution data. The default development profile tests fresh
 candidate wheel/tarball installations, rejects Temporal SDK dependencies in the
 base installations, exercises planning and a fake-provider activity, and retains
 the existing Temporal regression and live-local checks.
+
+Explicit local engine selection and recursive capability checks are described in
+[the local runtime boundary](local-runtime.md). Local execution remains in development.
