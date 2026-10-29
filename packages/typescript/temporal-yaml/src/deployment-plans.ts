@@ -37,7 +37,7 @@ import {
   ProjectDeploymentError,
   validateDeploymentImage,
 } from "./deployment.js";
-import { workflowPlanDigest } from "./frozen-version.js";
+import { workflowPlanDigest } from "@typeflux/yaml/frozen-version";
 import { ProjectPolicyError } from "./policy-composition.js";
 import { composeProjectPolicyIds } from "./project-resolve.js";
 import {
@@ -48,8 +48,8 @@ import {
 import type { TypefluxProjectSpec } from "./project-spec.js";
 import { validateProjectBundle, withEnvironmentContext, type ProjectBundleSources } from "./project-validation.js";
 import { YAML_WORKFLOW_TYPE } from "./runtime.js";
-import type { TypefluxYamlSpec } from "./spec.js";
-import { workflowPlanFromSpec, type SubworkflowSpecResolver } from "./build-workflow.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
+import { workflowPlanFromSpec, type SubworkflowSpecResolver } from "@typeflux/yaml/build-workflow";
 
 export const PLAN_VERSION = "1" as const;
 export const PLAN_DIR_NAME = "deployments";

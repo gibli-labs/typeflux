@@ -1481,7 +1481,9 @@ async def _connect_client(
         from temporalio.client import Client
         from temporalio.contrib.pydantic import pydantic_data_converter
     except ModuleNotFoundError as exc:  # pragma: no cover - dependency guard.
-        raise RuntimeError("temporalio is required to build a Typeflux YAML runtime") from exc
+        raise RuntimeError(
+            "The Temporal YAML runtime requires: pip install 'typeflux[temporal]'"
+        ) from exc
 
     api_key = resolve_optional_secret_text(
         spec.runtime.temporal.api_key,

@@ -1,5 +1,6 @@
 from typeflux.yaml.imports import collect_activities
 from typeflux.yaml.loader import load_yaml_spec
+from typeflux.yaml.planning import WorkflowPlan, plan_workflow
 from typeflux.yaml.runtime import (
     PreparedRuntimeBuild,
     TypefluxYamlRuntime,
@@ -16,10 +17,12 @@ __all__ = [
     "SecretValueSpec",
     "TypefluxYamlRuntime",
     "TypefluxYamlSpec",
+    "WorkflowPlan",
     "build_runtime",
     "collect_activities",
     "create_workflow",
     "load_yaml_spec",
+    "plan_workflow",
     "prepare_runtime_build",
     "validate_unique_yaml_workflow_names",
 ]

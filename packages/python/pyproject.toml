@@ -17,13 +17,9 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 dependencies = [
-  # AES-256-GCM Temporal payload codec (#188) — a first-class runtime feature, so the
-  # crypto backend is a core dependency (present in every environment, incl. non-live CI).
-  "cryptography>=42",
   "pydantic>=2,<3",
   "python-dotenv>=1,<2",
   "pyyaml>=6,<7",
-  "temporalio>=1.8,<2",
 ]
 
 [project.urls]
@@ -40,10 +36,15 @@ typeflux-controlplane = "typeflux.controlplane.__main__:main"
 typeflux-trace = "typeflux.observability.__main__:main"
 
 [project.optional-dependencies]
+temporal = [
+  "temporalio>=1.8,<2",
+  "cryptography>=42",
+]
 anthropic = [
   "anthropic>=2.1,<3",
 ]
 api = [
+  "typeflux[temporal]",
   "fastapi>=0.115,<1",
   "uvicorn>=0.30,<1",
   # Foreign-edition start-input validation from the bundle's JSON Schema (#673).
@@ -65,6 +66,7 @@ openai = [
   "openai>=3.36,<4",
 ]
 live = [
+  "typeflux[temporal]",
   "anthropic>=2.1,<3",
   "google-genai>=2.32,<3",
   "langfuse>=5,<6",
@@ -77,6 +79,7 @@ live = [
 
 [dependency-groups]
 dev = [
+  "typeflux[temporal]",
   # _coerce_input's foreign-edition validation is exercised by non-live tests (#673).
   "jsonschema>=4,<5",
   "build>=1.2,<2",

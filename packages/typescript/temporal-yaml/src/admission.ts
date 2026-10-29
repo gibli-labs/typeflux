@@ -24,7 +24,7 @@
  * endpoint is deferred (Phase C) until a consumer exists.
  */
 
-import { loadYamlSpec, type LoadYamlSpecOptions } from "./loader.js";
+import { loadYamlSpec, type LoadYamlSpecOptions } from "@typeflux/yaml/loader";
 import type { PolicyValidationCheck } from "./policy-enforcement.js";
 import { validatePolicyCompliance } from "./policy-enforcement.js";
 import {
@@ -36,7 +36,7 @@ import {
 } from "./project-enforcement.js";
 import { composeProjectPolicyIds, type ProjectPolicySources } from "./project-resolve.js";
 import type { TypefluxProjectSpec } from "./project-spec.js";
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 export type SpecOrigin = "operator" | "external";
 

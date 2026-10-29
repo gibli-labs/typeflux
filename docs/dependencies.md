@@ -29,10 +29,18 @@ available for downstream installs.
 ## Consumer Extras
 
 
-Install only the provider or backend dependencies needed by the application:
+The base `typeflux` package installs no Temporal SDK or encryption dependency. It
+provides core activity execution and [shared YAML planning](yaml-planning.md).
+For Temporal workflows and workers, add the `temporal` extra (Temporal SDK and
+payload-codec encryption dependencies). Existing consumers upgrading from an
+installation of `typeflux` or a provider-only extra must add `temporal` to keep
+using those entry points. No import path changes are required.
+
+Install only the runtime, provider and backend dependencies needed:
 
 ```bash
-pip install "typeflux[openai]"
+pip install "typeflux[temporal]"
+pip install "typeflux[temporal,openai]"
 pip install "typeflux[anthropic]"
 pip install "typeflux[gemini]"
 pip install "typeflux[langfuse]"
@@ -47,7 +55,7 @@ The `langsmith` extra covers both the LangSmith prompt registry
 
 The `gemini` extra pulls `google-genai` for the Gemini provider
 (`runtime.provider.type: gemini`). The `api` extra pulls FastAPI/uvicorn/
-jsonschema — required to run the [control-plane server](control-plane.md)
+jsonschema plus the Temporal integration — required to run the [control-plane server](control-plane.md)
 (`typeflux-controlplane serve`).
 
 OpenAI provider usage depends on the native `openai` SDK, so the
@@ -59,7 +67,8 @@ pip install "typeflux[openai,langfuse]"
 ```
 
 The `live` extra remains as the aggregate integration environment and installs
-OpenAI, Anthropic, and Langfuse support:
+Temporal, OpenAI, Anthropic, and Langfuse support. The development dependency
+group also includes Temporal for regression checks:
 
 ```bash
 pip install "typeflux[live]"

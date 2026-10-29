@@ -21,6 +21,7 @@ Classification legend:
 | Python SDK (`typeflux`) | `packages/python/` | original | Apache-2.0 (`packages/python/LICENSE`, `pyproject.toml`) |
 | Python examples | `packages/python/examples/` | original | Apache-2.0 (repository license) |
 | TS SDK core (`@typeflux/temporal`) | `packages/typescript/temporal/` | original | Apache-2.0 |
+| TS shared YAML planning (`@typeflux/yaml`) | `packages/typescript/yaml/` | original | Apache-2.0 |
 | TS YAML runtime (`@typeflux/temporal-yaml`) | `packages/typescript/temporal-yaml/` | original | Apache-2.0 |
 | TS worker (`@typeflux/temporal-worker`) | `packages/typescript/temporal-worker/` | original | Apache-2.0 |
 | TS control plane (`@typeflux/temporal-controlplane`) | `packages/typescript/temporal-controlplane/` | original + generated (`src/http/contract.ts` from `contracts/controlplane/openapi.v1.json`) | Apache-2.0 |

@@ -31,7 +31,7 @@ import {
 import { collectSubworkflowReferences } from "./project-validation.js";
 import { composeProjectPolicyIds, type ProjectPolicySources } from "./project-resolve.js";
 import type { TypefluxProjectSpec } from "./project-spec.js";
-import { type TypefluxYamlSpec } from "./spec.js";
+import { type TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /**
  * Resolve a sibling workflow's spec under the SAME environment as the parent — the

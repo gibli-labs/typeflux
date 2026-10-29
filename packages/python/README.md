@@ -9,15 +9,19 @@ execution manifests, redaction, and trace enrichment.
 ## Install
 
 ```bash
-pip install typeflux
+pip install "typeflux[temporal]"
 ```
 
-Provider integrations install as extras:
+For core activity execution and YAML planning without a Temporal SDK, install
+`typeflux` alone. YAML workflow execution requires the `temporal` extra and a
+reachable Temporal server. See [shared YAML planning](https://github.com/gibli-labs/typeflux/blob/main/docs/yaml-planning.md).
+
+Provider integrations compose with the runtime extra:
 
 ```bash
-pip install "typeflux[openai]"
-pip install "typeflux[anthropic]"
-pip install "typeflux[gemini]"
+pip install "typeflux[temporal,openai]"
+pip install "typeflux[temporal,anthropic]"
+pip install "typeflux[temporal,gemini]"
 pip install "typeflux[api]"       # FastAPI control plane
 pip install "typeflux[live]"      # everything, for live testing
 ```

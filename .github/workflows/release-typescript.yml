@@ -1,10 +1,10 @@
 name: Release @typeflux TS SDK (npm)
 
-# Publishes the four TypeScript SDK packages as a VERSION TRAIN per
-# docs/release-policy.md: one ts-vX.Y.Z tag, all four packages at that
+# Publishes the five TypeScript SDK packages as a VERSION TRAIN per
+# docs/release-policy.md: one ts-vX.Y.Z tag, all five packages at that
 # version, tag-after-gates-before-publish, exact-tarball publish (pinned
 # npm >= 11.2), per-package anonymous byte-identity verification, and a
-# GitHub Release carrying all four tarballs + checksums. The production
+# GitHub Release carrying all five tarballs + checksums. The production
 # publish sits behind the protected `npm` environment. --provenance is
 # enabled once the source repository is public.
 
@@ -70,10 +70,10 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          for pkg in temporal temporal-yaml temporal-worker temporal-controlplane; do
+          for pkg in temporal yaml temporal-yaml temporal-worker temporal-controlplane; do
             v=$(node -p "require('./packages/typescript/$pkg/package.json').version")
             if [ "$v" != "$RELEASE_VERSION" ]; then
-              echo "::error::@typeflux/$pkg is $v, train is $RELEASE_VERSION — all four release together" >&2
+              echo "::error::@typeflux/$pkg is $v, train is $RELEASE_VERSION — all five release together" >&2
               exit 1
             fi
           done
@@ -368,10 +368,11 @@ jobs:
           npm init -y >/dev/null
           NPM_CONFIG_USERCONFIG=/dev/null npm install --registry https://registry.npmjs.org \
             "@typeflux/temporal@$RELEASE_VERSION" \
+            "@typeflux/yaml@$RELEASE_VERSION" \
             "@typeflux/temporal-yaml@$RELEASE_VERSION" \
             "@typeflux/temporal-worker@$RELEASE_VERSION" \
             "@typeflux/temporal-controlplane@$RELEASE_VERSION"
-          node -e "for (const m of ['@typeflux/temporal','@typeflux/temporal-yaml','@typeflux/temporal-worker','@typeflux/temporal-controlplane']) { require.resolve(m); console.log(m, 'resolves'); }"
+          node -e "for (const m of ['@typeflux/temporal','@typeflux/yaml','@typeflux/temporal-yaml','@typeflux/temporal-worker','@typeflux/temporal-controlplane']) { require.resolve(m); console.log(m, 'resolves'); }"
 
       # Checksums are recomputed AFTER verification swapped in the served
       # registry bytes — the release evidence describes exactly what npm serves.
@@ -402,7 +403,7 @@ jobs:
           changelog_section=$(cat dist-train/CHANGELOG_SECTION)
           notes="Published the @typeflux TypeScript SDK train to npmjs.org at $RELEASE_VERSION.
 
-          Packages: @typeflux/temporal, @typeflux/temporal-yaml, @typeflux/temporal-worker, @typeflux/temporal-controlplane.
+          Packages: @typeflux/temporal, @typeflux/yaml, @typeflux/temporal-yaml, @typeflux/temporal-worker, @typeflux/temporal-controlplane.
           Install: npm install @typeflux/temporal@$RELEASE_VERSION (no credentials required).
           SHA-256 checksums attached.
 

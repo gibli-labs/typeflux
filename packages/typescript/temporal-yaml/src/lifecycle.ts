@@ -8,7 +8,7 @@
  * must match Python's Pydantic serialization key-for-key (snake_case, exact event names).
  */
 
-import type { CompensationStatus, GatePlan, LifecyclePlan, ReviewPlan } from "./workflow-plan.js";
+import type { CompensationStatus, GatePlan, LifecyclePlan, ReviewPlan } from "@typeflux/yaml/workflow-plan";
 
 /** The `typeflux_submit_review` signal payload (Python `ReviewCommand`). */
 export interface ReviewCommand {

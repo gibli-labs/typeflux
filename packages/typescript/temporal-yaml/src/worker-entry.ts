@@ -45,17 +45,17 @@ import {
 import { assembleYamlRuntime, autoWireRuntimeOptions, buildRuntime } from "./runtime.js";
 import { importBindingsModule } from "./bindings-module.js";
 import { applyEnvironmentVariablesToProcessEnv } from "./environment-overlay.js";
-import { loadYamlSpec } from "./loader.js";
+import { loadYamlSpec } from "@typeflux/yaml/loader";
 import { loadProjectBundle } from "./project-fs-loader.js";
 import { resolveProjectWorkflow } from "./project-run.js";
-import { projectSubworkflowResolver, type SubworkflowSpecResolver } from "./build-workflow.js";
+import { projectSubworkflowResolver, type SubworkflowSpecResolver } from "@typeflux/yaml/build-workflow";
 import { composeProjectPolicyIds } from "./project-resolve.js";
 import {
   assertRiskTierEnforced, selectProjectPolicyIdsForWorkflow } from "./project-enforcement.js";
 import { temporalConnectionOptions } from "./temporal-tls.js";
 import type { ComposedProjectPolicy } from "./policy-composition.js";
 import type { BuildRuntimeOptions } from "./runtime.js";
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 interface WorkerArgs {
   manifest?: string;

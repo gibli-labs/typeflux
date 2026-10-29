@@ -35,7 +35,7 @@ import {
   type SecretValueSpec,
   type TypefluxYamlSpec,
   type WorkflowStepSpec,
-} from "./spec.js";
+} from "@typeflux/yaml/spec";
 
 export type PolicyCheckStatus = "passed" | "failed" | "skipped";
 

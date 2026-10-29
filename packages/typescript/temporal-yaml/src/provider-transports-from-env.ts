@@ -45,7 +45,7 @@ import type {
 } from "@typeflux/temporal";
 
 import type { ProviderTransports } from "./provider-from-spec.js";
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /** The per-request options the OpenAI/Anthropic SDKs share: abort signal + ms timeout. */
 interface VendorRequestOptions {

@@ -9,11 +9,11 @@
 import { composeProfileOverrides, type ProfileSourceIndex } from "./profile.js";
 import type { DeploymentResolvedWorkflow } from "./deployment.js";
 import type { DeploymentPlanResolver } from "./deployment-plans.js";
-import { projectSubworkflowResolver } from "./build-workflow.js";
+import { projectSubworkflowResolver } from "@typeflux/yaml/build-workflow";
 import { resolveEnvironmentWorkflow } from "./environment-overlay.js";
 import type { TypefluxProjectSpec } from "./project-spec.js";
 import type { ProjectBundleSources } from "./project-validation.js";
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /**
  * Resolve one workflow's spec + environment metadata under an environment — the SAME resolution

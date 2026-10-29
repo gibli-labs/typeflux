@@ -55,7 +55,13 @@ def test_optional_extras_are_split_and_live_stays_aggregate() -> None:
     extras = _project_metadata()["optional-dependencies"]
 
     assert extras["anthropic"] == ["anthropic>=2.1,<3"]
-    assert extras["api"] == ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "jsonschema>=4,<5"]
+    assert extras["temporal"] == ["temporalio>=1.8,<2", "cryptography>=42"]
+    assert extras["api"] == [
+        "typeflux[temporal]",
+        "fastapi>=0.115,<1",
+        "uvicorn>=0.30,<1",
+        "jsonschema>=4,<5",
+    ]
     assert extras["gemini"] == ["google-genai>=2.32,<3"]
     assert extras["langfuse"] == ["langfuse>=5,<6"]
     assert extras["langsmith"] == ["langsmith[otel]>=0.8.18,<1"]
@@ -66,6 +72,7 @@ def test_optional_extras_are_split_and_live_stays_aggregate() -> None:
         + extras["langfuse"]
         + extras["langsmith"]
         + extras["openai"]
+        + ["typeflux[temporal]"]
     )
 
 
@@ -106,6 +113,7 @@ def test_built_distributions_include_license_version_and_extras(tmp_path: Path) 
         "langsmith",
         "live",
         "openai",
+        "temporal",
     ]
     assert any(
         requirement.startswith("fastapi")
@@ -131,6 +139,16 @@ def test_built_distributions_include_license_version_and_extras(tmp_path: Path) 
         requirement.startswith("langfuse")
         for requirement in _requirements_for_extra(metadata_text, "langfuse")
     )
+    for dependency in ("temporalio", "cryptography"):
+        assert all(
+            "extra" in requirement
+            for requirement in _metadata_values(metadata_text, "Requires-Dist")
+            if requirement.startswith(dependency)
+        )
+        assert any(
+            requirement.startswith(dependency)
+            for requirement in _requirements_for_extra(metadata_text, "temporal")
+        )
     for dependency in (
         "anthropic",
         "google-genai",

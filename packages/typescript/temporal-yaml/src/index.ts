@@ -1,13 +1,13 @@
-export { loadYamlSpec, MAX_YAML_ALIASES, MAX_YAML_BYTES } from "./loader.js";
-export type { LoadYamlSpecOptions } from "./loader.js";
+export { loadYamlSpec, MAX_YAML_ALIASES, MAX_YAML_BYTES } from "@typeflux/yaml/loader";
+export type { LoadYamlSpecOptions } from "@typeflux/yaml/loader";
 export {
   defineActivitiesFromSpec,
   inlinePromptValueFromSpec,
   inlineRegistryFromSpec,
   registryFromSpec,
   toPromptRef,
-} from "./build-activities.js";
-export type { ActivityResolver } from "./build-activities.js";
+} from "@typeflux/yaml/build-activities";
+export type { ActivityResolver } from "@typeflux/yaml/build-activities";
 export {
   composeRuntimeRegistry,
   RegistryCompositionError,
@@ -24,7 +24,7 @@ export {
   workflowSchemaChainError,
   type SubworkflowSpecResolver,
   type WorkflowPlanBuildOptions,
-} from "./build-workflow.js";
+} from "@typeflux/yaml/build-workflow";
 export { observerFromSpec, redactionFromSpec } from "./observer-from-spec.js";
 export {
   langfuseCredentialsFromEnv,
@@ -77,8 +77,8 @@ export {
   enforceFrozenWorkflowVersion,
   workflowIdentityMemo,
   workflowPlanDigest,
-} from "./frozen-version.js";
-export type { EnforceFrozenVersionParams, WorkflowListClient } from "./frozen-version.js";
+} from "@typeflux/yaml/frozen-version";
+export type { EnforceFrozenVersionParams, WorkflowListClient } from "@typeflux/yaml/frozen-version";
 export type {
   AssembledYamlRuntime,
   AssembleYamlRuntimeOptions,
@@ -99,7 +99,7 @@ export {
   planUnsupportedReason,
   renderPlanWhen,
   resolvedActivityRetryPlan,
-} from "./workflow-plan.js";
+} from "@typeflux/yaml/workflow-plan";
 export type {
   ActivityPlanStep,
   LifecyclePlan,
@@ -118,14 +118,14 @@ export type {
   SubworkflowPlanStep,
   WorkflowPlan,
   WorkflowPlanStep,
-} from "./workflow-plan.js";
+} from "@typeflux/yaml/workflow-plan";
 export {
   resolveOptionalSecretText, SECRET_SLOT_PATHS, secretReferenceRecords, secretSlotValue } from "./secret-references.js";
 export type { SecretReferenceRecord } from "./secret-references.js";
 export { temporalConnectionOptions, temporalTlsOptions } from "./temporal-tls.js";
 export type { TemporalConnectionOptions, TemporalTlsOptions } from "./temporal-tls.js";
-export { interpolateEnv } from "./env-interpolation.js";
-export type { InterpolateEnvOptions, YamlPath } from "./env-interpolation.js";
+export { interpolateEnv } from "@typeflux/yaml/env-interpolation";
+export type { InterpolateEnvOptions, YamlPath } from "@typeflux/yaml/env-interpolation";
 // Project governance (#454): the policy spec + loader. Composition + enforcement follow.
 export {
   ARTIFACT_SOURCE_POLICIES,
@@ -300,7 +300,7 @@ export {
   deepMerge,
   validateYamlOverrides,
   yamlOverridePaths,
-} from "./overrides.js";
+} from "@typeflux/yaml/overrides";
 // Project environment (#454): the strict spec + loader.
 export {
   loadEnvironmentSpec,
@@ -329,8 +329,8 @@ export type {
 } from "./environment-overlay.js";
 export type { PolicyCheckStatus, PolicyValidationCheck } from "./policy-enforcement.js";
 // Only the top-level schema is public; sub-schemas are internal composition (types below stay).
-export { payloadCodecKeySpec, payloadCodecSpec, payloadCodecSubjectScopeSpec, providerParamsRecord, RISK_TIER_ORDER, secretValueSpec, subjectInputSpec, typefluxYamlSpec, unsupportedProviderParamKeys } from "./spec.js";
-export type { PayloadCodecSubjectScopeSpec, RiskTier, SubjectInputSpec } from "./spec.js";
+export { payloadCodecKeySpec, payloadCodecSpec, payloadCodecSubjectScopeSpec, providerParamsRecord, RISK_TIER_ORDER, secretValueSpec, subjectInputSpec, typefluxYamlSpec, unsupportedProviderParamKeys } from "@typeflux/yaml/spec";
+export type { PayloadCodecSubjectScopeSpec, RiskTier, SubjectInputSpec } from "@typeflux/yaml/spec";
 export {
   SUBJECT_IDS_SEARCH_ATTRIBUTE,
   effectiveSubjectIds,
@@ -448,7 +448,7 @@ export type {
   WorkflowMapSpec,
   WorkflowSpec,
   WorkflowStepSpec,
-} from "./spec.js";
+} from "@typeflux/yaml/spec";
 
 export { readLangfuseObservations, LANGFUSE_METADATA_KEYS } from "./langfuse-observations.js";
 export type { LangfuseObservationQuery, LangfuseObservationPage, LangfuseObservationRow } from "./langfuse-observations.js";

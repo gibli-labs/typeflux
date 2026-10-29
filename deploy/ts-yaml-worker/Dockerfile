@@ -16,6 +16,7 @@ WORKDIR /app
 # the repo root (see docker-compose.yml: context ../..).
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/typescript/temporal/package.json packages/typescript/temporal/package.json
+COPY packages/typescript/yaml/package.json packages/typescript/yaml/package.json
 COPY packages/typescript/temporal-worker/package.json packages/typescript/temporal-worker/package.json
 COPY packages/typescript/temporal-yaml/package.json packages/typescript/temporal-yaml/package.json
 COPY packages/typescript/temporal-controlplane/package.json packages/typescript/temporal-controlplane/package.json

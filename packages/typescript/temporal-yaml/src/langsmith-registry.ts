@@ -36,7 +36,7 @@ import {
   type RegistryTransport,
 } from "@typeflux/temporal";
 
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /** The slice of the SDK's `PromptCommit` this module reads (structural — tests fake it). */
 export interface LangsmithPromptCommit {

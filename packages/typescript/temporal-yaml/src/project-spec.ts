@@ -15,7 +15,7 @@
 import { parseDocument } from "yaml";
 import { z } from "zod";
 
-import { assertSafeKeys } from "./overrides.js";
+import { assertSafeKeys } from "@typeflux/yaml/overrides";
 
 /** Non-empty AND trimmed (Python `_validate_non_empty_string`). */
 const trimmedNonEmpty = (field: string) =>

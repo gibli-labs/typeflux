@@ -22,7 +22,7 @@ import {
   TAG_LEN,
   TypefluxAesGcmPayloadCodec,
 } from "../src/index.js";
-import { loadYamlSpec } from "../src/loader.js";
+import { loadYamlSpec } from "@typeflux/yaml/loader";
 import { secretReferenceRecords } from "../src/secret-references.js";
 
 const PayloadProto = proto.temporal.api.common.v1.Payload;

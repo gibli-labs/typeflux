@@ -20,7 +20,7 @@ import { createHash } from "node:crypto";
 import { canonicalJson } from "@typeflux/temporal";
 
 import type { TypefluxProjectPolicySpec } from "./policy.js";
-import { RISK_TIER_ORDER } from "./spec.js";
+import { RISK_TIER_ORDER } from "@typeflux/yaml/spec";
 
 export class ProjectPolicyError extends Error {
   constructor(message: string) {

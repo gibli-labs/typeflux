@@ -194,7 +194,7 @@ describe.skipIf(!LIVE)("ALLOW_DUPLICATE still-running collision (#55 §6, design
       // Occupy the deterministic child id with a DETERMINISTICALLY still-running blocker:
       // the generic interpreter type started on a task queue NO worker serves, so it can
       // never progress or close — the id conflict is namespace-wide regardless of queue.
-      const { workflowPlanFromSpec } = await import("../src/build-workflow.js");
+      const { workflowPlanFromSpec } = await import("@typeflux/yaml/build-workflow");
       const blockerPlan = workflowPlanFromSpec(loadYamlSpec(CHILD));
       const blocker = await client.workflow.start("typefluxYamlWorkflow", {
         taskQueue: `${TASK_QUEUE}-no-worker`,

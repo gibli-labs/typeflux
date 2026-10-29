@@ -21,6 +21,7 @@ See [Editions](../../docs/editions.md) for which edition leads on which surface.
 | Package | What it is | Bins |
 | --- | --- | --- |
 | [`@typeflux/temporal`](temporal) | Core SDK — `defineActivity`, Zod↔JSON-Schema adapter, `PromptRef`, artifacts and content parts, the OpenAI/Anthropic/Gemini provider adapters, manifests, redaction, session cache, composition primitives. Dependency-light. | — |
+| [`@typeflux/yaml`](yaml) | Shared YAML loading, activity definitions and workflow planning without a Temporal SDK. See [planning](../../docs/yaml-planning.md) for the boundary; local YAML execution is tracked in #89. | — |
 | [`@typeflux/temporal-worker`](temporal-worker) | Opt-in Temporal integration — builds Temporal activities from Typeflux definitions and bootstraps a worker + client. | — |
 | [`@typeflux/temporal-yaml`](temporal-yaml) | Opt-in declarative runtime — loads, env-interpolates, and validates a `typeflux.yaml` spec, then builds activities and a workflow from it. Also carries project manifests, policy, admission, deployment planning, and erasure. | `typeflux-project`, `typeflux-yaml-worker` |
 | [`@typeflux/temporal-controlplane`](temporal-controlplane) | Control-plane server for TypeScript projects — governance reads, validation, and Temporal-backed start/status/drain operations at contract parity with the Python control plane. | `typeflux-controlplane` |

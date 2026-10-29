@@ -1,0 +1,48 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.yaml-planning
+    kind: capability
+    description: Load and validate the shared YAML workflow graph without a Temporal SDK; planning does not execute workflows or certify engine support.
+    editions: {python: supported, typescript: supported}
+    implementation:
+      - packages/python/src/typeflux/yaml/planning.py
+      - packages/python/src/typeflux/yaml/workflow.py
+      - packages/python/src/typeflux/project/erase.py
+      - packages/python/pyproject.toml
+      - packages/typescript/yaml/src/build-activities.ts
+      - packages/typescript/yaml/src/build-workflow.ts
+      - packages/typescript/yaml/src/codec-constants.ts
+      - packages/typescript/yaml/src/env-interpolation.ts
+      - packages/typescript/yaml/src/frozen-version.ts
+      - packages/typescript/yaml/src/index.ts
+      - packages/typescript/yaml/src/loader.ts
+      - packages/typescript/yaml/src/overrides.ts
+      - packages/typescript/yaml/src/spec.ts
+      - packages/typescript/yaml/src/workflow-plan.ts
+      - packages/typescript/temporal-yaml/src/index.ts
+    documentation: [docs/yaml-planning.md, docs/dependencies.md]
+    links:
+      - {relation: requires, target: invariant.shared-yaml-planning}
+  - id: invariant.shared-yaml-planning
+    kind: invariant
+    description: Shared YAML validation and predicate semantics remain the same for the Temporal integration; base imports and ordinary AI activity planning need no Temporal SDK. Temporal-specific construction still requires the integration.
+  - id: check.yaml-planning-python
+    kind: check
+    description: Reject Temporal imports during YAML/project planning and fake activity execution; assert Temporal generator type and validation parity. The quality lane separately installs the built base wheel into a fresh environment.
+    environment: python-non-live
+    ci: [python-3.12]
+    tests:
+      - {path: packages/python/tests/test_yaml_planning.py, name: test_yaml_and_project_planning_without_temporal}
+      - {path: packages/python/tests/test_yaml_planning.py, name: test_temporal_generator_preserves_planned_types_and_validation}
+    links:
+      - {relation: verifies, target: invariant.shared-yaml-planning}
+  - id: check.yaml-planning-typescript
+    kind: check
+    description: Exercise shared YAML planning and invalid predicate references. The same lane separately installs packed core/YAML packages and rejects any Temporal SDK dependency.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/yaml/test/planning.test.ts, name: loads and plans the existing language through the neutral entry point}
+      - {path: packages/typescript/yaml/test/planning.test.ts, name: rejects unavailable context roots through the shared planner}
+    links:
+      - {relation: verifies, target: invariant.shared-yaml-planning}

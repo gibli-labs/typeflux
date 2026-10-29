@@ -39,7 +39,7 @@ falls into place (see [Concepts](concepts.md)).
 Install from PyPI — no credentials, no checkout:
 
 ```bash
-pip install "typeflux[openai]"   # or [anthropic], [gemini], [live]
+pip install "typeflux[temporal,openai]"   # or [temporal,anthropic], [temporal,gemini], [live]
 ```
 
 (Working from a checkout of the monorepo instead? `cd packages/python &&
