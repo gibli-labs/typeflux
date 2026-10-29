@@ -437,7 +437,7 @@ class TsBindingTarget:
             ),
         }
         runtime_profile_id = effective_selection.get("runtime")
-        profile_temporal: dict[str, Any] | None = None
+        profile_runtime: dict[str, Any] = {}
         if runtime_profile_id is not None:
             # Manifest-declaration-first (the #568 rule): the selected id must
             # be DECLARED under the manifest's profiles.runtime map; the file
@@ -483,6 +483,7 @@ class TsBindingTarget:
                 raise TsBindingConfigError(
                     f"runtime profile {runtime_profile_id!r} is invalid: {exc}"
                 ) from exc
+            profile_runtime = profile_spec.runtime
             if "temporal" in profile_spec.runtime:
                 profile_section = profile_spec.runtime["temporal"]
                 # A PRESENT-but-malformed temporal subtree must fail closed —
@@ -495,7 +496,6 @@ class TsBindingTarget:
                         f"runtime profile {runtime_profile_id!r} has a malformed "
                         "`runtime.temporal` section (not a mapping)"
                     )
-                profile_temporal = profile_section
 
         # Temporal connection, layered at the canonical precedence (#568):
         # manifest defaults < workflow YAML < selected runtime PROFILE <
@@ -505,45 +505,47 @@ class TsBindingTarget:
         # DEEP merge per layer (the canonical `_deep_merge` semantics, codex):
         # a layer overriding one nested field (e.g. api_key.value_from.required)
         # must not replace the whole nested mapping a lower layer supplied.
-        temporal: dict[str, Any] = {}
         manifest_defaults = manifest.get("defaults")
-        if isinstance(manifest_defaults, dict):
-            defaults_runtime = manifest_defaults.get("runtime")
-            if isinstance(defaults_runtime, dict) and isinstance(
-                defaults_runtime.get("temporal"), dict
-            ):
-                temporal = _deep_merge_dicts(temporal, defaults_runtime["temporal"])
+        defaults_runtime = (
+            manifest_defaults.get("runtime") if isinstance(manifest_defaults, dict) else None
+        )
         workflow_runtime = workflow.get("runtime")
-        if isinstance(workflow_runtime, dict) and isinstance(
-            workflow_runtime.get("temporal"), dict
-        ):
-            temporal = _deep_merge_dicts(temporal, workflow_runtime["temporal"])
-        if profile_temporal is not None:
-            temporal = _deep_merge_dicts(temporal, profile_temporal)
         overrides = environment.get("overrides")
-        if isinstance(overrides, dict):
-            runtime_overrides = overrides.get("runtime")
-            if isinstance(runtime_overrides, dict) and isinstance(
-                runtime_overrides.get("temporal"), dict
-            ):
-                temporal = _deep_merge_dicts(temporal, runtime_overrides["temporal"])
-        # The per-workflow override layer sits above the environment-wide one,
-        # matching the resolver's precedence.
+        runtime_overrides = overrides.get("runtime") if isinstance(overrides, dict) else None
         env_workflows = environment.get("workflows")
-        if isinstance(env_workflows, dict) and isinstance(env_workflows.get(workflow_id), dict):
-            per_workflow = env_workflows[workflow_id].get("overrides")
-            if isinstance(per_workflow, dict):
-                per_workflow_runtime = per_workflow.get("runtime")
-                if isinstance(per_workflow_runtime, dict) and isinstance(
-                    per_workflow_runtime.get("temporal"), dict
-                ):
-                    temporal = _deep_merge_dicts(temporal, per_workflow_runtime["temporal"])
+        per_workflow = env_workflows.get(workflow_id) if isinstance(env_workflows, dict) else None
+        per_overrides = per_workflow.get("overrides") if isinstance(per_workflow, dict) else None
+        per_runtime = per_overrides.get("runtime") if isinstance(per_overrides, dict) else None
+        temporal: dict[str, Any] = {}
+        engine: Any = "temporal"
+        for layer in (
+            defaults_runtime,
+            workflow_runtime,
+            profile_runtime,
+            runtime_overrides,
+            per_runtime,
+        ):
+            if not isinstance(layer, dict):
+                continue
+            if "engine" in layer:
+                engine = layer["engine"]
+            if isinstance(layer.get("temporal"), dict):
+                temporal = _deep_merge_dicts(temporal, layer["temporal"])
         env_variables: dict[str, str] = {}
         raw_variables = environment.get("variables")
         if isinstance(raw_variables, dict):
             env_variables = {
                 str(k): str(v) for k, v in raw_variables.items() if isinstance(v, (str, int, float))
             }
+
+        if isinstance(engine, str):
+            engine = _substitute_env(engine, variables=env_variables)
+        if engine != "temporal":
+            raise TsBindingConfigError(
+                f"workflow {workflow_id!r}: runtime.engine must be temporal for this binding. "
+                "Use runtime.engine: temporal for control-plane operations; local execution "
+                "is not supported by the Temporal binding driver."
+            )
 
         address = temporal.get("address")
         if not isinstance(address, str) or not address:

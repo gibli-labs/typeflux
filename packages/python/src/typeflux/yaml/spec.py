@@ -4,7 +4,15 @@ import re
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from typeflux.core.artifacts import (
     ArtifactAttachment,
@@ -838,6 +846,29 @@ class ImportPolicySpec(BaseModel):
 
 class RuntimeSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+    # Omission keeps Temporal and stays absent from legacy serialized specs.
+    engine: Literal["local", "temporal"] | None = None
+
+    @field_validator("engine", mode="before")
+    @classmethod
+    def _validate_engine(cls, value):
+        if value is None:
+            raise ValueError("runtime.engine must be local or temporal when configured")
+        return value
+
+    @model_serializer(mode="wrap")
+    def _serialize_engine(self, handler):
+        result = handler(self)
+        if self.engine is None:
+            result.pop("engine", None)
+        elif self.engine == "local" and "temporal" in result:
+            result["temporal"] = {
+                key: value
+                for key, value in result["temporal"].items()
+                if key in self.temporal.model_fields_set
+            }
+        return result
 
     temporal: TemporalSpec = Field(default_factory=TemporalSpec)
     registry: RegistrySpec
@@ -1772,10 +1803,30 @@ class TypefluxYamlSpec(BaseModel):
 
     project: str
     name: str
-    task_queue: str
+    task_queue: str | None = None
     runtime: RuntimeSpec
     activities: ActivitiesSpec
     workflow: WorkflowSpec
+
+    @field_validator("task_queue", mode="before")
+    @classmethod
+    def _validate_queue_value(cls, value):
+        if value is None:
+            raise ValueError("task_queue must be a string when configured; omit it for local")
+        return value
+
+    @model_serializer(mode="wrap")
+    def _serialize_local_queue(self, handler):
+        result = handler(self)
+        if self.runtime.engine == "local" and self.task_queue is None:
+            result.pop("task_queue", None)
+        return result
+
+    @model_validator(mode="after")
+    def _validate_engine_queue(self) -> TypefluxYamlSpec:
+        if self.runtime.engine != "local" and self.task_queue is None:
+            raise ValueError("task_queue is required for runtime.engine: temporal (the default)")
+        return self
 
     @model_validator(mode="after")
     def _validate_activity_sources(self) -> TypefluxYamlSpec:

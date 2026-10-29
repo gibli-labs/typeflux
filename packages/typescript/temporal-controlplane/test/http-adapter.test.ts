@@ -19,6 +19,7 @@ import {
   serve,
   type RouteResponse,
 } from "../src/index.js";
+import { RuntimeCapabilityError } from "@typeflux/temporal-yaml";
 import { CONFORMANCE_SCHEMAS } from "../src/http/conformance-schemas.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -1544,4 +1545,15 @@ describe("github-provenance route — served drift + plan→PR seam (#727 slice 
     expect(caught?.status).toBe(501);
     expect(caught?.errorName).toBe("UnsupportedRuntime");
   });
+});
+
+
+it("reports runtime capability errors as actionable configuration failures", async () => {
+  const error = new RuntimeCapabilityError("Workflow", "runtime.engine", "local engine", "Use runtime.engine: temporal for this entry point.");
+  const started = await serve({...context(), port: 0, schemasFor: () => { throw error; }});
+  try {
+    const response = await fetch(`http://127.0.0.1:${started.port}/api/v1/workflows/workflow/bundle?environment_id=local`);
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({error: "RuntimeCapabilityError", message: error.message});
+  } finally { await started.close(); }
 });

@@ -1,3 +1,4 @@
+export * from "@typeflux/yaml/engine";
 export { loadYamlSpec, MAX_YAML_ALIASES, MAX_YAML_BYTES } from "@typeflux/yaml/loader";
 export type { LoadYamlSpecOptions } from "@typeflux/yaml/loader";
 export {

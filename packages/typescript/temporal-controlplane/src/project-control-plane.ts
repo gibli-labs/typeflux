@@ -12,6 +12,8 @@
  * / console works against either server.
  */
 
+import { requireTemporalEngine } from "@typeflux/temporal-yaml";
+
 import {
   type AppliedComponentProfile,
   buildProjectDeploymentPlan,
@@ -635,7 +637,7 @@ export class ProjectControlPlane {
     }
     return {
       plan,
-      task_queue: spec.task_queue,
+      task_queue: requireTemporalEngine(spec),
       spec_digest: workflowPlanDigest(plan),
       workflow_name: spec.workflow.name,
       version_label: spec.workflow.version ?? null,

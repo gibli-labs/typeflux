@@ -747,7 +747,8 @@ export const artifactRuntimeSpec = z
 
 export const runtimeSpec = z
   .object({
-    temporal: temporalSpec,
+    engine: z.enum(["local", "temporal"]).optional(),
+    temporal: temporalSpec.default(() => temporalSpec.parse({})),
     registry: registrySpec,
     provider: providerSpec,
     observability: observabilitySpec.optional(),
@@ -1329,13 +1330,17 @@ export const typefluxYamlSpec = z
   .object({
     project: z.string(),
     name: z.string(),
-    task_queue: z.string(),
+    task_queue: z.string().optional(),
     runtime: runtimeSpec,
     activities: activitiesSpec,
     workflow: workflowSpec,
   })
   .strict()
   .superRefine((spec, ctx) => {
+    if (spec.runtime.engine !== "local" && spec.task_queue === undefined) {
+      ctx.addIssue({ code: "custom", path: ["task_queue"],
+        message: "task_queue is required for runtime.engine: temporal (the default)" });
+    }
     // Per-provider param support (#495; Python validate_provider_params_supported): a
     // configured param the selected provider never maps would be silently ignored —
     // reject at load across all three params sites.

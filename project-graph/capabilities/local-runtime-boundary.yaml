@@ -1,0 +1,64 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.local-runtime-boundary
+    kind: capability
+    description: Select an engine and inspect the entire local YAML closure without Temporal; this is static eligibility, not execution or policy attestation.
+    editions: {python: supported, typescript: supported}
+    implementation:
+      - packages/python/src/typeflux/yaml/engine.py
+      - packages/python/src/typeflux/yaml/spec.py
+      - packages/python/src/typeflux/yaml/overrides.py
+      - packages/python/src/typeflux/yaml/runtime.py
+      - packages/python/src/typeflux/yaml/workflow.py
+      - packages/python/src/typeflux/project/environment.py
+      - packages/python/src/typeflux/project/profiles.py
+      - packages/python/src/typeflux/project/binding_ts.py
+      - packages/typescript/yaml/src/engine.ts
+      - packages/typescript/yaml/src/spec.ts
+      - packages/typescript/yaml/src/overrides.ts
+      - packages/typescript/temporal-yaml/src/runtime.ts
+      - packages/typescript/temporal-yaml/src/profile.ts
+      - packages/typescript/temporal-yaml/src/worker-entry.ts
+      - packages/typescript/temporal-controlplane/src/executions.ts
+      - packages/typescript/temporal-controlplane/src/http/server.ts
+      - packages/typescript/temporal-yaml/src/deployment.ts
+    documentation: [docs/local-runtime.md, docs/yaml-planning.md, contracts/local-runtime/README.md]
+    links:
+      - {relation: requires, target: invariant.local-engine-boundary}
+  - id: invariant.local-engine-boundary
+    kind: invariant
+    description: Omitted engine retains Temporal. Local capabilities reject explicit Temporal settings, lifecycle/review and compensation throughout the reachable graph, while schema defaults are harmless. Existing Temporal execution surfaces refuse local selection before service construction.
+  - id: check.local-runtime-boundary-python
+    kind: check
+    description: Shared capability fixtures, nested/skipped references, defaults/serialization/overrides and zero-effect Temporal entry guards; the no-Temporal probe also exercises the public boundary.
+    environment: python-non-live
+    ci: [python-3.12]
+    tests:
+      - {path: packages/python/tests/test_yaml_engine.py, name: test_shared_local_capability_cases}
+      - {path: packages/python/tests/test_yaml_engine.py, name: test_ts_binding_rejects_local_engine_in_every_configuration_layer}
+      - {path: packages/python/tests/test_yaml_engine.py, name: test_runtime_profile_selects_engine_before_schema_validation}
+      - {path: packages/python/tests/test_yaml_engine.py, name: test_local_closure_checks_skipped_nested_maps_and_references}
+      - {path: packages/python/tests/test_yaml_engine.py, name: test_local_diamond_resolves_each_child_once_and_preserves_errors}
+      - {path: packages/python/tests/test_yaml_engine.py, name: test_engine_defaults_overrides_and_roundtrip}
+      - {path: packages/python/tests/test_yaml_engine.py, name: test_temporal_entry_points_refuse_local_before_effects}
+      - {path: packages/python/tests/test_yaml_engine.py, name: test_local_worker_query_rejects_even_with_queue_override}
+      - {path: packages/python/tests/test_yaml_planning.py, name: test_yaml_and_project_planning_without_temporal}
+    links:
+      - {relation: verifies, target: invariant.local-engine-boundary}
+  - id: check.local-runtime-boundary-typescript
+    kind: check
+    description: Shared capability fixtures, nested/skipped references, engine overrides and zero-effect root/child Temporal entry guards. The packed candidate probe exercises the neutral public API.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/yaml/test/engine.test.ts, name: matches shared local capability cases}
+      - {path: packages/typescript/temporal-yaml/test/worker-entry.test.ts, name: rejects local engine before the worker executable connects}
+      - {path: packages/typescript/temporal-controlplane/test/http-adapter.test.ts, name: reports runtime capability errors as actionable configuration failures}
+      - {path: packages/typescript/yaml/test/engine.test.ts, name: checks skipped nested maps and references}
+      - {path: packages/typescript/yaml/test/engine.test.ts, name: resolves diamond children once and preserves resolver errors}
+      - {path: packages/typescript/yaml/test/engine.test.ts, name: preserves defaults and resolves engine overrides before validation}
+      - {path: packages/typescript/temporal-controlplane/test/engine-boundary.test.ts, name: rejects local worker queries even with an explicit queue}
+      - {path: packages/typescript/temporal-yaml/test/engine-boundary.test.ts, name: selects engine from a runtime component profile before schema validation}
+      - {path: packages/typescript/temporal-yaml/test/engine-boundary.test.ts, name: rejects local root and children before runtime services}
+    links:
+      - {relation: verifies, target: invariant.local-engine-boundary}

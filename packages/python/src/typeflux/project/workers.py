@@ -18,6 +18,7 @@ from typeflux.project.environment import (
     resolve_project_workflow,
 )
 from typeflux.project.spec import TypefluxProjectSpec
+from typeflux.yaml.engine import require_temporal_engine
 
 
 class WorkflowTaskQueueWorkers(BaseModel):
@@ -55,7 +56,8 @@ async def workflow_task_queue_workers(
     )
     # An explicit override (the start panel's task-queue field) is the queue
     # the run actually targets; otherwise the resolved default.
-    queue = task_queue or resolved.spec.task_queue
+    default_queue = require_temporal_engine(resolved.spec)
+    queue = task_queue or default_queue
     async with async_project_environment_context(resolved.application):
         try:
             client = await _connect_client(resolved.spec, plugin=None)

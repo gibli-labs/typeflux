@@ -14,6 +14,7 @@
 export const ALLOWED_OVERRIDE_KEYS = ["task_queue", "runtime"] as const;
 /** `runtime.*` blocks an environment may override (Python `_ALLOWED_RUNTIME_OVERRIDE_KEYS`). */
 export const ALLOWED_RUNTIME_OVERRIDE_KEYS = [
+  "engine",
   "temporal",
   "registry",
   "provider",

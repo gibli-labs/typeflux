@@ -10,6 +10,8 @@
  * the assembled activities (#529).
  */
 
+import { requireTemporalEngine, requireTemporalWorkflowGraph } from "@typeflux/yaml/engine";
+
 import type { DataConverter } from "@temporalio/common";
 import {
   isSubjectErasableCacheStore,
@@ -269,6 +271,7 @@ export function assembleYamlRuntime(
   spec: TypefluxYamlSpec,
   options: AssembleYamlRuntimeOptions,
 ): AssembledYamlRuntime {
+  requireTemporalEngine(spec);
 
   // Governance pre-flight (#454), FIRST: a non-compliant spec must refuse to build
   // before any provider/registry/worker is constructed. Fail-closed — throws
@@ -282,6 +285,7 @@ export function assembleYamlRuntime(
       enforceRequiredObservabilityResolves(spec, options.policy);
     }
   }
+  requireTemporalWorkflowGraph(spec, options.subworkflows);
   // #795 (after the governance pre-flight, which stays FIRST; unconditional — a spec needs
   // no policy for its own declaration to bind): a declared targeted-cache-erasure
   // requirement fails CLOSED at assembly when the wired store cannot honor it — wiring a
@@ -613,7 +617,7 @@ export function assembleYamlRuntime(
   patchInjectedSessionCache(plan.steps);
   assertActivitiesAvailable(plan.steps, "workflow");
   patchAndCheckChildren(plan.steps);
-  return { activities, plan, taskQueue: options.taskQueue ?? spec.task_queue };
+  return { activities, plan, taskQueue: options.taskQueue ?? requireTemporalEngine(spec) };
 }
 
 export interface BuildRuntimeOptions extends AssembleYamlRuntimeOptions {
@@ -715,9 +719,11 @@ export async function autoWireRuntimeOptions<T extends AssembleYamlRuntimeOption
   spec: TypefluxYamlSpec,
   options: T,
 ): Promise<{ options: T; autoObserver: AutoWiredObserver | undefined }> {
+  requireTemporalEngine(spec);
   if (options.policy !== undefined) {
     enforcePolicyPreflight(spec, options.policy, options.subworkflows);
   }
+  requireTemporalWorkflowGraph(spec, options.subworkflows);
   const autoObserver =
     options.observer === undefined
       ? ((await langfuseObserverFromSpec(spec)) ?? (await langsmithObserverFromSpec(spec)))

@@ -113,6 +113,20 @@
         "python": "full",
         "typescript": "full"
       }
+    },
+    {
+      "name": "local-runtime",
+      "issue": 89,
+      "operation": "validate_local_capabilities / validateLocalCapabilities reproduce each static capability eligibility or error path after applying its patches to base; no execution or policy attestation",
+      "fixtures": [
+        {
+          "golden": "local-runtime/golden/capability-cases.json"
+        }
+      ],
+      "coverage": {
+        "python": "full",
+        "typescript": "full"
+      }
     }
   ],
   "interfaces": [

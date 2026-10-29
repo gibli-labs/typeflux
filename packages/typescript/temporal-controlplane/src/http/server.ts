@@ -13,6 +13,8 @@
 import { createServer as createHttpServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
+import { RuntimeCapabilityError } from "@typeflux/temporal-yaml";
+
 import { defaultErrorName, ProjectControlPlaneError } from "../errors.js";
 import { buildRoutes, type RegistryContext, type Route, type RouteRequest, splitPath } from "./handlers.js";
 
@@ -211,6 +213,10 @@ export function createRequestListener(context: RegistryContext): Server {
         });
         send(result.status, result.body);
       } catch (error) {
+        if (error instanceof RuntimeCapabilityError) {
+          send(422, { error: error.name, message: error.message });
+          return;
+        }
         if (error instanceof ProjectControlPlaneError) {
           const { status, body: envelope } = errorEnvelope(error);
           send(status, envelope);

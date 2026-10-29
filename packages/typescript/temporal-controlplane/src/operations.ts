@@ -23,6 +23,8 @@
  * `@temporalio/client`; tests inject a fake so no Temporal server is required.
  */
 
+import { requireTemporalEngine } from "@typeflux/temporal-yaml";
+
 import {
   type ReviewCommand,
   type SubworkflowSpecResolver,
@@ -316,6 +318,7 @@ export interface OperateTarget {
  * spec, the review decision → route map (sorted), and the opt-in search-attribute name.
  */
 export function operateTargetFromSpec(spec: TypefluxYamlSpec): OperateTarget {
+  requireTemporalEngine(spec);
   // The resolved-spec fallback: a single `review`, or the union over all `gates` (#55 slice 4).
   // Used only when the running execution reports no waiting gate; otherwise the execution's own
   // waiting_gates are preferred (§6 drift caveat, applied in `status()`).
@@ -340,7 +343,7 @@ export function operateTargetFromSpec(spec: TypefluxYamlSpec): OperateTarget {
     projectName: spec.project,
     workflowName: spec.workflow.name,
     versionLabel: spec.workflow.version,
-    taskQueue: spec.task_queue,
+    taskQueue: requireTemporalEngine(spec),
     validUserDecisions,
     searchAttributeName: spec.runtime.temporal.workflow_search_attribute,
   };

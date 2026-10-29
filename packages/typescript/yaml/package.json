@@ -68,6 +68,10 @@
     "./codec-constants": {
       "types": "./dist/codec-constants.d.ts",
       "default": "./dist/codec-constants.js"
+    },
+    "./engine": {
+      "types": "./dist/engine.d.ts",
+      "default": "./dist/engine.js"
     }
   },
   "scripts": {

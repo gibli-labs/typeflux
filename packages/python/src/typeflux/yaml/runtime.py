@@ -94,6 +94,7 @@ from typeflux.providers import (
     validate_provider_params_supported,
 )
 from typeflux.testing import FakeProvider
+from typeflux.yaml.engine import require_temporal_engine
 from typeflux.yaml.identity import GENERATOR_VERSION, SPEC_DIGEST_ALGORITHM
 from typeflux.yaml.imports import (
     collect_activities,
@@ -169,7 +170,8 @@ class TypefluxYamlRuntime:
         subject_ids: Sequence[str] | None = None,
         **execute_kwargs: Any,
     ) -> Any:
-        workflow_task_queue = task_queue or self.spec.task_queue
+        default_queue = require_temporal_engine(self.spec)
+        workflow_task_queue = task_queue or default_queue
         workflow_class = cast(_GeneratedWorkflowClass, self.workflow_class)
         resolved_subject_ids = _resolve_workflow_subject_ids(self.spec, input_value, subject_ids)
         metadata_contributors = _yaml_metadata_contributors(
@@ -241,6 +243,7 @@ class TypefluxYamlRuntime:
         from ``execute_workflow``/``project submit``; worker-side activity and
         generation observations still correlate by workflow id.
         """
+        require_temporal_engine(self.spec)
         workflow_class = cast(_GeneratedWorkflowClass, self.workflow_class)
         resolved_subject_ids = _resolve_workflow_subject_ids(self.spec, input_value, subject_ids)
         start_kwargs["memo"] = _workflow_start_memo(
@@ -262,7 +265,7 @@ class TypefluxYamlRuntime:
             workflow_class.run,
             input_value,
             id=id,
-            task_queue=task_queue or self.spec.task_queue,
+            task_queue=task_queue or require_temporal_engine(self.spec),
             **start_kwargs,
         )
 
@@ -539,6 +542,9 @@ def prepare_runtime_build(
     parent's). Absent for V1 / single-spec builds — a sub-workflow parent loaded standalone
     then rejects at ``create_workflow``, naming the project-manifest requirement.
     """
+    require_temporal_engine(spec)
+    for _, child_spec in child_registry_specs:
+        require_temporal_engine(child_spec)
     if policy_guard is None and spec.workflow.risk_tier in (
         "policy_gated",
         "human_gated",
@@ -628,6 +634,7 @@ async def build_runtime(
     spec declaring ``payload_codec.subject_scope``; ``None`` builds the process-local
     in-memory reference backend (test/dev only — see docs/privacy.md).
     """
+    require_temporal_engine(spec)
     if prepared is None:
         prepared = prepare_runtime_build(
             spec,
@@ -679,7 +686,7 @@ async def build_runtime(
         await _enforce_frozen_version_label(client, prepared.workflow_class)
     worker = TypefluxWorker(
         client=client,
-        task_queue=spec.task_queue,
+        task_queue=require_temporal_engine(spec),
         activities=tuple(prepared.activities.values()),
         registry=prepared.registry,
         provider=prepared.provider,
@@ -1477,6 +1484,7 @@ def _register_subject_scope_binding(
 async def _connect_client(
     spec: TypefluxYamlSpec, *, plugin: Any | None, subject_keystore: Any | None = None
 ) -> Any:
+    require_temporal_engine(spec)
     try:
         from temporalio.client import Client
         from temporalio.contrib.pydantic import pydantic_data_converter

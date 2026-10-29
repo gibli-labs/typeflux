@@ -31,7 +31,7 @@ export type ProfileKind = (typeof PROFILE_KINDS)[number];
 const OWNED_RUNTIME_KEYS: Record<ProfileKind, readonly string[]> = {
   provider: ["provider"],
   registry: ["registry"],
-  runtime: ["temporal", "observability", "provider_retry", "provider_limits"],
+  runtime: ["engine", "temporal", "observability", "provider_retry", "provider_limits"],
 };
 
 const trimmedNonEmpty = (label: string) =>

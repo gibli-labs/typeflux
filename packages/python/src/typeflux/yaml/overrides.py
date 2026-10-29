@@ -6,6 +6,7 @@ from typing import Any
 
 _ALLOWED_OVERRIDE_KEYS = {"task_queue", "runtime"}
 _ALLOWED_RUNTIME_OVERRIDE_KEYS = {
+    "engine",
     "temporal",
     "registry",
     "provider",

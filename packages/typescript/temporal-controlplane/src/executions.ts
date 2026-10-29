@@ -18,6 +18,7 @@ import { join } from "node:path";
 
 import {
   buildPayloadCodec,
+  requireTemporalEngine,
   type SubworkflowSpecResolver,
   type TemporalTlsOptions,
   temporalTlsOptions,
@@ -101,6 +102,7 @@ export function temporalConnectionOptions(
   spec: TypefluxYamlSpec,
   env: Record<string, string | undefined> = process.env,
 ): TemporalConnectionOptions {
+  requireTemporalEngine(spec);
   const temporal = spec.runtime.temporal;
   let tls: boolean | TemporalTlsOptions;
   try {
@@ -274,6 +276,7 @@ export async function listWorkflowExecutions(
   spec: TypefluxYamlSpec,
   options: ListWorkflowExecutionsOptions,
 ): Promise<ApiWorkflowExecutionList> {
+  requireTemporalEngine(spec);
   const logical = spec.workflow.name;
   // A bad graph after a clean resolution (duplicate/reserved step ids, invalid review route)
   // is a CONFIG failure — 422 like the bundle/catalog projections, never the generic 500.

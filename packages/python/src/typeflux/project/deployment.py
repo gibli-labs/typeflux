@@ -26,6 +26,7 @@ from typeflux.project.policy_enforcement import (
     validate_subworkflow_closure_policy,
 )
 from typeflux.project.spec import ProjectValidationCheck, TypefluxProjectSpec
+from typeflux.yaml.engine import require_temporal_engine
 from typeflux.yaml.secrets import SecretValueSpec, custom_extension_config_sources
 from typeflux.yaml.spec import TemporalTLSConfigSpec, TypefluxYamlSpec
 
@@ -268,6 +269,7 @@ def build_project_deployment_plan(
             environment_id=environment_id,
             base_env=base_env,
         )
+        task_queue = require_temporal_engine(resolved.spec)
         policy = _admit_policy(
             project,
             resolved,
@@ -280,14 +282,14 @@ def build_project_deployment_plan(
         assert_closure_observability_consistent(project, resolved, environment_id=environment_id)
         name = _resource_name(project.name, environment_id, workflow_id)
         if not allow_shared_task_queue:
-            previous_workflow_id = task_queues.get(resolved.spec.task_queue)
+            previous_workflow_id = task_queues.get(task_queue)
             if previous_workflow_id is not None:
                 raise ProjectDeploymentError(
                     "project deployment would create separate workers for workflows "
                     f"{previous_workflow_id!r} and {workflow_id!r} on shared task queue "
-                    f"{resolved.spec.task_queue!r}; pass --allow-shared-task-queue to allow this"
+                    f"{task_queue!r}; pass --allow-shared-task-queue to allow this"
                 )
-            task_queues[resolved.spec.task_queue] = workflow_id
+            task_queues[task_queue] = workflow_id
         workers.append(
             _worker_plan(
                 project=project,
@@ -899,7 +901,7 @@ def _worker_plan(
         workflow_path=str(resolved.workflow_path),
         environment_id=resolved.environment_id,
         environment_name=resolved.environment.name,
-        task_queue=resolved.spec.task_queue,
+        task_queue=require_temporal_engine(resolved.spec),
         project_path_in_image=project_path_in_image,
         command=command,
         config_map_name=config_map_name,
@@ -959,7 +961,7 @@ def _config_map_entries(
     entries: dict[str, str] = {
         "TEMPORAL_ADDRESS": resolved.spec.runtime.temporal.address,
         "TEMPORAL_NAMESPACE": resolved.spec.runtime.temporal.namespace,
-        "TEMPORAL_TASK_QUEUE": resolved.spec.task_queue,
+        "TEMPORAL_TASK_QUEUE": require_temporal_engine(resolved.spec),
         "TEMPORAL_TLS": _tls_env_value(resolved.spec),
         "TYPEFLUX_EXPECTED_POLICY_HASH": policy.policy_hash,
     }

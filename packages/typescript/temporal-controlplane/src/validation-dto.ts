@@ -116,7 +116,7 @@ export function toApiValidationReport(
       yaml_project: workflow.yamlProject,
       yaml_name: workflow.yamlName,
       workflow_name: workflow.workflowName,
-      task_queue: workflow.taskQueue,
+      ...when("task_queue", workflow.taskQueue),
     })),
     resolved_workflows: report.resolvedWorkflows.map(mapResolved),
   };

@@ -8,6 +8,12 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Add explicit `runtime.engine: local | temporal` selection and recursive local
+  capability checks in both SDKs. Local specs can omit task queues and Temporal
+  settings; existing Temporal entry points reject local selection before runtime
+  setup. Omitted engine behavior remains Temporal. This is a planning boundary;
+  local execution and CLI support are still pending. See [local runtime](docs/local-runtime.md).
+
 - Make the Python Temporal integration optional. Existing workflow/worker users
   must install `typeflux[temporal]` (or combine it with provider extras); `api`
   and `live` continue to include it. Add shared Python YAML planning and the
