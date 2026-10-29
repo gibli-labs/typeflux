@@ -90,9 +90,18 @@ def test_local_closure_checks_skipped_nested_maps_and_references():
     lookup["leaf"] = root
     with pytest.raises(RuntimeCapabilityError, match="cyclic"):
         validate_local_capabilities(root, resolve_workflow=lookup.get)
-    child.runtime.engine = "temporal"
-    with pytest.raises(RuntimeCapabilityError, match="local graph requires"):
-        validate_local_capabilities(root, resolve_workflow=lookup.get)
+    for engine in (None, "temporal"):
+        raw = child.model_dump()
+        raw["runtime"].pop("engine")
+        if engine is not None:
+            raw["runtime"]["engine"] = engine
+        raw["task_queue"] = "existing"
+        lookup["child"] = TypefluxYamlSpec.model_validate(raw)
+        with pytest.raises(RuntimeCapabilityError, match="local graph requires") as caught:
+            validate_local_capabilities(root, resolve_workflow=lookup.get)
+        assert (caught.value.workflow, caught.value.path) == ("child", "runtime.engine")
+        assert "Use runtime.engine: local" in str(caught.value)
+        assert "Use runtime.engine: temporal" not in str(caught.value)
 
 
 def test_local_diamond_resolves_each_child_once_and_preserves_errors():

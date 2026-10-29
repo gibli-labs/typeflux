@@ -30,7 +30,7 @@ entities:
     description: Omitted engine retains Temporal. Local capabilities reject explicit Temporal settings, lifecycle/review and compensation throughout the reachable graph, while schema defaults are harmless. Existing Temporal execution surfaces refuse local selection before service construction.
   - id: check.local-runtime-boundary-python
     kind: check
-    description: Shared capability fixtures, nested/skipped references, defaults/serialization/overrides and zero-effect Temporal entry guards; the no-Temporal probe also exercises the public boundary.
+    description: Shared capability fixtures, nested/skipped references with corrective mixed-engine guidance, defaults/serialization/overrides and zero-effect Temporal entry guards; the no-Temporal probe also exercises the public boundary.
     environment: python-non-live
     ci: [python-3.12]
     tests:
@@ -47,7 +47,7 @@ entities:
       - {relation: verifies, target: invariant.local-engine-boundary}
   - id: check.local-runtime-boundary-typescript
     kind: check
-    description: Shared capability fixtures, nested/skipped references, engine overrides and zero-effect root/child Temporal entry guards. The packed candidate probe exercises the neutral public API.
+    description: Shared capability fixtures, nested/skipped references with corrective mixed-engine guidance, engine overrides and zero-effect root/child Temporal entry guards. The packed candidate probe exercises the neutral public API.
     environment: node-non-live
     ci: [typescript]
     tests:

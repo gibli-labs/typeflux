@@ -66,6 +66,8 @@ same project and environment as the root. Every reachable workflow must select
 local explicitly or through environment defaults. Each child ID resolves once per
 check; skipped branches and `map.workflow` references are inspected too. Missing,
 cyclic and cross-project references fail. A resolver's own loading error is preserved.
+Mixed-engine graphs identify the mismatched workflow and tell the author to select
+local on every reachable workflow and remove Temporal-only settings.
 The returned list contains visited IDs (or the root's YAML name when its ID is omitted).
 
 `RuntimeCapabilityError` carries `workflow`, `path` and `feature`. Unsupported

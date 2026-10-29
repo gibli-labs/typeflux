@@ -68,7 +68,9 @@ function walkWorkflowEngines(
   function visit(current: TypefluxYamlSpec, key: string | undefined): void {
     if (local) {
       if (runtimeEngine(current) !== "local") {
-        reject(current, "runtime.engine", "local graph requires local engine on every workflow");
+        throw new RuntimeCapabilityError(current.workflow.name, "runtime.engine",
+          "local graph requires local engine on every workflow",
+          "Use runtime.engine: local on every reachable workflow and remove Temporal-only settings.");
       }
       if (current.task_queue !== undefined) reject(current, "task_queue", "Temporal task queue");
       // Empty/default connection objects carry no configured behavior. Explicit defaults do.

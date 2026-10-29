@@ -48,8 +48,18 @@ describe("engine boundaries", () => {
     leaf.project = root.project;
     lookup.set("leaf", root);
     expect(() => validateLocalCapabilities(root, resolver)).toThrow(/cyclic/);
-    child.runtime.engine = "temporal";
-    expect(() => validateLocalCapabilities(root, resolver)).toThrow(/local graph requires/);
+    for (const engine of [undefined, "temporal"] as const) {
+      lookup.set("child", typefluxYamlSpec.parse({
+        ...child, runtime: {...child.runtime, engine}, task_queue: "existing",
+      }));
+      let caught: unknown;
+      try { validateLocalCapabilities(root, resolver); } catch (error) { caught = error; }
+      expect(caught).toBeInstanceOf(RuntimeCapabilityError);
+      expect(caught).toMatchObject({workflow: "child", path: "runtime.engine"});
+      expect(String(caught)).toContain("local graph requires");
+      expect(String(caught)).toContain("Use runtime.engine: local");
+      expect(String(caught)).not.toContain("Use runtime.engine: temporal");
+    }
   });
 
   it("resolves diamond children once and preserves resolver errors", () => {

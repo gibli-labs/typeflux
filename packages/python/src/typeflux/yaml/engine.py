@@ -79,7 +79,12 @@ def validate_local_capabilities(
 
     def visit(current: TypefluxYamlSpec, key: str | None) -> None:
         if runtime_engine(current) != "local":
-            reject(current, "runtime.engine", "local graph requires local engine on every workflow")
+            raise RuntimeCapabilityError(
+                current.workflow.name,
+                "runtime.engine",
+                "local graph requires local engine on every workflow",
+                "Use runtime.engine: local on every reachable workflow and remove Temporal-only settings.",
+            )
         if current.task_queue is not None:
             reject(current, "task_queue", "Temporal task queue")
         # Pydantic defaults have values, but only declared fields configure behavior.
