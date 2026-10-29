@@ -12,10 +12,8 @@
 import { z } from "zod";
 import { VERCEL_AI_GATEWAY_PARAMS } from "@typeflux/temporal";
 
-// One source of truth for the reserved subject-key kid prefix (#715 fix round): the
-// codec module OWNS the constant; this import is runtime-safe (payload-codec's own
-// import of this module is type-only, so there is no runtime cycle).
-import { RESERVED_KID_PREFIX } from "./payload-codec.js";
+// Share the wire identifier without loading the Temporal codec.
+import { RESERVED_KID_PREFIX } from "./codec-constants.js";
 
 /**
  * A stub for a Python-valid config block the TS SDK does not honor yet (or by design).

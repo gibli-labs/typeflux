@@ -13,11 +13,11 @@ import { describe, expect, it } from "vitest";
 
 import { canonicalJson } from "@typeflux/temporal";
 
-import { workflowIdentityMemo, workflowPlanDigest } from "../src/frozen-version.js";
+import { workflowIdentityMemo, workflowPlanDigest } from "@typeflux/yaml/frozen-version";
 import { disabledLifecycleStatus } from "../src/lifecycle.js";
 import { ENCRYPTED_ENCODING, KEY_ID_METADATA_KEY, NONCE_LEN, TAG_LEN } from "../src/payload-codec.js";
 import { YAML_WORKFLOW_TYPE } from "../src/runtime.js";
-import { PLAN_INTERPRETER_VERSION, type WorkflowPlan } from "../src/workflow-plan.js";
+import { PLAN_INTERPRETER_VERSION, type WorkflowPlan } from "@typeflux/yaml/workflow-plan";
 import { lifecycleStatusQuery, requestCancelSignal, submitReviewSignal } from "../src/workflows.js";
 
 const here = dirname(fileURLToPath(import.meta.url));

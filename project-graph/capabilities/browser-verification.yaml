@@ -1,0 +1,18 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.browser-verification
+    kind: capability
+    description: Verify console content against both control-plane editions with bounded successful-data readiness and strict background API health checks.
+    editions: {python: supported, typescript: supported, console: supported}
+    implementation:
+      - clients/console/e2e/api-health.ts
+      - clients/console/e2e/fixtures.ts
+      - clients/console/e2e/data-reads.ts
+      - clients/console/e2e/delayed-data.ts
+    documentation: [docs/development.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.browser-data-readiness}
+  - id: invariant.browser-data-readiness
+    kind: invariant
+    description: Required data GETs must complete successfully within a finite budget before content checks; missing data, pending requests and unexpected API failures cannot be accepted as readiness, including failures followed by success.

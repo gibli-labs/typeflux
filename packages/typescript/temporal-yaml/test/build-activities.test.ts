@@ -12,7 +12,7 @@ import {
   toPromptRef,
 } from "../src/index.js";
 // Spec sub-schemas are internal composition — deliberately not on the package surface (#493).
-import { inlinePromptMessageSpec, promptRefSpec } from "../src/spec.js";
+import { inlinePromptMessageSpec, promptRefSpec } from "@typeflux/yaml/spec";
 
 class CapturingProvider implements ModelProvider {
   lastMessages: { role: string; content: unknown }[] = [];

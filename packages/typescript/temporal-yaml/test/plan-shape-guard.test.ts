@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import { ApplicationFailure } from "@temporalio/workflow";
 
-import { planUnsupportedReason, type WorkflowPlan } from "../src/workflow-plan.js";
+import { planUnsupportedReason, type WorkflowPlan } from "@typeflux/yaml/workflow-plan";
 import { typefluxYamlWorkflow } from "../src/workflows.js";
 
 const v1Plan = (): WorkflowPlan => ({

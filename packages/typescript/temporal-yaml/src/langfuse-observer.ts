@@ -26,7 +26,7 @@ import {
   type WorkflowRunRecord,
   type WorkflowRunRecorder,
 } from "./streaming-trace-writer.js";
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 import { createLangfuseOtelClient, type LangfuseObservationClient, type LangfuseSdkClient } from "./langfuse-otel.js";
 export type { LangfuseObservationClient, LangfuseSdkClient } from "./langfuse-otel.js";

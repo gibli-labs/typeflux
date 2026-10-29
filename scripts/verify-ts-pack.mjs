@@ -27,7 +27,7 @@ const REPO = resolve(HERE, "..");
 const PKG_ROOT = join(REPO, "packages", "typescript");
 // Topological publish order: each member's rewritten deps must already be
 // on the registry if its own upload succeeds and a later one fails.
-const PACKAGES = ["temporal", "temporal-worker", "temporal-yaml", "temporal-controlplane"];
+const PACKAGES = ["temporal", "yaml", "temporal-worker", "temporal-yaml", "temporal-controlplane"];
 
 const outDir = process.argv[2] ? resolve(process.argv[2]) : mkdtempSync(join(tmpdir(), "ts-pack-"));
 const failures = [];

@@ -20,7 +20,7 @@ import { resolveOptionalSecretText } from "./secret-references.js";
 import type { EmittedTrace, TraceTransport } from "@typeflux/temporal";
 
 import { redactionFromSpec } from "./observer-from-spec.js";
-import type { TypefluxYamlSpec } from "./spec.js";
+import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 import {
   StreamingTraceWriter,
   type WorkflowRunRecord,

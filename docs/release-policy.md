@@ -11,6 +11,7 @@ to this document; changes to it follow the significant-change process in
 |---|---|---|---|
 | Python SDK (+ CLI entry points) | PyPI | `typeflux` | staged; first publication via Trusted Publishing |
 | TS SDK core | npmjs.org | `@typeflux/temporal` | staged |
+| TS shared YAML planning | npmjs.org | `@typeflux/yaml` | staged |
 | TS YAML runtime | npmjs.org | `@typeflux/temporal-yaml` | staged |
 | TS worker | npmjs.org | `@typeflux/temporal-worker` | staged |
 | TS control plane | npmjs.org | `@typeflux/temporal-controlplane` | staged |
@@ -53,7 +54,7 @@ policy update in the same PR that adds the publishing automation.
   version equals the control-plane contract major (CI-enforced). Servers
   conform to the contract; clients are generated from it.
 - **Cross-package independence**: packages version independently, except
-  the four TypeScript SDK packages, which release as one version train
+  the five TypeScript SDK packages, which release as one version train
   (below).
 - The two SDK editions (Python, TypeScript) promise **behavioral parity
   on the shared, conformance-covered contract surface** — not
@@ -80,8 +81,8 @@ coverage that backs it.
   Release carrying the built artifact(s) and their SHA-256 checksums.
 - Tag schemes: `mcp-vX.Y.Z` (MCP), `client-vX.Y.Z` (generated client),
   and — reserved for the SDK release pipelines — `py-vX.Y.Z` (Python SDK).
-  The four TypeScript SDK packages release as a **train**: one
-  `ts-vX.Y.Z` tag whose version is the train's own (all four packages are
+  The five TypeScript SDK packages release as a **train**: one
+  `ts-vX.Y.Z` tag whose version is the train's own (all five packages are
   set to that version at release time — they version together, an
   explicit exception to cross-package independence; if they ever need to
   diverge, this policy must first be amended to per-package tags).

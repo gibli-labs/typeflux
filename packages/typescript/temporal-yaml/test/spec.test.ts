@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { typefluxYamlSpec } from "../src/index.js";
 // Sub-schema values are deliberately not re-exported from the barrel (#499
 // export curation) — reach into the module directly for white-box tests.
-import { activityRetrySpec, moderationSpec, promptRefSpec } from "../src/spec.js";
+import { activityRetrySpec, moderationSpec, promptRefSpec } from "@typeflux/yaml/spec";
 
 // Direct Zod-schema tests for spec.ts (#452, strict per #490), on plain objects —
 // loader.test.ts exercises the same schema through YAML text + env interpolation.

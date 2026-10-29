@@ -38,14 +38,14 @@ import {
   type TypefluxWorkerOptions,
 } from "@typeflux/temporal-worker";
 
-import { defineActivitiesFromSpec, type ActivityResolver } from "./build-activities.js";
+import { defineActivitiesFromSpec, type ActivityResolver } from "@typeflux/yaml/build-activities";
 import { assertConsistentComposedObservability } from "./observability-composition.js";
 import { composeRuntimeRegistry, type RegistrySource } from "./registry-composition.js";
 import { langfuseObserverFromSpec } from "./langfuse-observer.js";
 import { langfuseRegistryTransportFromSpec } from "./langfuse-registry.js";
 import { langsmithObserverFromSpec } from "./langsmith-observer.js";
 import { langsmithRegistryTransportFromSpec } from "./langsmith-registry.js";
-import { workflowPlanFromSpec, type SubworkflowSpecResolver } from "./build-workflow.js";
+import { workflowPlanFromSpec, type SubworkflowSpecResolver } from "@typeflux/yaml/build-workflow";
 import type { ComposedProjectPolicy } from "./policy-composition.js";
 import { enforcePolicyCompliance, ProjectPolicyEnforcementError, RuntimePolicyGuard } from "./policy-enforcement.js";
 import {
@@ -55,7 +55,7 @@ import {
   workflowIdentityMemo,
   workflowPlanDigest,
   type WorkflowListClient,
-} from "./frozen-version.js";
+} from "@typeflux/yaml/frozen-version";
 import {
   defaultModelForProviderType,
   ENGINE_PROVIDER_RETRY_DEFAULTS,
@@ -72,14 +72,14 @@ import {
 } from "./subject-keystore.js";
 import { SUBJECT_IDS_SEARCH_ATTRIBUTE, effectiveSubjectIds } from "./subjects.js";
 import { providerTransportsFromSpec } from "./provider-transports-from-env.js";
-import { providerParamsRecord, type TypefluxYamlSpec } from "./spec.js";
+import { providerParamsRecord, type TypefluxYamlSpec } from "@typeflux/yaml/spec";
 import {
   flattenCompensationActivities,
   flattenPlanSteps,
   flattenSubworkflowSteps,
   type WorkflowPlan,
   type WorkflowPlanStep,
-} from "./workflow-plan.js";
+} from "@typeflux/yaml/workflow-plan";
 
 /** The workflow type the generic interpreter is registered under (see `workflows.ts`). */
 export const YAML_WORKFLOW_TYPE = "typefluxYamlWorkflow";

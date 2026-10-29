@@ -29,7 +29,8 @@ import type { Payload, PayloadCodec } from "@temporalio/common";
 // so a default import is the interop-safe form under `verbatimModuleSyntax` ESM output.
 import proto from "@temporalio/proto";
 
-import type { PayloadCodecKeySpec, PayloadCodecSpec } from "./spec.js";
+import type { PayloadCodecKeySpec, PayloadCodecSpec } from "@typeflux/yaml/spec";
+import { RESERVED_KID_PREFIX } from "@typeflux/yaml/codec-constants";
 
 const PayloadProto = proto.temporal.api.common.v1.Payload;
 
@@ -65,9 +66,7 @@ export const KEY_LEN = 32;
  * before slice 4. The two kid namespaces are kept DISJOINT: a configured codec key id
  * may not start with `RESERVED_KID_PREFIX`, so decode routes unambiguously on the
  * prefix. Byte-pinned in `binding.v1.json` (`payload_codec.subject_key_scheme`). */
-export const SUBJECT_KID_SCHEME = "tfsubj1";
-/** The reserved prefix (`"tfsubj1:"`) a configured shared key id must NOT use. */
-export const RESERVED_KID_PREFIX = `${SUBJECT_KID_SCHEME}:`;
+export { SUBJECT_KID_SCHEME, RESERVED_KID_PREFIX } from "@typeflux/yaml/codec-constants";
 
 // --- AES-256-GCM primitives (byte-pinned, shared by codec + conformance vectors) ------
 

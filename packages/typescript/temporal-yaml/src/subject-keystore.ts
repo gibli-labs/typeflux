@@ -76,7 +76,7 @@ import {
   sealPayloadBytes,
   type TypefluxAesGcmPayloadCodec,
 } from "./payload-codec.js";
-import type { PayloadCodecSpec } from "./spec.js";
+import type { PayloadCodecSpec } from "@typeflux/yaml/spec";
 import { normalizeSubjectIds, SUBJECT_IDS_SEARCH_ATTRIBUTE } from "./subjects.js";
 
 const PayloadProto = proto.temporal.api.common.v1.Payload;

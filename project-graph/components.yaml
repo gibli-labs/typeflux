@@ -6,6 +6,7 @@ entities:
     paths: [packages/python/**]
     links:
       - {relation: implements, target: capability.runtime-neutral-manifests}
+      - {relation: implements, target: capability.yaml-planning}
       - {relation: implements, target: capability.vercel-ai-gateway}
       - {relation: implements, target: capability.workflow-review}
       - {relation: provides, target: 'api:review_api_v1_projects__project__workflows__workflow_id__review_post'}
@@ -17,6 +18,13 @@ entities:
     links:
       - {relation: implements, target: capability.runtime-neutral-manifests}
       - {relation: implements, target: capability.provider-model-defaults}
+      - {relation: implements, target: capability.vercel-ai-gateway}
+  - id: component.typescript-yaml-planning
+    kind: component
+    description: Shared TypeScript YAML loading, activity definitions and workflow planning without Temporal.
+    paths: [packages/typescript/yaml/**]
+    links:
+      - {relation: implements, target: capability.yaml-planning}
       - {relation: implements, target: capability.vercel-ai-gateway}
   - id: component.typescript-worker
     kind: component
@@ -68,7 +76,7 @@ entities:
   - id: component.documentation
     kind: component
     description: Repository documentation; capability-level coverage is intentionally incremental.
-    paths: [docs/**]
+    paths: [docs/**, README.md, CHANGELOG.md, packages/typescript/README.md]
   - id: component.deployment
     kind: component
     description: Reference worker deployment templates.

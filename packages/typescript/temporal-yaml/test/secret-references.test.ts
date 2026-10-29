@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { loadYamlSpec } from "../src/loader.js";
+import { loadYamlSpec } from "@typeflux/yaml/loader";
 import { secretReferenceRecords } from "../src/secret-references.js";
 
 const spec = (runtimeTemporal: string, providerApiKey: string) =>

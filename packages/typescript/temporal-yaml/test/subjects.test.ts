@@ -9,7 +9,7 @@ import {
   subjectTraceTags,
   subjectUserId,
 } from "../src/index.js";
-import { workflowSpec } from "../src/spec.js";
+import { workflowSpec } from "@typeflux/yaml/spec";
 
 describe("subject extraction (#715 slice 1)", () => {
   it("resolves a single subject off the input", () => {

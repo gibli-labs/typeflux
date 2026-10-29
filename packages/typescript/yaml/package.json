@@ -1,0 +1,88 @@
+{
+  "name": "@typeflux/yaml",
+  "version": "0.1.0",
+  "description": "Shared Typeflux YAML loading, typed activities and workflow planning without a Temporal SDK dependency.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gibli-labs/typeflux.git",
+    "directory": "packages/typescript/yaml"
+  },
+  "homepage": "https://github.com/gibli-labs/typeflux/tree/main/packages/typescript/yaml#readme",
+  "bugs": {
+    "url": "https://github.com/gibli-labs/typeflux/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "engines": {
+    "node": "^24.15.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./build-activities": {
+      "types": "./dist/build-activities.d.ts",
+      "default": "./dist/build-activities.js"
+    },
+    "./build-workflow": {
+      "types": "./dist/build-workflow.d.ts",
+      "default": "./dist/build-workflow.js"
+    },
+    "./env-interpolation": {
+      "types": "./dist/env-interpolation.d.ts",
+      "default": "./dist/env-interpolation.js"
+    },
+    "./frozen-version": {
+      "types": "./dist/frozen-version.d.ts",
+      "default": "./dist/frozen-version.js"
+    },
+    "./loader": {
+      "types": "./dist/loader.d.ts",
+      "default": "./dist/loader.js"
+    },
+    "./overrides": {
+      "types": "./dist/overrides.d.ts",
+      "default": "./dist/overrides.js"
+    },
+    "./spec": {
+      "types": "./dist/spec.d.ts",
+      "default": "./dist/spec.js"
+    },
+    "./workflow-plan": {
+      "types": "./dist/workflow-plan.d.ts",
+      "default": "./dist/workflow-plan.js"
+    },
+    "./codec-constants": {
+      "types": "./dist/codec-constants.d.ts",
+      "default": "./dist/codec-constants.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@typeflux/temporal": "workspace:*",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

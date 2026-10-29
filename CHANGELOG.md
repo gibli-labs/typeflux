@@ -13,6 +13,13 @@ heading as part of the release PR or tag preparation.
   from serialization; existing Temporal manifests and hashes are unchanged.
   This is the manifest foundation for Typeflux Local (#89), not a local YAML runtime.
 
+- Make the Python Temporal integration optional. Existing workflow/worker users
+  must install `typeflux[temporal]` (or combine it with provider extras); `api`
+  and `live` continue to include it. Add shared Python YAML planning and the
+  `@typeflux/yaml` package without a Temporal SDK dependency. Existing Temporal
+  entry points reuse the shared validators; local YAML execution is not yet
+  included. See [installation and planning](docs/yaml-planning.md).
+
 - Migrate Langfuse to Python SDK 5 and scoped JavaScript SDK 6 with dedicated
   OpenTelemetry providers, explicit span completion and terminal shutdown.
   Require Cloud or self-hosted 4.59.0+. Replace deprecated trace reads with

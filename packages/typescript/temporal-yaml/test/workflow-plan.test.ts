@@ -9,7 +9,7 @@ import {
   cacheActivityProxyOptions,
   resolveContextPath,
   utf8ByteLength,
-} from "../src/workflow-plan.js";
+} from "@typeflux/yaml/workflow-plan";
 import {
   CACHE_PREP_ACTIVITY_SUFFIX as canonicalPrep,
   CACHE_RELEASE_ACTIVITY_SUFFIX as canonicalRelease,

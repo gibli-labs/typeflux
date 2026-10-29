@@ -28,8 +28,8 @@ import {
   type RegistryTransport,
 } from "@typeflux/temporal";
 
-import { inlinePromptValueFromSpec, registryFromSpec } from "./build-activities.js";
-import type { InlinePromptSpec, TypefluxYamlSpec } from "./spec.js";
+import { inlinePromptValueFromSpec, registryFromSpec } from "@typeflux/yaml/build-activities";
+import type { InlinePromptSpec, TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 /** A spec that contributes to the composed registry, labelled for error messages. */
 export interface RegistrySource {
