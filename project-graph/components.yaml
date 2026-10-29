@@ -5,6 +5,7 @@ entities:
     description: Python SDK, YAML runtime, CLI and control plane.
     paths: [packages/python/**]
     links:
+      - {relation: implements, target: capability.runtime-neutral-manifests}
       - {relation: implements, target: capability.yaml-planning}
       - {relation: implements, target: capability.vercel-ai-gateway}
       - {relation: implements, target: capability.workflow-review}
@@ -15,6 +16,7 @@ entities:
     description: TypeScript workflow and activity contracts.
     paths: [packages/typescript/temporal/**]
     links:
+      - {relation: implements, target: capability.runtime-neutral-manifests}
       - {relation: implements, target: capability.provider-model-defaults}
       - {relation: implements, target: capability.vercel-ai-gateway}
   - id: component.typescript-yaml-planning

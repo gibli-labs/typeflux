@@ -68,6 +68,10 @@
         },
         {
           "golden": "manifest/golden/workflow_execution.json"
+        },
+        {
+          "golden": "manifest/golden/workflow_execution_without_temporal.json",
+          "note": "Same workflow contract with no task queue or Temporal run ID; absent execution context is omitted and existing Temporal bytes remain unchanged."
         }
       ],
       "coverage": {

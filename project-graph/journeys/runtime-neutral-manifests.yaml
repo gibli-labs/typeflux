@@ -1,0 +1,18 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: journey.record-workflow-without-temporal
+    kind: journey
+    description: An SDK caller records a workflow invocation without Temporal placement and inspects the resulting trace while retaining the same planned activity contract.
+    steps:
+      - id: build
+        action: Build an execution manifest with workflow identity and activities but no Temporal task queue or run ID.
+        outcome: Both SDKs emit the same queue-free contract fixture; existing Temporal bytes and planned workflow identity remain unchanged.
+        capabilities: [capability.runtime-neutral-manifests]
+        checks: [check.runtime-neutral-manifests-python, check.runtime-neutral-manifests-typescript]
+        failures: [missing context incorrectly required, fabricated queue or run identity, cross-edition hash drift, changed Temporal goldens]
+      - id: inspect
+        action: Inspect and export the recorded trace using Python's existing trace tooling.
+        outcome: Workflow and activity identity remain visible without requiring or inventing Temporal placement.
+        capabilities: [capability.runtime-neutral-manifests]
+        checks: [check.runtime-neutral-manifests-python]
+        failures: [manifest rejected for absent queue, missing activity contract, placeholder Temporal identity in exported data]

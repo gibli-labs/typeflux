@@ -44,7 +44,7 @@ _PROVIDER_PARAM_CONTRACT_FIELDS = (
 class WorkflowExecutionManifest:
     workflow_name: str
     workflow_id: str
-    task_queue: str
+    task_queue: str | None
     activities: tuple[ActivityRollupEntry, ...]
     code_provenance: CodeProvenance
     map_steps: tuple[dict[str, Any], ...] = ()
@@ -99,7 +99,7 @@ def build_workflow_execution_manifest(
     *,
     workflow_name: str,
     workflow_id: str,
-    task_queue: str,
+    task_queue: str | None = None,
     activities: Sequence[str | Mapping[str, Any]],
     code_provenance: CodeProvenance | None = None,
     map_steps: Sequence[Mapping[str, Any]] = (),
@@ -109,6 +109,12 @@ def build_workflow_execution_manifest(
     yaml_name: str | None = None,
     sdk_version: str | None = None,
 ) -> WorkflowExecutionManifest:
+    """Describe an invocation without requiring Temporal execution context.
+
+    Omit ``task_queue`` and ``temporal_run_id`` when unavailable. They identify
+    execution placement, not the planned workflow contract, and absent values
+    are excluded from both serialization and the execution manifest hash.
+    """
     provenance = code_provenance or collect_code_provenance()
     resolved_sdk_version = sdk_version or package_version_or_none()
     resolved_activities = [

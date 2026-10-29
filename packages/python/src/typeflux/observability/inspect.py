@@ -274,7 +274,7 @@ class ActivityExecutionManifestView(_DTO):
 class WorkflowExecutionManifestView(_DTO):
     workflow_name: str
     workflow_id: str
-    task_queue: str
+    task_queue: str | None = None
     activities: tuple[ActivityExecutionManifestView, ...] = ()
     map_steps: tuple[dict[str, Any], ...] = ()
     contributions: dict[str, Any] = Field(default_factory=dict)

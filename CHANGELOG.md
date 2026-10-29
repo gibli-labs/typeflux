@@ -8,6 +8,11 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Allow workflow manifests without a Temporal task queue in both SDK builders
+  and Python trace inspection. Omitted/null queue and run context is excluded
+  from serialization; existing Temporal manifests and hashes are unchanged.
+  This is the manifest foundation for Typeflux Local (#89), not a local YAML runtime.
+
 - Make the Python Temporal integration optional. Existing workflow/worker users
   must install `typeflux[temporal]` (or combine it with provider extras); `api`
   and `live` continue to include it. Add shared Python YAML planning and the

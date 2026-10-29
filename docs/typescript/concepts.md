@@ -247,8 +247,14 @@ a hook-rejected output is never cached and served on a later run.
 Manifests are Typeflux's reproducibility contract, and their hashing is
 conformance-tested against the Python goldens for aligned shapes.
 
-Workflow execution manifests describe workflow identity + Temporal IDs, the
+Workflow execution manifests describe workflow identity, optional Temporal context, the
 expected activity roll-up, code provenance, and the workflow manifest hash.
+For direct, in-process orchestration, `buildWorkflowExecutionManifest` accepts
+omitted or null `taskQueue` and `temporalRunId`; their wire fields are omitted.
+Execution context changes the manifest hash but not the planned workflow contract
+hash. Existing Temporal manifests remain unchanged. This builder support does
+not change the YAML runtime's current requirement for Temporal.
+
 Activity execution manifests describe the activity name, input/output schema
 names and hashes, prompt ref + resolved version, template/rendered message
 hashes, provider settings, hook identity, validation attempt, and the definition

@@ -1,0 +1,49 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.runtime-neutral-manifests
+    kind: capability
+    description: Build workflow execution manifests without a Temporal task queue or run identity in both SDKs, and inspect them through Python trace tooling. This is the manifest foundation for issue 89; local YAML execution is not implemented by this capability.
+    editions: {python: supported, typescript: supported}
+    implementation:
+      - packages/python/src/typeflux/manifests/workflow.py
+      - packages/python/src/typeflux/observability/inspect.py
+      - packages/typescript/temporal/src/manifest.ts
+      - contracts/manifest/golden/workflow_execution_without_temporal.json
+      - contracts/conformance.json
+    documentation:
+      - contracts/manifest/README.md
+      - docs/concepts.md
+      - docs/typescript/concepts.md
+    links:
+      - {relation: requires, target: invariant.optional-temporal-manifest-context}
+      - {relation: requires, target: invariant.temporal-manifest-compatibility}
+  - id: invariant.optional-temporal-manifest-context
+    kind: invariant
+    description: Missing or null task queue and Temporal run ID are omitted from the execution manifest and hash input without placeholder identities; the workflow identity and activity contract remain inspectable.
+  - id: invariant.temporal-manifest-compatibility
+    kind: invariant
+    description: Existing Temporal manifest goldens and hashes are unchanged, both editions reproduce the same queue-free fixture, and changing optional execution context does not change the planned workflow contract hash.
+  - id: check.runtime-neutral-manifests-python
+    kind: check
+    description: Builder, trace inspection and golden-lock checks for absent Temporal context and existing Temporal manifests.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_manifest.py, name: test_workflow_manifest_without_temporal_context}
+      - {path: packages/python/tests/test_observability.py, name: test_trace_inspection_without_temporal_context}
+      - {path: packages/python/tests/test_contracts_shapes.py, name: test_shape_matches_golden}
+    links:
+      - {relation: verifies, target: invariant.optional-temporal-manifest-context}
+      - {relation: verifies, target: invariant.temporal-manifest-compatibility}
+  - id: check.runtime-neutral-manifests-typescript
+    kind: check
+    description: Both workflow-manifest goldens and optional execution-context identity checks in the TypeScript builder.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/temporal/test/manifest.test.ts, name: reproduces the workflow execution manifest golden byte-for-byte}
+      - {path: packages/typescript/temporal/test/manifest.test.ts, name: reproduces the workflow manifest without Temporal context golden}
+      - {path: packages/typescript/temporal/test/manifest.test.ts, name: keeps workflow contract identity independent of optional Temporal context}
+    links:
+      - {relation: verifies, target: invariant.optional-temporal-manifest-context}
+      - {relation: verifies, target: invariant.temporal-manifest-compatibility}
