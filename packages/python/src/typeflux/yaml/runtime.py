@@ -49,6 +49,7 @@ from typeflux.metadata import (
     ComponentProvenanceContributor,
     LifecycleOperationContributor,
     LifecycleOperationMetadataContext,
+    LocalRuntimeContributor,
     MetadataContributor,
     PolicyContributor,
     RiskTierContributor,
@@ -1817,7 +1818,11 @@ def _yaml_metadata_contributors(
         YamlOverrideContributor(getattr(spec, "_override_provenance", None)),
         ComponentProvenanceContributor(getattr(spec, "_component_provenance", ())),
         SecretReferenceContributor(secret_reference_records(spec)),
-        _temporal_connection_contributor(spec),
+        *(
+            (LocalRuntimeContributor(),)
+            if spec.runtime.engine == "local"
+            else (_temporal_connection_contributor(spec),)
+        ),
         RuntimePlacementContributor.from_env(),
         *_policy_metadata_contributors(policy_guard),
         *_risk_tier_metadata_contributors(spec, policy_guard),

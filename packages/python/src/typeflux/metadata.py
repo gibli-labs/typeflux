@@ -28,7 +28,7 @@ class MetadataContribution:
 class WorkflowMetadataContext:
     workflow_name: str
     workflow_id: str
-    task_queue: str
+    task_queue: str | None
     temporal_run_id: str | None = None
     activities: Sequence[Any] = ()
     activity_rollup: Sequence[str | Mapping[str, Any]] | None = None
@@ -89,11 +89,13 @@ class CoreWorkflowContributor:
         typeflux: dict[str, Any] = {
             "manifest_version": "1",
             "level": "workflow",
-            "workflow": {
-                "workflow_name": context.workflow_name,
-                "workflow_id": context.workflow_id,
-                "task_queue": context.task_queue,
-            },
+            "workflow": _drop_none(
+                {
+                    "workflow_name": context.workflow_name,
+                    "workflow_id": context.workflow_id,
+                    "task_queue": context.task_queue,
+                }
+            ),
             "activities": [_activity_name(activity) for activity in context.activities],
         }
         if context.include_execution_manifest and context.execution_manifest is not None:
@@ -136,6 +138,35 @@ class CoreWorkflowContributor:
 
     def operation(self, context: LifecycleOperationMetadataContext) -> MetadataContribution:
         return MetadataContribution()
+
+
+class LocalRuntimeContributor(NoOpMetadataContributor):
+    """Engine attribution and the planned graph, without durable-execution claims."""
+
+    def __init__(self, steps: Sequence[Mapping[str, Any]] = ()) -> None:
+        self.steps = tuple(steps)
+
+    def workflow(self, context: WorkflowMetadataContext) -> MetadataContribution:
+        return MetadataContribution(
+            workflow_manifest={
+                "contributions": {
+                    "local": {
+                        "engine": "local",
+                        **({"steps": list(self.steps)} if self.steps else {}),
+                    }
+                }
+            },
+            workflow_metadata={"typeflux": {"runtime": {"engine": "local"}}},
+            search_tags=("typeflux.runtime:local",),
+            redaction_exclusions=("typeflux.runtime.engine",),
+        )
+
+    def activity(self, context: ActivityMetadataContext) -> MetadataContribution:
+        return MetadataContribution(
+            activity_metadata={"typeflux": {"runtime": {"engine": "local"}}},
+            search_tags=("typeflux.runtime:local",),
+            redaction_exclusions=("typeflux.runtime.engine",),
+        )
 
 
 class YamlWorkflowContributor:

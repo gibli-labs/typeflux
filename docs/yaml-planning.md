@@ -42,15 +42,15 @@ Planning validates computational structure; it does not execute a workflow or
 certify that an execution engine supports every configured feature. Existing YAML
 defaults, plan identities, predicates, context paths and validation rules are
 preserved. Python can also load project/environment specs without Temporal.
-Building executable subworkflow closures, converting Temporal retry policies,
+Building Temporal subworkflow classes, converting Temporal retry policies,
 importing decorated Temporal activities and constructing workers still require
 the Temporal integration. Python imports trusted project code during schema and
 activity resolution; planning is not a sandbox for untrusted code.
 
-The local YAML runner and engine capability checks are tracked in
-[#89](https://github.com/gibli-labs/typeflux/issues/89). No local execution command
-is available in this slice. Durable recovery, scheduling, review gates and saga
-compensation remain Temporal features; the local work will not reimplement them.
+The [Python local SDK executor](local-runtime.md#python-sdk-execution) runs supported
+YAML graphs without Temporal. TypeScript execution and CLI adoption remain tracked
+in [#89](https://github.com/gibli-labs/typeflux/issues/89). Durable recovery, scheduling,
+review gates and saga compensation remain Temporal features.
 
 ## Existing Temporal users
 
@@ -69,8 +69,8 @@ consumes and re-exports the shared implementation.
 No metadata contributor or workflow manifest changes are needed: this extraction
 does not emit new execution data. The default development profile tests fresh
 candidate wheel/tarball installations, rejects Temporal SDK dependencies in the
-base installations, exercises planning and a fake-provider activity, and retains
+base installations, exercises planning and Python local workflow execution, and retains
 the existing Temporal regression and live-local checks.
 
 Explicit local engine selection and recursive capability checks are described in
-[the local runtime boundary](local-runtime.md). Local execution remains in development.
+[the local runtime boundary](local-runtime.md). Python execution is available through the explicit local builder.

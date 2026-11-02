@@ -154,3 +154,19 @@ async def test_ground_with_search_handles_empty_results() -> None:
         "q", search=lambda _q: [], ground=lambda q, results: {"q": q, "n": len(results)}
     )
     assert grounded == {"q": "q", "n": 0}
+
+
+@pytest.mark.asyncio
+async def test_fan_out_does_not_start_queued_work_after_failure() -> None:
+    started = []
+
+    async def item(value):
+        started.append(value)
+        if value == 0:
+            await asyncio.sleep(0)
+            raise ValueError("stop")
+        return value
+
+    with pytest.raises(ValueError, match="stop"):
+        await fan_out([0, 1, 2], item, concurrency=1)
+    assert started == [0]

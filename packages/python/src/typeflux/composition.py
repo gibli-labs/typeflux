@@ -39,9 +39,20 @@ async def fan_out(
         raise ValueError("fan_out concurrency must be >= 1")
     semaphore = asyncio.Semaphore(concurrency)
 
+    failed = False
+
     async def _run(item: _T) -> _R:
+        nonlocal failed
         async with semaphore:
-            return await fn(item)
+            if failed:
+                raise asyncio.CancelledError
+            try:
+                return await fn(item)
+            except BaseException:
+                # Set before releasing the permit: queued tasks can acquire it
+                # before gather wakes up to cancel them.
+                failed = True
+                raise
 
     tasks = [asyncio.ensure_future(_run(item)) for item in items]
     try:
