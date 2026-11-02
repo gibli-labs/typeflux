@@ -30,7 +30,9 @@ from typeflux.yaml.spec import (
 _ACTIVITY_EXPORTS = ("TYPEFLUX_ACTIVITIES", "ALL_ACTIVITIES")
 
 
-def collect_activities(spec: TypefluxYamlSpec) -> dict[str, YamlWorkflowActivity]:
+def collect_activities(
+    spec: TypefluxYamlSpec, *, local: bool = False
+) -> dict[str, YamlWorkflowActivity]:
     activities: dict[str, YamlWorkflowActivity] = {}
     for module_spec in spec.activities.modules:
         validate_activity_module_import(
@@ -51,6 +53,20 @@ def collect_activities(spec: TypefluxYamlSpec) -> dict[str, YamlWorkflowActivity
             if isinstance(value, AIActivity):
                 activity = replace(value, definition_source=definition_source)
             else:
+                if local:
+                    from typeflux.yaml.engine import RuntimeCapabilityError
+
+                    name = getattr(value.__temporal_activity_definition, "name", None)
+                    if name in module_spec.exclude or (
+                        module_spec.include and name not in module_spec.include
+                    ):
+                        continue
+                    raise RuntimeCapabilityError(
+                        spec.workflow.name,
+                        f"activities.modules.{module_name}",
+                        "Temporal activity callable",
+                        "Use an AIActivity for local execution, or runtime.engine: temporal.",
+                    )
                 activity = _temporal_descriptor_from_callable(
                     value,
                     definition_source=definition_source,

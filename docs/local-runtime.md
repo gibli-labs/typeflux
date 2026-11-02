@@ -2,8 +2,8 @@
 
 Typeflux Local is in development ([#89](https://github.com/gibli-labs/typeflux/issues/89)).
 Both SDKs can now load local YAML and check its declared runtime capabilities without
-installing a Temporal SDK. **Local workflow execution and a local CLI are not yet
-available.** The existing worker, deployment and control-plane entry points remain
+installing a Temporal SDK. **Python SDK local execution is available. TypeScript execution and the local CLI
+remain in development.** The existing worker, deployment and control-plane entry points remain
 Temporal-only and reject local engine selection before constructing runtime services.
 
 ## Engine selection
@@ -90,7 +90,77 @@ trusted-code boundary. Code activity descriptors and project policy enforcement
 must also be checked when the local runtime is assembled; a successful capability
 check alone cannot establish those guarantees.
 
-The executor follow-up will reuse the existing activity pipeline and add typed
-metadata contributors for engine attribution. This slice emits no runtime metadata
-and changes no execution manifest. Local runs will be in-process and non-durable;
-Temporal remains the option for recovery, scheduling, review and distributed execution.
+## Python SDK execution
+
+```python
+import asyncio
+from typeflux.yaml import build_local_runtime, load_yaml_spec
+
+spec = load_yaml_spec("workflow.yaml")
+runtime = build_local_runtime(spec)
+result = asyncio.run(runtime.execute_workflow({"text": "hello"}))
+print(result.model_dump())
+```
+
+Configure an ordinary provider (for example `type: openai`, with the `openai` extra
+and credentials) or an existing custom provider class. The `fake` provider in the
+boundary example has no responses; use a custom `FakeProvider` subclass with canned
+responses for an offline executable example. The base installation needs no
+Temporal SDK or service. This is the explicit local SDK entry point; `build_runtime`
+and the current CLI still select the Temporal integration.
+
+The builder snapshots the specs and resolves the entire reachable graph, including
+skipped branches, before constructing runtime services. It reuses the shared graph
+validator and activity pipeline. It validates prompts before returning the runtime.
+A resolver supplies already-resolved specs from the same project/environment:
+
+```python
+runtime = build_local_runtime(
+    root_spec,
+    workflow_id="root",
+    resolve_workflow=resolved_specs.get,
+)
+```
+
+Sequences pass each output to the next step. A false step condition exits its
+sequence with the current value. Parallel branches receive independent input and
+context snapshots; results are collected by branch ID, with `None` for a skipped
+branch. Completed branch step IDs remain available downstream as permitted by the
+planner. Maps keep input order and honor their concurrency and collection size
+limits. `workflow:` and `map.workflow` call the resolved child in the same process.
+Input/output models, context references, graph types, cycles and collection schemas
+use the existing validation rules.
+
+Python portable activities are YAML definitions or imported `AIActivity` objects.
+Hooks, input-aware output checks, validation repair, moderation, artifacts, provider
+parameters/retries/limits and provider session caching use the existing pipeline.
+The root supplies the shared provider, registry and observability services, following
+the existing composed-runtime configuration rules. `deps`, `tenant_resolver` and
+`cache_store` may be supplied to `build_local_runtime`; the latter enables an imported
+activity's cross-run cache. Declared targeted cache erasure requires a store that
+supports subject erasure. Imported Temporal-decorated callables, queue assignments,
+activity retries and timeouts fail explicitly.
+
+Project callers remain responsible for resolving their environment and running
+existing project policy admission for the full closure, then passing its
+`policy_guard` to the builder. The local SDK enforces that guard at provider/model
+and moderation checkpoints. A matching admitted guard is required when
+`TYPEFLUX_EXPECTED_POLICY_HASH` is set. Elevated risk tiers remain rejected by the
+local capability boundary. The SDK does not infer project policy from a standalone
+workflow file; project CLI integration remains a separate follow-up.
+
+Use a runtime on one asyncio event loop. Concurrent invocations share provider
+limits. Cancel the task awaiting `execute_workflow` to request cooperative
+cancellation. A failed fan-out cancels siblings and prevents queued items from
+starting; downstream steps do not execute. Blocking provider calls cannot be
+forcibly interrupted: the runtime waits for them before releasing concurrency
+permits or cached resources. Session caches receive best-effort cleanup on success,
+failure and cancellation. Process termination can prevent cleanup; provider TTLs
+remain the fallback. Completed external effects are never rolled back.
+
+Typed metadata contributors identify `runtime.engine: local`. Workflow manifests
+include planned steps and activity contracts, and omit Temporal queues and run IDs.
+Each invocation has a new correlation ID; it is not a durable execution handle.
+Existing observation/redaction paths are reused. No scheduler, persistent execution
+store, replay/resume, review gates, compensation, worker or control-plane service is
+added. Temporal remains the option for those guarantees.

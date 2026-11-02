@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 import tempfile
 from pathlib import Path
@@ -15,6 +16,7 @@ from typeflux.prompts import InlinePromptRegistry
 from typeflux.testing import FakeProvider
 from typeflux.yaml import (
     RuntimeCapabilityError,
+    build_local_runtime,
     collect_activities,
     create_workflow,
     load_yaml_spec,
@@ -26,6 +28,11 @@ from typeflux.yaml.planning import evaluate_when_gate, when_gate_from_spec
 
 class Value(BaseModel):
     text: str
+
+
+class LocalProvider(FakeProvider):
+    def __init__(self):
+        super().__init__([Value(text="local result")])
 
 
 SPEC = """project: planning_fixture
@@ -52,6 +59,7 @@ workflow:
 def main() -> None:
     module = ModuleType("planning_fixture.schemas")
     module.Value = Value  # type: ignore[attr-defined]
+    module.LocalProvider = LocalProvider  # type: ignore[attr-defined]
     sys.modules[module.__name__] = module
     with tempfile.TemporaryDirectory(prefix="typeflux-planning-probe-") as directory:
         root = Path(directory)
@@ -66,6 +74,13 @@ def main() -> None:
         )
         local = load_yaml_spec(local_path, load_dotenv=False, env={})
         assert validate_local_capabilities(local) == ("demo",)
+        local.runtime.provider.type = "custom"
+        local.runtime.provider.provider_class = "planning_fixture.schemas:LocalProvider"
+        local.runtime.imports.allow_provider_class = True
+        runtime = build_local_runtime(local)
+        assert asyncio.run(runtime.execute_workflow({"text": "hello"})) == Value(
+            text="local result"
+        )
         try:
             create_workflow(local, {})
         except RuntimeCapabilityError as exc:
@@ -124,7 +139,7 @@ def main() -> None:
         else:
             raise AssertionError("Temporal construction should require the integration")
     assert not any(name == "temporalio" or name.startswith("temporalio.") for name in sys.modules)
-    print("Python YAML and project planning passed without Temporal")
+    print("Python YAML planning and local execution passed without Temporal")
 
 
 if __name__ == "__main__":

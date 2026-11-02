@@ -1,0 +1,18 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: journey.execute-local-yaml-python
+    kind: journey
+    description: A Python SDK caller runs a computational YAML workflow in-process with no Temporal SDK or server.
+    steps:
+      - id: prepare
+        action: Resolve the local workflow closure and construct the local SDK runtime.
+        outcome: Unsupported graph features, types, references and activity descriptors fail before providers or observers are constructed.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-yaml-execution-python]
+        failures: [skipped branch hides unsupported behavior, Temporal-only activity accepted, constructor reached before graph failure]
+      - id: execute
+        action: Await workflow execution with validated input and inspect its result and observations.
+        outcome: Ordered bounded maps, branch gates and child workflows reuse activity services; errors stop downstream work and cache cleanup runs on all exits. Manifests omit Temporal placement.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-yaml-execution-python]
+        failures: [new queued work after failure, cache leaked on cancellation, false Temporal execution identity, activity pipeline bypassed]

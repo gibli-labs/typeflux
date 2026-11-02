@@ -6,7 +6,7 @@ import json
 import types
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Union, cast, get_args, get_origin
+from typing import Any, Protocol, TypeVar, Union, cast, get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -227,6 +227,19 @@ def render_when_gate(gate: WhenGate) -> str:
     return f"{gate.mode}({', '.join(parts)})"
 
 
+class WorkflowContract(Protocol):
+    """Only resolved types are needed to validate a child invocation."""
+
+    @property
+    def input_type(self) -> type[BaseModel]: ...
+
+    @property
+    def output_type(self) -> type[BaseModel]: ...
+
+
+_Contract = TypeVar("_Contract", bound=WorkflowContract)
+
+
 @dataclass(frozen=True)
 class ResolvedSubworkflow:
     """A sibling PROJECT workflow resolved for use as a child (#55 §3.4). Built by the
@@ -336,7 +349,7 @@ def _walk_sequence_types(
     context_types: dict[str, type],
     route_label: str | None = None,
     route_entry_desc: str | None = None,
-    subworkflows: Mapping[str, ResolvedSubworkflow] | None = None,
+    subworkflows: Mapping[str, WorkflowContract] | None = None,
 ) -> tuple[type, list[tuple[str, type]], list[tuple[str, dict[str, type]]]]:
     """Walk one sequence (the top level, a parallel branch, or a routed tail) over
     RESOLVED Pydantic types — the Python edition of TS ``walkSequence`` (#55 §4).
@@ -441,7 +454,7 @@ def _validate_parallel_step(
     context_types: Mapping[str, type],
     route_label: str | None = None,
     route_entry_desc: str | None = None,
-    subworkflows: Mapping[str, ResolvedSubworkflow] | None = None,
+    subworkflows: Mapping[str, WorkflowContract] | None = None,
 ) -> tuple[type, dict[str, type]]:
     """Validate a parallel block against resolved types (#55 §4.1/§4.3): each branch
     is a nested sequence whose first step consumes the block input; the collect
@@ -528,7 +541,7 @@ def _validate_workflow_graph(
     activities: Mapping[str, YamlWorkflowActivity],
     input_type: type,
     output_type: type,
-    subworkflows: Mapping[str, ResolvedSubworkflow] | None = None,
+    subworkflows: Mapping[str, WorkflowContract] | None = None,
 ) -> None:
     context_types: dict[str, type] = {"input": input_type}
     current_type, gates, contributions = _walk_sequence_types(
@@ -650,7 +663,7 @@ def _validate_review_routes(
     input_type: type,
     output_type: type,
     step_contributions: Mapping[str, dict[str, type]],
-    subworkflows: Mapping[str, ResolvedSubworkflow] | None = None,
+    subworkflows: Mapping[str, WorkflowContract] | None = None,
 ) -> None:
     lifecycle = spec.workflow.lifecycle
     if lifecycle is None:
@@ -728,7 +741,7 @@ def _validate_map_step(
     activities: Mapping[str, YamlWorkflowActivity],
     *,
     context_types: Mapping[str, type],
-    subworkflows: Mapping[str, ResolvedSubworkflow] | None = None,
+    subworkflows: Mapping[str, WorkflowContract] | None = None,
 ) -> type:
     if step.map.workflow is not None:
         return _validate_subworkflow_map_step(
@@ -780,7 +793,7 @@ def _validate_subworkflow_map_step(
     step: WorkflowMapStepSpec,
     *,
     context_types: Mapping[str, type],
-    subworkflows: Mapping[str, ResolvedSubworkflow] | None,
+    subworkflows: Mapping[str, WorkflowContract] | None,
 ) -> type:
     # `map.workflow` fan-out typing (#55 §4.2): the child's `workflow.input` stands in
     # for a definition's input, its `workflow.output` for the definition's output.
@@ -859,10 +872,10 @@ def _is_basemodel_type(value: Any) -> bool:
 
 
 def _resolve_subworkflow_record(
-    subworkflows: Mapping[str, ResolvedSubworkflow] | None,
+    subworkflows: Mapping[str, _Contract] | None,
     ref: str,
     step_id: str,
-) -> ResolvedSubworkflow:
+) -> _Contract:
     # Standalone rejection (#55 §1): a `workflow:` / `map.workflow` reference resolves
     # ONLY through a project manifest. `subworkflows is None` marks a spec loaded
     # standalone; a project-loaded spec always carries a (possibly empty) mapping whose
@@ -912,7 +925,7 @@ def plan_workflow(
     spec: TypefluxYamlSpec,
     activities: Mapping[str, YamlWorkflowActivity],
     *,
-    subworkflows: Mapping[str, ResolvedSubworkflow] | None = None,
+    subworkflows: Mapping[str, WorkflowContract] | None = None,
 ) -> WorkflowPlan:
     """Resolve input/output models and validate the shared graph without an SDK."""
     input_type = import_type_ref(spec.project, spec.workflow.input)

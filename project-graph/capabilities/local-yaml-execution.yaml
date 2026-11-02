@@ -1,0 +1,45 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.local-yaml-execution
+    kind: capability
+    description: Run validated Python YAML workflows in one process without Temporal using the shared activity pipeline. No durable scheduling, review, replay or rollback guarantees.
+    editions: {python: supported, typescript: unsupported}
+    implementation:
+      - packages/python/src/typeflux/yaml/local.py
+      - packages/python/src/typeflux/yaml/__init__.py
+      - packages/python/src/typeflux/yaml/imports.py
+      - packages/python/src/typeflux/yaml/planning.py
+      - packages/python/src/typeflux/yaml/runtime.py
+      - packages/python/src/typeflux/composition.py
+      - packages/python/src/typeflux/execution/starter.py
+      - packages/python/src/typeflux/metadata.py
+      - scripts/probe_yaml_planning.py
+    documentation: [docs/local-runtime.md, docs/yaml-planning.md]
+    links:
+      - {relation: requires, target: invariant.local-engine-boundary}
+      - {relation: requires, target: invariant.shared-yaml-planning}
+      - {relation: requires, target: invariant.local-yaml-execution}
+  - id: invariant.local-yaml-execution
+    kind: invariant
+    description: Validate the complete reachable graph and portable activity contracts before constructing services; execute the computational subset through existing activity services, stop queued work on failure, clean up caches cooperatively and omit Temporal placement from observations.
+  - id: check.local-yaml-execution-python
+    kind: check
+    description: Execute sequences, gates, parallel branches, maps and child workflows; verify preflight rejection before services, provider concurrency/retry, cache cleanup, hooks/repair/moderation/cache reuse and queue-free metadata. The installed-wheel probe also executes without Temporal.
+    environment: python-non-live
+    ci: [python-3.12]
+    tests:
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_sequence_gate_validation_and_snapshot}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_parallel_collects_skipped_branch_as_null}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_maps_preserve_order_and_share_provider_limits}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_nested_workflow_and_workflow_map}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_complete_preflight_precedes_runtime_services}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_rejects_imported_temporal_contracts}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_session_cache_cleanup_on_every_exit}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_uses_provider_retry_without_activity_retries}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_sync_pipeline_retains_repair_hooks_cache_and_moderation}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_expected_policy_and_cache_capabilities_fail_closed}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_cancellation_during_cache_preparation_releases_handle}
+      - {path: packages/python/tests/test_composition.py, name: test_fan_out_does_not_start_queued_work_after_failure}
+      - {path: packages/python/tests/test_yaml_planning.py, name: test_yaml_and_project_planning_without_temporal}
+    links:
+      - {relation: verifies, target: invariant.local-yaml-execution}
