@@ -13,6 +13,7 @@ entities:
       - packages/python/src/typeflux/composition.py
       - packages/python/src/typeflux/execution/starter.py
       - packages/python/src/typeflux/metadata.py
+      - packages/python/src/typeflux/observability/otel.py
       - scripts/probe_yaml_planning.py
       - packages/typescript/yaml/src/local-metadata.ts
       - packages/typescript/yaml/src/runtime-assembly.ts
@@ -158,10 +159,11 @@ entities:
       - {relation: verifies, target: invariant.local-yaml-adoption}
   - id: check.local-artifact-observation-python
     kind: check
-    description: Local YAML forwards admitted artifact files through the existing provider pipeline and a real OTEL writer with an in-memory exporter redacts private predicate literals and omits Temporal identity.
+    description: Local YAML forwards admitted artifacts and initializes its real OTEL writer with Temporal imports blocked, redacts private predicate literals and omits Temporal identity. Explicit Temporal plugin setup still exports workflow/activity spans.
     environment: python-non-live
     ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
     tests:
       - {path: packages/python/tests/test_yaml_local.py, name: test_local_artifacts_and_redacted_observations_use_existing_pipeline}
+      - {path: packages/python/tests/test_langsmith_observability.py, name: test_explicit_temporal_plugin_still_exports_workflow_and_activity_spans}
     links:
       - {relation: verifies, target: invariant.local-yaml-execution}

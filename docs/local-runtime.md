@@ -387,7 +387,11 @@ added to protected operational metadata or workflow manifests.
 Typed metadata contributors identify `runtime.engine: local`. Workflow manifests
 include planned steps and activity contracts, and omit Temporal queues and run IDs.
 Each invocation has a new correlation ID; it is not a durable execution handle.
-Existing observation/redaction paths are reused. No scheduler, persistent execution
+Existing observation/redaction paths are reused. Direct/local OTEL observations
+initialize a writer-owned OTEL provider without importing Temporal; the Temporal
+builder still explicitly configures its plugin. Install the selected optional
+observability integration and configure its credentials when using a real backend.
+No scheduler, persistent execution
 store, replay/resume, review gates, compensation, worker or control-plane service is
 added. Temporal remains the option for those guarantees.
 

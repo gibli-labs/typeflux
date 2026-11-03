@@ -776,7 +776,8 @@ async def test_shared_local_execution_fixtures(fixture):
 async def test_local_artifacts_and_redacted_observations_use_existing_pipeline(
     fixture, tmp_path, monkeypatch
 ):
-    from opentelemetry.sdk.trace import TracerProvider
+    import builtins
+
     from opentelemetry.sdk.trace.export import SimpleSpanProcessor
     from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
@@ -804,13 +805,20 @@ async def test_local_artifacts_and_redacted_observations_use_existing_pipeline(
             "when": {"path": "input.n", "neq": "private@example.com"},
         }
     )
-    tracer = TracerProvider()
     exporter = InMemorySpanExporter()
-    tracer.add_span_processor(SimpleSpanProcessor(exporter))
+    monkeypatch.setattr(
+        LangSmithOtelProfile, "build_span_processor", lambda self: SimpleSpanProcessor(exporter)
+    )
+    real_import = builtins.__import__
+
+    def no_temporal(name, *args, **kwargs):
+        if name == "temporalio" or name.startswith("temporalio."):
+            raise AssertionError("local observation attempted a Temporal import")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_temporal)
+    # Only replace the export transport; the real writer must initialize itself.
     writer = OtelTraceWriter(profile=LangSmithOtelProfile(api_key="unused", project="offline"))
-    # Reuse the real writer with an in-memory exporter, never construct a vendor client.
-    writer._tracer = tracer.get_tracer("local-acceptance")
-    writer._tracer_provider = tracer
     monkeypatch.setattr(
         services, "_build_observability", lambda *a, **kw: SimpleNamespace(writer=writer)
     )

@@ -8,6 +8,9 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Initialize direct/local Python OTEL observations without importing Temporal.
+  Explicit Temporal plugin setup retains its existing tracing path.
+
 - Complete Typeflux Local adoption examples and the cross-edition acceptance
   matrix, including scoped branch context, composed registry admission, Python
   artifact/redaction behavior, clean installed SDK/CLI examples and executable

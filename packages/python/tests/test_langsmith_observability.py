@@ -623,3 +623,24 @@ def test_from_env_builds_otel_writer_and_reader() -> None:
     assert isinstance(backend.writer, OtelTraceWriter)
     assert isinstance(backend.reader, LangSmithTraceReader)
     assert backend.writer.enabled is True
+
+
+def test_explicit_temporal_plugin_still_exports_workflow_and_activity_spans(monkeypatch):
+    from opentelemetry import trace
+
+    exporter = InMemorySpanExporter()
+    monkeypatch.setattr(
+        LangSmithOtelProfile, "build_span_processor", lambda self: SimpleSpanProcessor(exporter)
+    )
+    installed = []
+    monkeypatch.setattr(trace, "set_tracer_provider", installed.append)
+    writer = OtelTraceWriter(profile=LangSmithOtelProfile(api_key="unused", project="offline"))
+    try:
+        plugin = writer.configure_temporal_plugin()
+        assert plugin is not None
+        _drive_one_workflow(writer)
+        assert exporter.get_finished_spans()
+        assert writer.configure_temporal_plugin() is plugin
+        assert len(installed) == 1
+    finally:
+        writer.shutdown()
