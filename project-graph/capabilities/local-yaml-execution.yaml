@@ -56,7 +56,7 @@ entities:
       - {relation: verifies, target: invariant.local-yaml-execution}
   - id: check.local-yaml-execution-typescript
     kind: check
-    description: Shared execution fixtures, whole-closure admission and typed collections, cancellation and cache draining, pipeline reuse, policy checks and redacted local metadata. Packed candidate executes with no Temporal dependency.
+    description: Shared execution fixtures assert ordered map results and concurrent call multisets; whole-closure admission and typed collections, cancellation and cache draining, pipeline reuse, policy checks and redacted local metadata. Packed candidate executes with no Temporal dependency.
     environment: typescript-non-live
     ci: [typescript]
     tests:

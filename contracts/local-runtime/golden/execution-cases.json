@@ -197,6 +197,7 @@
     },
     {
       "name": "ordered activity map",
+      "call_order": "unordered",
       "workflow": {
         "input": "models:Batch",
         "output": "models:Batch",
@@ -324,6 +325,7 @@
     },
     {
       "name": "ordered workflow map",
+      "call_order": "unordered",
       "workflow": {
         "input": "models:Batch",
         "output": "models:Batch",

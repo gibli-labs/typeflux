@@ -504,4 +504,8 @@ async def test_shared_local_execution_fixtures(fixture):
         )
         result = await runtime.execute_workflow(case["input"])
         assert result.model_dump() == case["expected"], case["name"]
-        assert [n for n, *_ in provider.calls] == case["calls"], case["name"]
+        calls = [n for n, *_ in provider.calls]
+        if case.get("call_order") == "unordered":
+            assert sorted(calls) == sorted(case["calls"]), case["name"]
+        else:
+            assert calls == case["calls"], case["name"]

@@ -13,9 +13,12 @@ a Temporal SDK.
 
 `golden/execution-cases.json` provides deterministic local SDK execution cases.
 Both editions load the same workflow/child definitions and use a provider that
-returns `{n: input.n + 1}`. Assertions compare validated output and provider call
-order across sequences, early exits, skipped parallel branches, activity maps,
-empty maps, nested workflows and workflow maps. Schemas use `models:Item`,
+returns `{n: input.n + 1}`. Assertions compare validated output and provider calls
+across sequences, early exits, skipped parallel branches, activity maps, empty
+maps, nested workflows and workflow maps. Provider call order is checked for
+sequential cases; `call_order: unordered` checks the call multiset for concurrent
+maps. Map results must always retain input order, regardless of provider call
+start or completion order. Schemas use `models:Item`,
 `models:Batch` and `models:Branches`, resolved by each SDK's existing mechanism.
 This matrix proves the local subset; Temporal equivalence, CLI adoption and
 process-loss journeys remain separate acceptance work in #89.

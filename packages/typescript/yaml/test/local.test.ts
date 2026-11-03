@@ -38,7 +38,8 @@ describe("local YAML execution", () => {
         [id, spec({name: id, workflow: {name: id, ...(workflow as object)}})]));
       const runtime = await buildLocalRuntime(root, {schemas, provider, subworkflows: {selfId: "root", specFor: id => children[id]}});
       expect(await runtime.executeWorkflow(test.input), test.name).toEqual(test.expected);
-      expect(provider.calls, test.name).toEqual(test.calls);
+      expect(test.call_order === "unordered" ? [...provider.calls].sort((a, b) => a - b) : provider.calls, test.name)
+        .toEqual(test.call_order === "unordered" ? [...test.calls].sort((a, b) => a - b) : test.calls);
       expect(provider.peak).toBeLessThanOrEqual(2);
     }
   });
