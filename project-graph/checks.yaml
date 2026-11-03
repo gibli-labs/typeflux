@@ -102,10 +102,11 @@ entities:
 
   - id: check.browser-data-readiness
     kind: check
-    description: Completed successful fixture data precedes drift/governance/security content assertions under controlled six-second delays; missing, failed and permanently pending data remain bounded failures.
+    description: Completed successful fixture data precedes overview/project-switch/drift/governance/security content assertions under controlled six-second delays; missing, failed and permanently pending data remain bounded failures.
     environment: chromium-python-cp-and-ts-cp
     ci: [browser-python, browser-typescript]
     tests:
+      - {path: clients/console/e2e/smoke.spec.ts, name: overview renders bundles and the project switch rescopes requests}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the drift page renders the N-way environment matrix with diff links (#611)'}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the governance page shows coverage, gaps, and structured policies (#587)'}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the governance persona view leads with coverage, policy hashes, and the enforcement feed (#721/#723)'}
