@@ -23,7 +23,7 @@ entities:
       - {relation: requires, target: invariant.local-adoption-non-goals}
   - id: invariant.temporal-adoption-evidence
     kind: invariant
-    description: Isolated examples observe unchanged run identity, pending execution without a worker, retry attempts, typed timeout failure and actual scheduled policy/history. Provider retries, durable retries and external-effect idempotency remain distinct; local observations cannot prove deployed failover/drain compatibility.
+    description: Isolated examples observe server-recorded retry failure before stopping the first worker, unchanged run identity, pending execution without a worker, retry attempts, typed timeout failure and actual scheduled policy/history. Provider notification cannot substitute for SDK/server acknowledgement; provider retries and external-effect idempotency remain distinct from durable retries. Isolated observations cannot prove deployed failover/drain compatibility.
   - id: invariant.local-adoption-non-goals
     kind: invariant
     description: No Local persistence, daemon, persistent queue, live-run migration or exactly-once effect guarantee is added; stronger execution uses Temporal and the application still owns external effect safety and compatible worker deployments.
@@ -35,7 +35,9 @@ entities:
     tests:
       - {path: packages/python/tests/test_live_local_runtime_parity.py, name: test_offline_example_temporal_adoption_script}
       - {path: packages/python/tests/test_live_local_runtime_parity.py, name: test_temporal_adoption_recovers_same_run_and_enforces_timeout}
+      - {path: packages/python/tests/test_live_local_runtime_parity.py, name: test_temporal_adoption_waits_for_delayed_failure_report_before_shutdown}
       - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: executes the documented offline example after switching its environment to Temporal}
       - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: recovers the documented Temporal run on a replacement worker and enforces activity timeout}
+      - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: waits for a delayed failure report before shutting down the documented worker}
     links:
       - {relation: verifies, target: invariant.temporal-adoption-evidence}

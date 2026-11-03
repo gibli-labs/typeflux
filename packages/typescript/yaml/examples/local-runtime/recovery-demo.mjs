@@ -44,6 +44,18 @@ class RecoveryProvider {
   }
 }
 
+async function recordedRetry(handle) {
+  const deadline = performance.now() + 4000;
+  while (true) {
+    const remaining = deadline - performance.now();
+    assert(remaining > 0, "Temporal did not acknowledge the retry before the shutdown deadline");
+    const description = await bounded(handle.describe(), remaining);
+    assert.equal(description.status.name, "RUNNING");
+    if ((description.raw.pendingActivities ?? []).some(pending => pending.lastFailure?.message)) return description;
+    await delay(50);
+  }
+}
+
 async function demonstrate(mode) {
   const { spec, ...options } = resolveRuntimeTarget({
     manifest: fileURLToPath(new URL("typeflux.project.yaml", import.meta.url)),
@@ -77,9 +89,16 @@ async function demonstrate(mode) {
     const beforePromise = bounded(Promise.race([
       mode === "retry" ? provider.firstFailure : provider.started, resultPromise,
     ]).then(() => handle.describe()), 15000);
-    let before, attempts, result;
+    let before, attempts, result, retryRecordedBeforeStop = false;
     if (mode === "retry") {
-      before = await runtime.worker.runUntil(beforePromise);
+      before = await runtime.worker.runUntil(async () => {
+        await beforePromise;
+        // The provider notification is not a server acknowledgement. Keep the
+        // worker alive while failure reporting completes and retry state appears.
+        const recorded = await recordedRetry(handle);
+        retryRecordedBeforeStop = true;
+        return recorded;
+      });
       assert.deepEqual(provider.calls, [1]);
       await delay((RETRY_SECONDS + 0.2) * 1000);
       const waiting = await handle.describe();
@@ -112,7 +131,7 @@ async function demonstrate(mode) {
     assert.equal(scheduled[0].retryPolicy.backoffCoefficient, 1);
     const startToCloseSeconds = Number(scheduled[0].startToCloseTimeout.seconds) + scheduled[0].startToCloseTimeout.nanos / 1e9;
     assert.equal(startToCloseSeconds, timeout);
-    return {scenario: mode, attempts, sameRun: true, status: after.status.name, maximumAttempts, startToCloseSeconds, result: result ?? null};
+    return {scenario: mode, attempts, sameRun: true, retryRecordedBeforeStop, status: after.status.name, maximumAttempts, startToCloseSeconds, result: result ?? null};
   } catch (error) {
     primaryFailed = true;
     throw error;

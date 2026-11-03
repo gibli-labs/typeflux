@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { cpSync, mkdtempSync, rmSync, readFileSync } from "node:fs";
+import { cpSync, mkdtempSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -32,6 +32,46 @@ class NumericProvider implements ModelProvider {
     } finally { this.active--; }
   }
 }
+
+const delayedFailureRunner = String.raw`
+import assert from "node:assert/strict";
+import { setTimeout as delay } from "node:timers/promises";
+import { Worker } from "@temporalio/worker";
+let reporting = false, released = false, delays = 0, shutdowns = 0;
+const create = Worker.create;
+const shutdown = Worker.prototype.shutdown;
+Worker.create = function(options) {
+  const interceptors = options.interceptors ?? {};
+  return create.call(this, {
+    ...options,
+    interceptors: {...interceptors, activity: [
+      ...(interceptors.activity ?? []),
+      () => ({inbound: {async execute(input, next) {
+        try { return await next(input); }
+        catch (error) {
+          if (error?.message?.includes("demonstration fault; no external side effects")) {
+            reporting = true;
+            delays++;
+            await delay(250);
+            released = true;
+          }
+          throw error;
+        }
+      }}}),
+    ]},
+  });
+};
+Worker.prototype.shutdown = function() {
+  shutdowns++;
+  const premature = reporting && !released;
+  const result = shutdown.call(this);
+  assert(!premature, "worker shutdown preceded failure report");
+  return result;
+};
+await import("./recovery-demo.mjs");
+assert.equal(delays, 1);
+assert(released && shutdowns >= 3);
+`;
 
 describe.skipIf(process.env["TYPEFLUX_LIVE_TEMPORAL"] !== "1")("local and Temporal computation parity", () => {
   it("matches shared local execution fixtures on real Temporal workers", async () => {
@@ -110,9 +150,21 @@ describe.skipIf(process.env["TYPEFLUX_LIVE_TEMPORAL"] !== "1")("local and Tempor
       cpSync(fileURLToPath(new URL("../../yaml/examples/local-runtime", import.meta.url)), directory, {recursive: true});
       const { stdout } = await promisify(execFile)(process.execPath, [`${directory}/recovery-demo.mjs`], {timeout: 90000});
       expect(JSON.parse(stdout)).toEqual([
-        {scenario: "retry", attempts: [1, 2], sameRun: true, status: "COMPLETED", maximumAttempts: 2, startToCloseSeconds: 10, result: {text: "local result"}},
-        {scenario: "timeout", attempts: [1], sameRun: true, status: "FAILED", maximumAttempts: 1, startToCloseSeconds: 0.5, result: null},
+        {scenario: "retry", attempts: [1, 2], sameRun: true, retryRecordedBeforeStop: true, status: "COMPLETED", maximumAttempts: 2, startToCloseSeconds: 10, result: {text: "local result"}},
+        {scenario: "timeout", attempts: [1], sameRun: true, retryRecordedBeforeStop: false, status: "FAILED", maximumAttempts: 1, startToCloseSeconds: 0.5, result: null},
       ]);
+    } finally { rmSync(directory, {recursive: true, force: true}); }
+  }, 95000);
+
+  it("waits for a delayed failure report before shutting down the documented worker", async () => {
+    const directory = mkdtempSync(fileURLToPath(new URL("./tmp-adoption-", import.meta.url)));
+    try {
+      cpSync(fileURLToPath(new URL("../../yaml/examples/local-runtime", import.meta.url)), directory, {recursive: true});
+      writeFileSync(`${directory}/delayed-report.mjs`, delayedFailureRunner);
+      const { stdout } = await promisify(execFile)(process.execPath, [`${directory}/delayed-report.mjs`], {timeout: 90000});
+      const observations = JSON.parse(stdout);
+      expect(observations[0]).toMatchObject({attempts: [1, 2], sameRun: true, retryRecordedBeforeStop: true});
+      expect(observations[1].status).toBe("FAILED");
     } finally { rmSync(directory, {recursive: true, force: true}); }
   }, 95000);
 

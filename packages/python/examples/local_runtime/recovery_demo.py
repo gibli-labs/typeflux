@@ -18,6 +18,18 @@ from typeflux.yaml import build_runtime
 RETRY_SECONDS = 5
 
 
+async def recorded_retry(handle):
+    while True:
+        description = await handle.describe()
+        assert description.status.name == "RUNNING"
+        if any(
+            pending.HasField("last_failure")
+            for pending in description.raw_description.pending_activities
+        ):
+            return description
+        await asyncio.sleep(0.05)
+
+
 async def demonstrate(mode):
     root = Path(__file__).resolve().parent
     resolved = resolve_project_workflow(
@@ -47,6 +59,7 @@ async def demonstrate(mode):
     runtime = await build_runtime(spec)
     replacement = None
     handle = None
+    retry_recorded_before_stop = False
     try:
         handle = await runtime.start_workflow(
             json.loads((root / "input.json").read_text()), id=f"adoption-{uuid4().hex}"
@@ -55,6 +68,10 @@ async def demonstrate(mode):
         if mode == "retry":
             async with runtime.worker.build_worker():
                 await asyncio.wait_for(runtime.provider.first_failure.wait(), timeout=15)
+                # A provider-local event precedes SDK failure encoding/reporting.
+                # Keep the worker alive until Temporal acknowledges the failure.
+                await asyncio.wait_for(recorded_retry(handle), timeout=4)
+                retry_recorded_before_stop = True
             assert runtime.provider.calls == [1]
             # No worker polls this unique queue while the server retains the run
             # and its retry. This simulates worker unavailability, not server loss.
@@ -104,6 +121,7 @@ async def demonstrate(mode):
             "scenario": mode,
             "attempts": attempts,
             "sameRun": True,
+            "retryRecordedBeforeStop": retry_recorded_before_stop,
             "status": after.status.name,
             "maximumAttempts": scheduled[0].retry_policy.maximum_attempts,
             "startToCloseSeconds": timeout,

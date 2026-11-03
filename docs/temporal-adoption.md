@@ -36,8 +36,11 @@ fake provider to show two additional scenarios:
 
 1. The first activity attempt raises an intentional transient failure. Provider
    retries are explicitly limited to one call; Temporal permits two activity
-   attempts with five-second backoff and a ten-second start-to-close limit. Stop
-   the first worker, wait past the retry delay with no worker polling the unique
+   attempts with five-second backoff and a ten-second start-to-close limit. Keep
+   the first worker alive until Temporal's pending-activity record contains the
+   failure, with a four-second acknowledgement deadline. A provider notification
+   alone does not establish that the SDK reported it. Then stop the first worker,
+   wait past the retry delay with no worker polling the unique
    queue, and verify that the same run remains running. A replacement worker
    finishes attempt two. The script observes attempts `[1, 2]`, the unchanged run
    identity, the result and scheduled retry/timeout policy in actual history.
@@ -70,10 +73,15 @@ unfinished demonstration runs on failure and close/drain their owned workers and
 observations. Do not point them at a production namespace.
 
 Both scripts print two JSON observations. The retry scenario reports `COMPLETED`,
-`sameRun: true`, `maximumAttempts: 2` and `startToCloseSeconds: 10`; the timeout
+`sameRun: true`, `retryRecordedBeforeStop: true`, `maximumAttempts: 2` and
+`startToCloseSeconds: 10`; the timeout
 scenario reports `FAILED`, `sameRun: true`, `maximumAttempts: 1` and
 `startToCloseSeconds: 0.5`. Assertions inside the scripts and isolated Temporal
 tests check the underlying observations, not just the process exit code.
+The Python and TypeScript delayed-report regressions hold SDK failure processing
+open after the provider notification and reject shutdown during that window. The
+scripts' separate pending-activity waits establish server acknowledgement before
+worker replacement.
 
 From a source checkout, run them through the maintained
 [isolated Temporal check](development.md). That check installs/checks the pinned
