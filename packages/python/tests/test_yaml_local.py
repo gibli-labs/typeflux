@@ -14,6 +14,7 @@ from types import ModuleType, SimpleNamespace
 import pytest
 from pydantic import BaseModel, ValidationError
 
+from typeflux import TypefluxError
 from typeflux.core.contracts import (
     ActivityContext,
     AIActivity,
@@ -25,7 +26,7 @@ from typeflux.core.contracts import (
 )
 from typeflux.execution.lifecycle import ActivityCancelled
 from typeflux.observability.backend import NoOpTraceWriter, NoOpWorkflowObservation
-from typeflux.providers.errors import ProviderTransientError
+from typeflux.providers.errors import ProviderAuthError, ProviderTransientError
 from typeflux.yaml import (
     LocalWorkflowError,
     RuntimeCapabilityError,
@@ -195,6 +196,19 @@ async def test_local_provider_error_identifies_workflow_step_and_cause(fixture):
     assert raised.value.__cause__ is failure
     assert [n for n, *_ in provider.calls] == [1]
     assert writer.errors == [raised.value]
+
+
+@pytest.mark.asyncio
+async def test_local_domain_failures_still_match_the_public_typeflux_error_base(fixture):
+    provider, _ = fixture
+    failure = ProviderAuthError("provider refused credentials", provider="fake")
+    provider.failure = failure
+    with pytest.raises(TypefluxError) as raised:
+        await build_local_runtime(spec()).execute_workflow({"n": 1})
+    assert isinstance(raised.value, LocalWorkflowError)
+    assert isinstance(raised.value, RuntimeError)
+    assert (raised.value.workflow, raised.value.step) == ("Root", "first")
+    assert raised.value.__cause__ is failure
 
 
 @pytest.mark.asyncio
@@ -388,7 +402,8 @@ async def test_local_attributed_map_failure_drains_before_cache_release_and_obse
         )
     assert (raised.value.workflow, raised.value.step) == ("Root", "mapped")
     assert raised.value.__cause__ is failure
-    assert started == [1, 2]
+    # Threaded activity preparation may reorder these concurrent provider starts.
+    assert sorted(started) == [1, 2]
     assert events == ["drained", "release", "flush"]
 
 

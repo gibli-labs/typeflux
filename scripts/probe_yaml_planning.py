@@ -10,6 +10,7 @@ from types import ModuleType
 
 from pydantic import BaseModel
 
+from typeflux import TypefluxError
 from typeflux.execution import execute_ai_activity
 from typeflux.project import load_project_spec, resolve_project_workflow
 from typeflux.prompts import InlinePromptRegistry
@@ -94,6 +95,7 @@ def main() -> None:
         try:
             asyncio.run(failing_runtime.execute_workflow({"text": "hello"}))
         except LocalWorkflowError as exc:
+            assert isinstance(exc, TypefluxError)
             assert (exc.workflow, exc.step) == ("Demo", "echo")
             assert isinstance(exc.__cause__, RuntimeError)
             assert str(exc.__cause__) == "offline provider refused"

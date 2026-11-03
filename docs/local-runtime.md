@@ -320,7 +320,8 @@ permits or cached resources. Session caches receive best-effort cleanup on succe
 failure and cancellation. Process termination can prevent cleanup; provider TTLs
 remain the fallback. Completed external effects are never rolled back.
 
-Execution failures raise `LocalWorkflowError`, exported from `typeflux.yaml`:
+Execution failures raise `LocalWorkflowError`, exported from `typeflux.yaml`.
+It inherits both the public `TypefluxError` catch-all and `RuntimeError`:
 
 ```python
 from typeflux.yaml import LocalWorkflowError

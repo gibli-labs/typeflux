@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from typeflux.composition import fan_out
 from typeflux.core.contracts import AIActivity, CachedSessionHandle
+from typeflux.core.errors import TypefluxError
 from typeflux.core.subjects import resolve_subject_ids
 from typeflux.env import load_env
 from typeflux.execution.cache import CacheStore, SubjectErasableCacheStore
@@ -73,7 +74,7 @@ def _validated_value(model: type[BaseModel], value: Any) -> BaseModel:
     ).model_copy(deep=True)
 
 
-class LocalWorkflowError(RuntimeError):
+class LocalWorkflowError(TypefluxError, RuntimeError):
     """An execution failure attributed to its deepest workflow/step.
 
     ``step`` is ``None`` for a workflow input/output boundary. The original
