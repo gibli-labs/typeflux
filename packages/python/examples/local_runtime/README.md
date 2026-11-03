@@ -55,3 +55,10 @@ admission. See the [engine comparison and migration guide](../../../../docs/loca
 Every local invocation starts at step one. Process loss discards progress and can
 prevent cleanup; rerunning may repeat completed side effects. The base-wheel probe
 runs the CLI and SDK example with Temporal absent and network connections blocked.
+
+For an optional credential-free worker interruption/recovery and activity timeout
+demonstration, run `python recovery_demo.py` in this same application environment
+against the development server. It retains the computational YAML and uses a safe
+fake fault provider, unique queues and existing Temporal policies. See the
+[worked durable adoption guide](../../../../docs/temporal-adoption.md) for expected
+attempt/history observations, bounded verification and production limitations.

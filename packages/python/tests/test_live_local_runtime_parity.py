@@ -174,3 +174,41 @@ async def test_offline_example_temporal_adoption_script():
         if process.returncode is None:
             process.kill()
             await process.wait()
+
+
+@pytest.mark.asyncio
+async def test_temporal_adoption_recovers_same_run_and_enforces_timeout():
+    root = Path(__file__).resolve().parents[1] / "examples/local_runtime"
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        str(root / "recovery_demo.py"),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        out, err = await asyncio.wait_for(process.communicate(), timeout=90)
+        assert process.returncode == 0, err.decode()
+        assert json.loads(out) == [
+            {
+                "scenario": "retry",
+                "attempts": [1, 2],
+                "sameRun": True,
+                "status": "COMPLETED",
+                "maximumAttempts": 2,
+                "startToCloseSeconds": 10,
+                "result": {"text": "local result"},
+            },
+            {
+                "scenario": "timeout",
+                "attempts": [1],
+                "sameRun": True,
+                "status": "FAILED",
+                "maximumAttempts": 1,
+                "startToCloseSeconds": 0.5,
+                "result": None,
+            },
+        ]
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()

@@ -104,4 +104,16 @@ describe.skipIf(process.env["TYPEFLUX_LIVE_TEMPORAL"] !== "1")("local and Tempor
     } finally { rmSync(directory, {recursive: true, force: true}); }
   }, 65000);
 
+  it("recovers the documented Temporal run on a replacement worker and enforces activity timeout", async () => {
+    const directory = mkdtempSync(fileURLToPath(new URL("./tmp-adoption-", import.meta.url)));
+    try {
+      cpSync(fileURLToPath(new URL("../../yaml/examples/local-runtime", import.meta.url)), directory, {recursive: true});
+      const { stdout } = await promisify(execFile)(process.execPath, [`${directory}/recovery-demo.mjs`], {timeout: 90000});
+      expect(JSON.parse(stdout)).toEqual([
+        {scenario: "retry", attempts: [1, 2], sameRun: true, status: "COMPLETED", maximumAttempts: 2, startToCloseSeconds: 10, result: {text: "local result"}},
+        {scenario: "timeout", attempts: [1], sameRun: true, status: "FAILED", maximumAttempts: 1, startToCloseSeconds: 0.5, result: null},
+      ]);
+    } finally { rmSync(directory, {recursive: true, force: true}); }
+  }, 95000);
+
 });

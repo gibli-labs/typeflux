@@ -6,6 +6,11 @@ needs no Temporal SDK, server, account, worker daemon or execution database.
 Progress lives only in the process. Choose Temporal for durable orchestration,
 scheduling, human review or compensation.
 
+The [worked durable adoption guide](temporal-adoption.md) extends the offline
+quickstarts with credential-free Temporal worker replacement, retry and activity
+timeout observations in both editions. It introduces no Local persistence or
+recovery guarantee.
+
 These instructions describe the current source and candidate packages. They do
 not assert that a release containing this feature has been published. For a fresh
 installation and executable offline CLI/SDK examples, use the

@@ -14,7 +14,7 @@ const { spec, ...options } = resolveRuntimeTarget({
 const connection = await NativeConnection.connect({address: spec.runtime.temporal.address});
 const clientConnection = await Connection.connect({address: spec.runtime.temporal.address});
 try {
-  const runtime = await buildRuntime(spec, { ...options, schemas, provider, worker: {connection} });
+  const runtime = await buildRuntime(spec, { ...options, schemas, provider, worker: {connection, namespace: spec.runtime.temporal.namespace} });
   const result = await runtime.worker.runUntil(runtime.runWorkflow(
     new Client({connection: clientConnection, namespace: spec.runtime.temporal.namespace}),
     JSON.parse(readFileSync(new URL("input.json", import.meta.url), "utf8")),
