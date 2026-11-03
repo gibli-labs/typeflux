@@ -1,7 +1,7 @@
 /** Install candidate tarballs outside the workspace and reject any Temporal SDK dependency. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,6 +25,9 @@ try {
   inspect(tree);
   copyFileSync(join(root, "scripts/probe-yaml-planning.mjs"), join(directory, "probe.mjs"));
   process.stdout.write(run(process.execPath, ["probe.mjs"]));
+  cpSync(join(root, "packages/typescript/yaml/examples/local-runtime"), join(directory, "local-example"), {recursive: true});
+  copyFileSync(join(root, "scripts/probe-yaml-local-cli.mjs"), join(directory, "cli-probe.mjs"));
+  process.stdout.write(run(process.execPath, ["cli-probe.mjs"]));
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }

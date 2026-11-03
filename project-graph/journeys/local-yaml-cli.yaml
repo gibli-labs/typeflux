@@ -22,3 +22,25 @@ entities:
         capabilities: [capability.local-yaml-cli]
         checks: [check.local-yaml-cli-python]
         failures: [shutdown before cancellation settles, result printed after interruption, invented durable resume]
+  - id: journey.execute-local-yaml-cli-typescript
+    kind: journey
+    description: A TypeScript user executes a local YAML workflow or project without a worker or orchestration service.
+    steps:
+      - id: admit
+        action: Select a YAML file or project workflow and environment, then supply input JSON.
+        outcome: Shared resolution composes profiles and policies across children; unsupported capabilities and expected-policy mismatches fail before service construction, including in skipped branches.
+        capabilities: [capability.local-yaml-cli]
+        checks: [check.local-yaml-cli-typescript]
+        failures: [policy bypass in a child, environment profile precedence drift, Temporal SDK import, provider constructed before refusal]
+      - id: execute
+        action: Execute in the foreground and read stdout, stderr and the exit status.
+        outcome: The existing local SDK returns validated JSON; extension diagnostics stay on stderr, input failures are distinct, and observations drain after success or failure.
+        capabilities: [capability.local-yaml-cli]
+        checks: [check.local-yaml-cli-typescript]
+        failures: [non-JSON stdout, wrong input failure category, failed preparation leaks observation resources, hidden orchestration connection]
+      - id: interrupt
+        action: Send SIGINT or SIGTERM while the provider is active.
+        outcome: Cooperative cancellation drains the active call before observation shutdown and exits with the signal category. A new command starts from the beginning.
+        capabilities: [capability.local-yaml-cli]
+        checks: [check.local-yaml-cli-typescript]
+        failures: [shutdown before cancellation settles, result printed after interruption, invented durable resume]

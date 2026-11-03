@@ -1,0 +1,17 @@
+project: local_example
+name: echo
+runtime:
+  engine: local
+  provider:
+    type: fake
+  registry:
+    type: inline
+    prompts: {echo: 'Echo {{text}}'}
+activities:
+  definitions:
+    - {name: echo, input: 'models:Value', output: 'models:Value', prompt: echo}
+workflow:
+  name: Echo
+  input: models:Value
+  output: models:Value
+  steps: [{id: echo, activity: echo}]

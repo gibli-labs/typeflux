@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { realpathSync } from "node:fs";
+import { resolveRuntimeTarget } from "@typeflux/yaml/runtime-target";
 /**
  * `typeflux-yaml-worker` — the reference worker entrypoint the rendered Kubernetes Deployment
  * invokes (deployment tier, #687 slice 2; the TS analog of Python's `python -m
@@ -35,7 +37,6 @@
  */
 
 import { requireTemporalWorkflowGraph } from "@typeflux/yaml/engine";
-import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -45,18 +46,8 @@ import {
 } from "./subject-keystore.js";
 import { assembleYamlRuntime, autoWireRuntimeOptions, buildRuntime } from "./runtime.js";
 import { importBindingsModule } from "./bindings-module.js";
-import { applyEnvironmentVariablesToProcessEnv } from "./environment-overlay.js";
-import { loadYamlSpec } from "@typeflux/yaml/loader";
-import { loadProjectBundle } from "./project-fs-loader.js";
-import { resolveProjectWorkflow } from "./project-run.js";
-import { projectSubworkflowResolver, type SubworkflowSpecResolver } from "@typeflux/yaml/build-workflow";
-import { composeProjectPolicyIds } from "./project-resolve.js";
-import {
-  assertRiskTierEnforced, selectProjectPolicyIdsForWorkflow } from "./project-enforcement.js";
 import { temporalConnectionOptions } from "./temporal-tls.js";
-import type { ComposedProjectPolicy } from "./policy-composition.js";
 import type { BuildRuntimeOptions } from "./runtime.js";
-import type { TypefluxYamlSpec } from "@typeflux/yaml/spec";
 
 interface WorkerArgs {
   manifest?: string;
@@ -146,78 +137,7 @@ async function loadBindings(): Promise<WorkerBindings> {
   return (await importBindingsModule(modulePath)) as WorkerBindings;
 }
 
-/** Resolve the target spec (+ optional composed policy and sub-workflow resolver) for either mode. */
-function resolveTarget(args: WorkerArgs): {
-  spec: TypefluxYamlSpec;
-  policy?: ComposedProjectPolicy;
-  subworkflows?: SubworkflowSpecResolver;
-} {
-  if (args.manifest === undefined) {
-    const specPath = process.env["TYPEFLUX_YAML_PATH"];
-    if (specPath === undefined || specPath === "") {
-      throw new Error("no project manifest argument and no TYPEFLUX_YAML_PATH set; nothing to run");
-    }
-    const spec = loadYamlSpec(readFileSync(specPath, "utf-8"), { sourceLabel: specPath });
-    return { spec };
-  }
-  if (args.workflow === undefined || args.environment === undefined) {
-    throw new Error("project mode requires --workflow and --environment");
-  }
-  const { project, sources } = loadProjectBundle(args.manifest);
-  // The target environment's variable overlay applies to the WHOLE worker lifetime
-  // (Bugbot #706): deploy admission and Python's project `run` evaluate policy —
-  // including secret/env-backed checks — under this overlay, and the rendered pod
-  // gets the same values via its ConfigMap. A dedicated worker process adopts them
-  // persistently (overlay wins, matching withEnvironmentContext precedence) so the
-  // policy hash it verifies and the runtime it assembles agree with the plan it
-  // was deployed with.
-  const environmentSpec = Object.hasOwn(sources.environments, args.environment)
-    ? sources.environments[args.environment]
-    : undefined;
-  if (environmentSpec !== undefined) {
-    // Shared applier (the restore function is deliberately dropped: the worker
-    // adopts the overlay for its whole lifetime, per the comment above).
-    applyEnvironmentVariablesToProcessEnv(environmentSpec.variables);
-  }
-  const resolved = resolveProjectWorkflow(project, sources, args.workflow, args.environment);
-  if (resolved === undefined) {
-    throw new Error(`cannot resolve workflow '${args.workflow}' under environment '${args.environment}'`);
-  }
-  const selected = selectProjectPolicyIdsForWorkflow(project, {
-    environmentId: args.environment,
-    workflowId: args.workflow,
-    explicitPolicyIds: args.policies,
-  });
-  const policy = selected.length > 0 ? composeProjectPolicyIds(project, sources, selected) : undefined;
-  if (args.expectPolicyHash !== undefined) {
-    if (policy === undefined) {
-      throw new Error("expected project policy hash was provided, but no project policy was selected");
-    }
-    if (policy.policyHash !== args.expectPolicyHash) {
-      throw new Error(
-        `selected project policy hash does not match expected deployment policy hash ` +
-          `(expected=${args.expectPolicyHash}, actual=${policy.policyHash})`,
-      );
-    }
-  }
-  const subworkflows = projectSubworkflowResolver(
-    args.workflow,
-    (siblingId) => resolveProjectWorkflow(project, sources, siblingId, args.environment!)?.spec,
-  );
-  // #788 (review M3): the worker's project mode composes its own policy object and
-  // previously bypassed the risk-tier binding check entirely — an elevated declared
-  // tier (parent or closure) must fail closed here exactly like the Python worker.
-  assertRiskTierEnforced(
-    resolved.spec,
-    selected,
-    policy?.payload,
-    (siblingId) => resolveProjectWorkflow(project, sources, siblingId, args.environment!)?.spec,
-    args.workflow,
-  );
-  return policy !== undefined ? { spec: resolved.spec, policy, subworkflows } : { spec: resolved.spec, subworkflows };
-}
-
-function runtimeOptions(bindings: WorkerBindings, target: ReturnType<typeof resolveTarget>): BuildRuntimeOptions {
+function runtimeOptions(bindings: WorkerBindings, target: ReturnType<typeof resolveRuntimeTarget>): BuildRuntimeOptions {
   const options: BuildRuntimeOptions = { schemas: bindings.schemas ?? {} };
   if (bindings.provider !== undefined) options.provider = bindings.provider;
   if (bindings.transports !== undefined) options.transports = bindings.transports;
@@ -236,7 +156,8 @@ function runtimeOptions(bindings: WorkerBindings, target: ReturnType<typeof reso
 export async function main(argv: readonly string[]): Promise<number> {
   const args = parseArgs(argv);
   const bindings = await loadBindings();
-  const target = resolveTarget(args);
+  const yamlPath = process.env["TYPEFLUX_YAML_PATH"];
+  const target = resolveRuntimeTarget({...args, ...(yamlPath === undefined ? {} : {yamlPath})});
   const options = runtimeOptions(bindings, target);
   requireTemporalWorkflowGraph(target.spec, options.subworkflows);
 

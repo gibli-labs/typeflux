@@ -1,3 +1,4 @@
+import { autoWireRuntimeOptions as wireRuntimeOptions } from "@typeflux/yaml/runtime-wiring";
 /**
  * Wire a validated spec into a runnable worker (parity Epic 5, #452; Python
  * `yaml/runtime.py` `build_runtime` + `TypefluxYamlRuntime.execute_workflow`).
@@ -12,7 +13,7 @@
 
 import { requireTemporalEngine, requireTemporalWorkflowGraph } from "@typeflux/yaml/engine";
 
-import { assembleRuntimeServices, enforcePolicyPreflight, type YamlRuntimeOptions } from "@typeflux/yaml/runtime-assembly";
+import { assembleRuntimeServices, type YamlRuntimeOptions } from "@typeflux/yaml/runtime-assembly";
 
 import type { DataConverter } from "@temporalio/common";
 import {
@@ -24,10 +25,6 @@ import {
   type TypefluxWorkerOptions,
 } from "@typeflux/temporal-worker";
 
-import { langfuseObserverFromSpec } from "./langfuse-observer.js";
-import { langfuseRegistryTransportFromSpec } from "./langfuse-registry.js";
-import { langsmithObserverFromSpec } from "./langsmith-observer.js";
-import { langsmithRegistryTransportFromSpec } from "./langsmith-registry.js";
 import {
   enforceFrozenWorkflowVersion,
   workflowIdentityMemo,
@@ -43,7 +40,6 @@ import {
   type SubjectKeystore,
 } from "./subject-keystore.js";
 import { SUBJECT_IDS_SEARCH_ATTRIBUTE, effectiveSubjectIds } from "./subjects.js";
-import { providerTransportsFromSpec } from "./provider-transports-from-env.js";
 import { type TypefluxYamlSpec } from "@typeflux/yaml/spec";
 import {
   type WorkflowPlan,
@@ -135,68 +131,10 @@ export interface TypefluxYamlRuntime {
   drainObservability(): Promise<void>;
 }
 
-/** The auto-observer the OOTB wiring built (kept for the graceful-exit drain). */
-type AutoWiredObserver =
-  | NonNullable<Awaited<ReturnType<typeof langfuseObserverFromSpec>>>
-  | NonNullable<Awaited<ReturnType<typeof langsmithObserverFromSpec>>>;
-
-/**
- * The ONE out-of-the-box options assembly (Python `build_runtime` parity), shared by
- * {@link buildRuntime} and the `typeflux-yaml-worker` entrypoint's `--preflight` (#687
- * review: preflight MUST compose exactly the wiring the live worker runs with, or the
- * generated command fails supported OOTB deployments before the readiness marker):
- *
- * - Governance pre-flight FIRST, even before the auto-observer: a non-compliant spec
- *   must refuse to build before ANYTHING is constructed — including the langfuse SDK
- *   client — and its error must be the policy violation, never a missing-peer install
- *   hint (finder). Idempotent; assembleYamlRuntime re-runs it as its own fail-closed
- *   contract. Includes the closure admission (#300/#298) — cascade + tree-wide ceilings.
- * - Out-of-the-box langfuse/langsmith OBSERVERS: a spec declaring either tracing backend
- *   traces with NO caller wiring — the official SDK is lazy-loaded and the observer
- *   built from the environment (each helper self-gates on its own type). An explicit
- *   `observer` always wins; `type: none` is unchanged.
- * - Out-of-the-box langfuse/langsmith PROMPT REGISTRIES (Python `_build_registry`):
- *   an explicit `registry`/`registryTransport` wins; `inline` self-builds in
- *   `registryFromSpec`. Unlike the observer, a declared-but-unbuildable registry THROWS
- *   inside the helper — prompts are load-bearing, so there is no untraced-style degrade.
- * - Out-of-the-box vendor PROVIDERS (Python `_build_provider`): openai/anthropic/gemini
- *   execute with NO caller wiring — the official SDK is lazy-loaded and the thin
- *   transport built from the environment. An explicit `provider`/`transports` wins.
- *   Like the registry, a missing credential THROWS: a run cannot degrade past its
- *   provider.
- *
- * Returns the assembled options plus the auto-built observer (for the drain helper).
- */
-export async function autoWireRuntimeOptions<T extends AssembleYamlRuntimeOptions>(
-  spec: TypefluxYamlSpec,
-  options: T,
-): Promise<{ options: T; autoObserver: AutoWiredObserver | undefined }> {
+/** Temporal adapter for the shared governance-first automatic service wiring. */
+export async function autoWireRuntimeOptions<T extends AssembleYamlRuntimeOptions>(spec: TypefluxYamlSpec, options: T) {
   requireTemporalEngine(spec);
-  if (options.policy !== undefined) {
-    enforcePolicyPreflight(spec, options.policy, options.subworkflows);
-  }
-  requireTemporalWorkflowGraph(spec, options.subworkflows);
-  const autoObserver =
-    options.observer === undefined
-      ? ((await langfuseObserverFromSpec(spec)) ?? (await langsmithObserverFromSpec(spec)))
-      : undefined;
-  const autoRegistryTransport =
-    options.registry === undefined && options.registryTransport === undefined
-      ? ((await langfuseRegistryTransportFromSpec(spec)) ?? (await langsmithRegistryTransportFromSpec(spec)))
-      : undefined;
-  const autoTransports =
-    options.provider === undefined && options.transports === undefined
-      ? await providerTransportsFromSpec(spec)
-      : undefined;
-  return {
-    options: {
-      ...options,
-      ...(autoObserver !== undefined ? { observer: autoObserver } : {}),
-      ...(autoRegistryTransport !== undefined ? { registryTransport: autoRegistryTransport } : {}),
-      ...(autoTransports !== undefined ? { transports: autoTransports } : {}),
-    },
-    autoObserver: autoObserver ?? undefined,
-  };
+  return wireRuntimeOptions(spec, options);
 }
 
 /**

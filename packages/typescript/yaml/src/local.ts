@@ -36,6 +36,14 @@ export class LocalWorkflowError extends Error {
   }
 }
 
+/** Root input rejection, distinct from an activity or workflow result failure. */
+export class LocalWorkflowInputError extends Error {
+  constructor(public readonly workflow: string, cause: unknown) {
+    super(`workflow ${JSON.stringify(workflow)} input rejected: ${cause instanceof Error ? cause.message : String(cause)}`, {cause});
+    this.name = "LocalWorkflowInputError";
+  }
+}
+
 function check(signal: AbortSignal): void {
   if (signal.aborted) throw new ActivityCancelledError("local workflow cancelled", {cause: signal.reason});
 }
@@ -114,7 +122,12 @@ export async function buildLocalRuntime(source: TypefluxYamlSpec, supplied: Loca
       // Every nested call shares cancellation and limits, while keeping its own input/context.
       async function invoke(owner: LocalContract, value: unknown, inheritedSubjects?: readonly string[]): Promise<unknown> {
         check(signal);
-        const parsed = owner.input.parse(value);
+        let parsed: unknown;
+        try { parsed = owner.input.parse(value); }
+        catch (error) {
+          if (owner === contract) throw new LocalWorkflowInputError(owner.spec.workflow.name, error);
+          throw error;
+        }
         // Resolve identity at the root only; an inherited empty list is still authoritative.
         const subjects = inheritedSubjects ?? effectiveSubjectIds(execution.subjectIds, parsed,
           (owner.spec.workflow.subjects ?? []).map(s => ({fromPath: s.from, required: s.required})));
