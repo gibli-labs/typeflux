@@ -29,6 +29,7 @@ entities:
       - {relation: requires, target: invariant.local-engine-boundary}
       - {relation: requires, target: invariant.shared-yaml-planning}
       - {relation: requires, target: invariant.local-yaml-execution}
+      - {relation: requires, target: invariant.local-execution-errors}
   - id: invariant.local-yaml-execution
     kind: invariant
     description: Validate the complete reachable graph and portable activity contracts before constructing services; execute the computational subset through existing activity services, stop queued work on failure, clean up caches cooperatively and omit Temporal placement from observations.
@@ -82,3 +83,30 @@ entities:
       - {path: packages/typescript/yaml/test/local.test.ts, name: enforces targeted cache erasure declared by a skipped child}
     links:
       - {relation: verifies, target: invariant.local-yaml-execution}
+  - id: invariant.local-execution-errors
+    kind: invariant
+    description: Python local execution failures remain in the public TypefluxError hierarchy, identify the deepest workflow and executing step, preserve the original cause and child context, and use no invented step for workflow boundaries. Cancellation and process-control exceptions propagate unchanged; attribution does not retry work or bypass draining and cleanup.
+  - id: check.local-yaml-errors-python
+    kind: check
+    description: Real activity pipeline failures preserve causes across providers, hooks, prompt preparation, child and mapped workflows and collections. Queued/downstream work stops, active calls drain before cache release and observation flush, cancellation remains native, and offline CLI subprocesses report SDK context and shut down.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_provider_error_identifies_workflow_step_and_cause}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_domain_failures_still_match_the_public_typeflux_error_base}
+      - {path: packages/python/tests/test_errors.py, name: test_domain_errors_derive_from_typeflux_root}
+      - {path: packages/python/tests/test_errors.py, name: test_legacy_bases_are_preserved}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_extension_and_preparation_errors_keep_original_cause}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_nested_failures_preserve_deepest_child_context}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_collection_errors_identify_the_collecting_step}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_workflow_boundary_errors_do_not_invent_a_step}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_attributed_map_failure_drains_before_cache_release_and_observation_flush}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_cancellation_is_never_an_execution_error}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_sequence_gate_validation_and_snapshot}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_session_cache_cleanup_on_every_exit}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_cancellation_during_cache_preparation_releases_handle}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_subprocess_reports_sdk_failure_context_and_shuts_down}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_shuts_down_after_execution_and_preparation_failure}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_signals_cancel_and_drain_before_shutdown}
+    links:
+      - {relation: verifies, target: invariant.local-execution-errors}

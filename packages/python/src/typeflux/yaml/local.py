@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from typeflux.composition import fan_out
 from typeflux.core.contracts import AIActivity, CachedSessionHandle
+from typeflux.core.errors import TypefluxError
 from typeflux.core.subjects import resolve_subject_ids
 from typeflux.env import load_env
 from typeflux.execution.cache import CacheStore, SubjectErasableCacheStore
@@ -71,6 +72,23 @@ def _validated_value(model: type[BaseModel], value: Any) -> BaseModel:
     return model.model_validate(
         value.model_dump() if isinstance(value, BaseModel) else value
     ).model_copy(deep=True)
+
+
+class LocalWorkflowError(TypefluxError, RuntimeError):
+    """An execution failure attributed to its deepest workflow/step.
+
+    ``step`` is ``None`` for a workflow input/output boundary. The original
+    exception is available through ``__cause__``. Cancellation is never wrapped.
+    """
+
+    def __init__(self, workflow: str, step: str | None, cause: Exception) -> None:
+        self.workflow = workflow
+        self.step = step
+        location = f"workflow {workflow!r}"
+        if step is not None:
+            location += f" step {step!r}"
+        super().__init__(f"{location} failed: {cause}")
+        self.__cause__ = cause
 
 
 class _LocalLifecycle:
@@ -249,11 +267,16 @@ class LocalYamlRuntime:
     async def _run_workflow(
         self, workflow: _Workflow, value: Any, subjects: tuple[str, ...]
     ) -> BaseModel:
-        value = _validated_value(workflow.plan.input_type, value)
-        result = await self._sequence(
-            workflow, workflow.plan.steps, value, {"input": value}, subjects
-        )
-        return _validated_value(workflow.plan.output_type, result)
+        try:
+            value = _validated_value(workflow.plan.input_type, value)
+            result = await self._sequence(
+                workflow, workflow.plan.steps, value, {"input": value}, subjects
+            )
+            return _validated_value(workflow.plan.output_type, result)
+        except LocalWorkflowError:
+            raise
+        except Exception as exc:
+            raise LocalWorkflowError(workflow.spec.workflow.name, None, exc) from exc
 
     async def _sequence(
         self,
@@ -264,52 +287,63 @@ class LocalYamlRuntime:
         subjects: tuple[str, ...],
     ) -> Any:
         for step in steps:
-            if step.when is not None and not evaluate_when_gate(
-                when_gate_from_spec(step.when), context
-            ):
-                break
-            if isinstance(step, WorkflowMapStepSpec):
-                value = await self._map(workflow, step, context, subjects)
-            elif isinstance(step, WorkflowParallelStepSpec):
-                # Gates see only the parent scope; concurrent siblings never see
-                # each other's intermediate writes. Merge completed scopes afterwards.
-                async def branch_run(
-                    branch: WorkflowParallelBranchSpec,
-                ) -> tuple[Any, dict[str, Any]]:
-                    if branch.when is not None and not evaluate_when_gate(
-                        when_gate_from_spec(branch.when), context
-                    ):
-                        return None, {}
-                    branch_context = {
-                        key: item.model_copy(deep=True) if isinstance(item, BaseModel) else item
-                        for key, item in context.items()
-                    }
-                    result = await self._sequence(
-                        workflow,
-                        branch.steps,
-                        value.model_copy(deep=True),
-                        branch_context,
-                        subjects,
-                    )
-                    return result, {
-                        key: item for key, item in branch_context.items() if key not in context
-                    }
-
-                branches = await fan_out(
-                    step.parallel.branches, branch_run, concurrency=len(step.parallel.branches)
-                )
-                payload = {}
-                for branch, (result, additions) in zip(
-                    step.parallel.branches, branches, strict=True
+            try:
+                if step.when is not None and not evaluate_when_gate(
+                    when_gate_from_spec(step.when), context
                 ):
-                    payload[branch.id] = result
-                    context.update(additions)
-                value = self._collect(workflow, step.id, payload, step.parallel.collect.max_bytes)
-            elif isinstance(step, WorkflowSubworkflowStepSpec):
-                value = await self._run_workflow(self._workflows[step.workflow], value, subjects)
-            else:
-                value = await self._activity(workflow.activities[step.activity], value, subjects)
-            context[step.id] = value
+                    break
+                if isinstance(step, WorkflowMapStepSpec):
+                    value = await self._map(workflow, step, context, subjects)
+                elif isinstance(step, WorkflowParallelStepSpec):
+                    # Gates see only the parent scope; concurrent siblings never see
+                    # each other's intermediate writes. Merge completed scopes afterwards.
+                    async def branch_run(
+                        branch: WorkflowParallelBranchSpec,
+                    ) -> tuple[Any, dict[str, Any]]:
+                        if branch.when is not None and not evaluate_when_gate(
+                            when_gate_from_spec(branch.when), context
+                        ):
+                            return None, {}
+                        branch_context = {
+                            key: item.model_copy(deep=True) if isinstance(item, BaseModel) else item
+                            for key, item in context.items()
+                        }
+                        result = await self._sequence(
+                            workflow,
+                            branch.steps,
+                            value.model_copy(deep=True),
+                            branch_context,
+                            subjects,
+                        )
+                        return result, {
+                            key: item for key, item in branch_context.items() if key not in context
+                        }
+
+                    branches = await fan_out(
+                        step.parallel.branches, branch_run, concurrency=len(step.parallel.branches)
+                    )
+                    payload = {}
+                    for branch, (result, additions) in zip(
+                        step.parallel.branches, branches, strict=True
+                    ):
+                        payload[branch.id] = result
+                        context.update(additions)
+                    value = self._collect(
+                        workflow, step.id, payload, step.parallel.collect.max_bytes
+                    )
+                elif isinstance(step, WorkflowSubworkflowStepSpec):
+                    value = await self._run_workflow(
+                        self._workflows[step.workflow], value, subjects
+                    )
+                else:
+                    value = await self._activity(
+                        workflow.activities[step.activity], value, subjects
+                    )
+                context[step.id] = value
+            except LocalWorkflowError:
+                raise
+            except Exception as exc:
+                raise LocalWorkflowError(workflow.spec.workflow.name, step.id, exc) from exc
         return value
 
     def _collect(

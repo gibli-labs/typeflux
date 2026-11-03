@@ -12,9 +12,9 @@ entities:
         failures: [policy bypass in a child, environment profile precedence drift, Temporal class construction, provider constructed before refusal]
       - id: execute
         action: Execute in the foreground and read stdout, stderr and the exit status.
-        outcome: The existing local SDK returns validated JSON; extension diagnostics stay on stderr, input failures are distinct, and observations shut down after success or failure.
+        outcome: The existing local SDK returns validated JSON; execution failures carry SDK workflow/step context on stderr, input failures are distinct, and observations shut down after success or failure.
         capabilities: [capability.local-yaml-cli]
-        checks: [check.local-yaml-cli-python]
+        checks: [check.local-yaml-cli-python, check.local-yaml-errors-python]
         failures: [non-JSON stdout, wrong input failure category, failed preparation leaks observation resources, hidden orchestration connection]
       - id: interrupt
         action: Send SIGINT or SIGTERM while the provider is active.

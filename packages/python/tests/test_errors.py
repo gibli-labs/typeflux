@@ -15,6 +15,7 @@ from typeflux.project import (
 )
 from typeflux.prompts.errors import PromptResolutionError
 from typeflux.providers.errors import ProviderError
+from typeflux.yaml import LocalWorkflowError
 
 _DOMAIN_ERRORS = (
     AIActivityOutputValidationError,
@@ -26,6 +27,7 @@ _DOMAIN_ERRORS = (
     ProjectPolicyError,
     PromptResolutionError,
     ProviderError,
+    LocalWorkflowError,
 )
 
 
@@ -47,6 +49,7 @@ def test_domain_errors_derive_from_typeflux_root(error_cls: type[BaseException])
         (ProjectPolicyEnforcementError, ValueError),
         (ProjectPolicyError, ValueError),
         (PreflightError, RuntimeError),
+        (LocalWorkflowError, RuntimeError),
     ),
     ids=lambda value: getattr(value, "__name__", str(value)),
 )

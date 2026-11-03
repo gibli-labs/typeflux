@@ -10,11 +10,13 @@ from types import ModuleType
 
 from pydantic import BaseModel
 
+from typeflux import TypefluxError
 from typeflux.execution import execute_ai_activity
 from typeflux.project import load_project_spec, resolve_project_workflow
 from typeflux.prompts import InlinePromptRegistry
 from typeflux.testing import FakeProvider
 from typeflux.yaml import (
+    LocalWorkflowError,
     RuntimeCapabilityError,
     build_local_runtime,
     collect_activities,
@@ -33,6 +35,11 @@ class Value(BaseModel):
 class LocalProvider(FakeProvider):
     def __init__(self):
         super().__init__([Value(text="local result")])
+
+
+class FailingLocalProvider(LocalProvider):
+    async def async_structured_call(self, **kwargs):
+        raise RuntimeError("offline provider refused")
 
 
 SPEC = """project: planning_fixture
@@ -60,6 +67,7 @@ def main() -> None:
     module = ModuleType("planning_fixture.schemas")
     module.Value = Value  # type: ignore[attr-defined]
     module.LocalProvider = LocalProvider  # type: ignore[attr-defined]
+    module.FailingLocalProvider = FailingLocalProvider  # type: ignore[attr-defined]
     sys.modules[module.__name__] = module
     with tempfile.TemporaryDirectory(prefix="typeflux-planning-probe-") as directory:
         root = Path(directory)
@@ -81,6 +89,20 @@ def main() -> None:
         assert asyncio.run(runtime.execute_workflow({"text": "hello"})) == Value(
             text="local result"
         )
+        runtime.shutdown()
+        local.runtime.provider.provider_class = "planning_fixture.schemas:FailingLocalProvider"
+        failing_runtime = build_local_runtime(local)
+        try:
+            asyncio.run(failing_runtime.execute_workflow({"text": "hello"}))
+        except LocalWorkflowError as exc:
+            assert isinstance(exc, TypefluxError)
+            assert (exc.workflow, exc.step) == ("Demo", "echo")
+            assert isinstance(exc.__cause__, RuntimeError)
+            assert str(exc.__cause__) == "offline provider refused"
+        else:
+            raise AssertionError("expected an attributed local execution failure")
+        finally:
+            failing_runtime.shutdown()
         try:
             create_workflow(local, {})
         except RuntimeCapabilityError as exc:

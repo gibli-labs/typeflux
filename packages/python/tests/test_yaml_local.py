@@ -14,6 +14,7 @@ from types import ModuleType, SimpleNamespace
 import pytest
 from pydantic import BaseModel, ValidationError
 
+from typeflux import TypefluxError
 from typeflux.core.contracts import (
     ActivityContext,
     AIActivity,
@@ -23,9 +24,15 @@ from typeflux.core.contracts import (
     PromptRef,
     ProviderParams,
 )
+from typeflux.execution.lifecycle import ActivityCancelled
 from typeflux.observability.backend import NoOpTraceWriter, NoOpWorkflowObservation
-from typeflux.providers.errors import ProviderTransientError
-from typeflux.yaml import RuntimeCapabilityError, TypefluxYamlSpec, build_local_runtime
+from typeflux.providers.errors import ProviderAuthError, ProviderTransientError
+from typeflux.yaml import (
+    LocalWorkflowError,
+    RuntimeCapabilityError,
+    TypefluxYamlSpec,
+    build_local_runtime,
+)
 from typeflux.yaml import runtime as services
 
 
@@ -175,6 +182,243 @@ def mapped(*, target=None, concurrency=2, limit=1_500_000, **kwargs):
 
 
 @pytest.mark.asyncio
+async def test_local_provider_error_identifies_workflow_step_and_cause(fixture):
+    provider, writer = fixture
+    failure = RuntimeError("provider execution refused")
+    provider.failure = failure
+    runtime = build_local_runtime(
+        spec(steps=[{"id": "first", "activity": "echo"}, {"id": "later", "activity": "echo"}])
+    )
+    with pytest.raises(LocalWorkflowError) as raised:
+        await runtime.execute_workflow({"n": 1})
+    assert raised.value.workflow == "Root"
+    assert raised.value.step == "first"
+    assert raised.value.__cause__ is failure
+    assert [n for n, *_ in provider.calls] == [1]
+    assert writer.errors == [raised.value]
+
+
+@pytest.mark.asyncio
+async def test_local_domain_failures_still_match_the_public_typeflux_error_base(fixture):
+    provider, _ = fixture
+    failure = ProviderAuthError("provider refused credentials", provider="fake")
+    provider.failure = failure
+    with pytest.raises(TypefluxError) as raised:
+        await build_local_runtime(spec()).execute_workflow({"n": 1})
+    assert isinstance(raised.value, LocalWorkflowError)
+    assert isinstance(raised.value, RuntimeError)
+    assert (raised.value.workflow, raised.value.step) == ("Root", "first")
+    assert raised.value.__cause__ is failure
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("source", ["sync_provider", "hook", "prompt_resolution"])
+async def test_local_extension_and_preparation_errors_keep_original_cause(
+    fixture, monkeypatch, source
+):
+    provider, writer = fixture
+    failure = RuntimeError("extension refused")
+    raw = spec().model_dump()
+
+    def refuse(*args, **kwargs):
+        raise failure
+
+    if source == "sync_provider":
+        provider.supports_async_structured_call = False
+        provider.structured_call = refuse
+    elif source == "hook":
+
+        def refuse_hook(value: Item, output: Item) -> Item:
+            raise failure
+
+        module = ModuleType("local_fixture.activities")
+        module.ALL_ACTIVITIES = [
+            AIActivity("echo", Item, Item, PromptRef("echo"), hook=refuse_hook)
+        ]
+        monkeypatch.setitem(sys.modules, module.__name__, module)
+        raw["activities"] = {"modules": [{"module": "activities"}]}
+    runtime = build_local_runtime(TypefluxYamlSpec.model_validate(raw))
+    if source == "prompt_resolution":
+        monkeypatch.setattr(runtime._registry, "resolve", refuse)
+    with pytest.raises(LocalWorkflowError) as raised:
+        await runtime.execute_workflow({"n": 1})
+    assert (raised.value.workflow, raised.value.step) == ("Root", "first")
+    assert raised.value.__cause__ is failure
+    assert writer.errors == [raised.value]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mapping", [False, True])
+async def test_local_nested_failures_preserve_deepest_child_context(fixture, mapping):
+    provider, writer = fixture
+    failure = RuntimeError("child execution refused")
+    provider.failure = failure
+    child = spec(name="Child", steps=[{"id": "child_activity", "activity": "echo"}])
+    parent = (
+        mapped(name="Parent", target={"workflow": "child"}, concurrency=1)
+        if mapping
+        else spec(name="Parent", steps=[{"id": "call_child", "workflow": "child"}])
+    )
+    runtime = build_local_runtime(parent, resolve_workflow=lambda ref: child)
+    with pytest.raises(LocalWorkflowError) as raised:
+        await runtime.execute_workflow({"items": [{"n": 1}, {"n": 2}]} if mapping else {"n": 1})
+    assert (raised.value.workflow, raised.value.step) == ("Child", "child_activity")
+    assert raised.value.__cause__ is failure
+    assert not isinstance(raised.value.__cause__, LocalWorkflowError)
+    assert [n for n, *_ in provider.calls] == [1]
+    assert writer.errors == [raised.value]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("shape", ["map", "parallel"])
+@pytest.mark.parametrize("failure", ["size", "schema"])
+async def test_local_collection_errors_identify_the_collecting_step(
+    fixture, monkeypatch, shape, failure
+):
+    from pydantic import model_validator
+
+    provider, _ = fixture
+    if failure == "schema":
+        if shape == "map":
+
+            class Checked(Batch):
+                @model_validator(mode="after")
+                def refuse_results(self):
+                    if any(item.n > 1 for item in self.items):
+                        raise ValueError("collection rejected")
+                    return self
+
+        else:
+
+            class Checked(Branches):
+                @model_validator(mode="after")
+                def refuse_results(self):
+                    raise ValueError("collection rejected")
+
+        monkeypatch.setattr(
+            sys.modules["local_fixture.models"], "Batch" if shape == "map" else "Branches", Checked
+        )
+    limit = 1 if failure == "size" else 1_500_000
+    source = (
+        mapped(limit=limit)
+        if shape == "map"
+        else spec(
+            output="Branches",
+            steps=[
+                {
+                    "id": "joined",
+                    "parallel": {
+                        "branches": [
+                            {"id": "left", "steps": [{"id": "left_activity", "activity": "echo"}]},
+                            {
+                                "id": "right",
+                                "when": {"path": "input.n", "lt": 0},
+                                "steps": [{"id": "right_activity", "activity": "echo"}],
+                            },
+                        ],
+                        "collect": {"output": "models:Branches", "max_bytes": limit},
+                    },
+                }
+            ],
+        )
+    )
+    runtime = build_local_runtime(source)
+    with pytest.raises(LocalWorkflowError) as raised:
+        await runtime.execute_workflow({"items": [{"n": 1}]} if shape == "map" else {"n": 1})
+    assert (raised.value.workflow, raised.value.step) == (
+        "Root",
+        "mapped" if shape == "map" else "joined",
+    )
+    assert isinstance(
+        raised.value.__cause__, ValidationError if failure == "schema" else ValueError
+    )
+    assert [n for n, *_ in provider.calls] == [1]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("boundary", ["root_output", "child_input", "child_output"])
+async def test_local_workflow_boundary_errors_do_not_invent_a_step(fixture, boundary):
+    provider, _ = fixture
+
+    async def invalid_output(**kwargs):
+        return Item.model_construct(n="invalid extension output")
+
+    provider.async_structured_call = invalid_output
+    child = spec(name="Child")
+    steps = []
+    if boundary == "child_input":
+        steps.append({"id": "before_child", "activity": "echo"})
+    if boundary != "root_output":
+        steps.append({"id": "child", "workflow": "child"})
+    runtime = build_local_runtime(spec(steps=steps), resolve_workflow=lambda ref: child)
+    with (
+        pytest.warns(UserWarning, match="Pydantic serializer warnings"),
+        pytest.raises(LocalWorkflowError) as raised,
+    ):
+        await runtime.execute_workflow({"n": 1})
+    assert raised.value.workflow == ("Root" if boundary == "root_output" else "Child")
+    assert raised.value.step is None
+    assert isinstance(raised.value.__cause__, ValidationError)
+
+
+@pytest.mark.asyncio
+async def test_local_attributed_map_failure_drains_before_cache_release_and_observation_flush(
+    fixture,
+):
+    provider, writer = fixture
+    provider.supports_session_cache = True
+    provider.session_cache_style = "reference"
+    second_started = asyncio.Event()
+    events, started = [], []
+    failure = RuntimeError("map item failed")
+
+    async def call(*, messages, **kwargs):
+        n = int(messages[-1].content)
+        started.append(n)
+        if n == 1:
+            await second_started.wait()
+            raise failure
+        second_started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            events.append("drained")
+
+    provider.async_structured_call = call
+    provider.release_cached_session = lambda handle: events.append("release")
+    raw = mapped().model_dump()
+    raw["activities"]["definitions"][0]["cache"] = {"enabled": True}
+    raw["runtime"]["registry"]["prompts"]["echo"] = {
+        "messages": [
+            {"role": "system", "content": "Stable prefix"},
+            {"role": "user", "content": "{{n}}"},
+        ]
+    }
+    runtime = build_local_runtime(TypefluxYamlSpec.model_validate(raw))
+    writer.flush = lambda: events.append("flush")
+    with pytest.raises(LocalWorkflowError) as raised:
+        await asyncio.wait_for(
+            runtime.execute_workflow({"items": [{"n": n} for n in (1, 2, 3)]}), 2
+        )
+    assert (raised.value.workflow, raised.value.step) == ("Root", "mapped")
+    assert raised.value.__cause__ is failure
+    # Threaded activity preparation may reorder these concurrent provider starts.
+    assert sorted(started) == [1, 2]
+    assert events == ["drained", "release", "flush"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cancel_type", [asyncio.CancelledError, ActivityCancelled])
+async def test_local_cancellation_is_never_an_execution_error(fixture, cancel_type):
+    provider, _ = fixture
+    cancellation = cancel_type("stop")
+    provider.failure = cancellation
+    with pytest.raises(cancel_type) as raised:
+        await build_local_runtime(spec()).execute_workflow({"n": 1})
+    assert raised.value is cancellation
+
+
+@pytest.mark.asyncio
 async def test_local_sequence_gate_validation_and_snapshot(fixture):
     provider, writer = fixture
     source = spec(
@@ -241,8 +485,9 @@ async def test_local_maps_preserve_order_and_share_provider_limits(fixture):
     assert all(result == Batch(items=[Item(n=n + 1) for n in range(6)]) for result in results)
     assert provider.peak == 2
     assert await runtime.execute_workflow({"items": []}) == Batch(items=[])
-    with pytest.raises(ValueError, match="collect.max_bytes=1"):
+    with pytest.raises(LocalWorkflowError, match="collect.max_bytes=1") as raised:
         await build_local_runtime(mapped(limit=1)).execute_workflow({"items": [{"n": 1}]})
+    assert isinstance(raised.value.__cause__, ValueError)
 
 
 @pytest.mark.asyncio
