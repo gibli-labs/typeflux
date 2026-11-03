@@ -105,6 +105,12 @@ the same. Local journals and receipts are diagnostics, not trusted CI attestatio
 
 ## CI acceptance and release
 
+Pull requests must target `main` to obtain accepted CI evidence. For dependent
+changes, follow [the dependency PR workflow](dependent-pull-requests.md): merge
+prerequisites first, refresh the dependent branch against current main, and obtain
+fresh checks and review for its actual head and integration revision. Feature-base
+PRs are not an accepted merge path, even if their ordinary CI jobs pass.
+
 The `CI` workflow runs on PR merge snapshots and main commits. It uploads evidence
 for every required check and both browser traces on failures. A separate
 `workflow_run` workflow loads the acceptance implementation from the default branch.
