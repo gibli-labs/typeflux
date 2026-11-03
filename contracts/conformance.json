@@ -121,10 +121,13 @@
     {
       "name": "local-runtime",
       "issue": 89,
-      "operation": "validate_local_capabilities / validateLocalCapabilities reproduce each static capability eligibility or error path after applying its patches to base; no execution or policy attestation",
+      "operation": "Both SDKs reproduce static capability cases and the deterministic local execution cases (outputs and activity call order); cross-engine and process-loss adoption are separate acceptance work",
       "fixtures": [
         {
           "golden": "local-runtime/golden/capability-cases.json"
+        },
+        {
+          "golden": "local-runtime/golden/execution-cases.json"
         }
       ],
       "coverage": {

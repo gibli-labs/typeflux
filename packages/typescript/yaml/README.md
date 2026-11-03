@@ -1,6 +1,6 @@
 # @typeflux/yaml
 
-Shared Typeflux YAML loading, activity definitions and workflow planning without a
+Shared Typeflux YAML loading, activity definitions, planning and local execution without a
 Temporal SDK, server or worker. The existing `@typeflux/temporal-yaml` integration
 uses this same implementation.
 
@@ -20,10 +20,13 @@ schema contracts and the existing predicate/context helpers. Its dependency on
 `@typeflux/temporal` is the historical name of the dependency-light core activity
 SDK; that package does not install a Temporal SDK.
 
-This package currently plans workflows; it does not execute them. Planning is not
-an engine capability check. Temporal remains the existing YAML execution engine;
-use `@typeflux/temporal-yaml` to run workers and workflows. A local runner is tracked
-in [issue #89](https://github.com/gibli-labs/typeflux/issues/89).
+Run supported computational YAML in-process with `await buildLocalRuntime(spec,
+{schemas, provider})`, then `await runtime.executeWorkflow(input)`. The builder
+reuses the same activity services, performs full-closure preflight, and has no durable
+history or scheduler. See the [local SDK guide](../../../docs/local-runtime.md#typescript-sdk-execution)
+for an offline example, cancellation, policy, observations and limitations.
+Use `@typeflux/temporal-yaml` for durable execution, scheduling, review and compensation.
+CLI/project integration remains tracked in [issue #89](https://github.com/gibli-labs/typeflux/issues/89).
 
 The `workflow-plan` subpath is safe for the existing Temporal workflow sandbox.
 Other subpaths expose the shared modules for the integration's existing consumers.

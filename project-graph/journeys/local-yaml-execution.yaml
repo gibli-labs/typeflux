@@ -16,3 +16,19 @@ entities:
         capabilities: [capability.local-yaml-execution]
         checks: [check.local-yaml-execution-python]
         failures: [new queued work after failure, cache leaked on cancellation, false Temporal execution identity, activity pipeline bypassed]
+  - id: journey.execute-local-yaml-typescript
+    kind: journey
+    description: A TypeScript SDK caller runs computational YAML in-process without Temporal.
+    steps:
+      - id: prepare
+        action: Resolve the full local graph and portable Zod activity contracts, then assemble the runtime.
+        outcome: Unsupported capabilities, policy failures, references and collection contract mismatches fail before services or activity effects.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-yaml-execution-typescript]
+        failures: [skipped branch bypasses admission, collection types fail after effects, Temporal worker function accepted]
+      - id: execute
+        action: Execute validated input through the shared activity pipeline and inspect results and observations.
+        outcome: Maps preserve order and concurrency, failures stop scheduling and drain before cleanup, and redacted observations carry local engine attribution without Temporal identity.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-yaml-execution-typescript]
+        failures: [queued work starts after failure, cache released before siblings settle, provider pipeline bypassed, predicate literal escapes redaction]

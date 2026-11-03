@@ -217,3 +217,6 @@ export { serializeTraceRecord } from "./trace.js";
 export type { ObservationRecord, TraceRecord, TraceRetrievalInfo } from "./trace.js";
 
 export { VercelAIGatewayProvider, VERCEL_AI_GATEWAY_BASE_URL, VERCEL_AI_GATEWAY_PARAMS, validateGatewayModel } from "./vercel-ai-gateway-provider.js";
+
+export { artifactInputResolver, resolveArtifactInputs, valueAtPath } from "./artifact-resolver.js";
+export { collectMetadata, type MetadataContributor } from "./metadata.js";

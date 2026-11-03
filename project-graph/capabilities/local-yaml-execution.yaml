@@ -2,8 +2,8 @@ apiVersion: typeflux.dev/graph/v1alpha1
 entities:
   - id: capability.local-yaml-execution
     kind: capability
-    description: Run validated Python YAML workflows in one process without Temporal using the shared activity pipeline. No durable scheduling, review, replay or rollback guarantees.
-    editions: {python: supported, typescript: unsupported}
+    description: Run validated Python and TypeScript YAML workflows in one process without Temporal using the shared activity pipeline. No durable scheduling, review, replay or rollback guarantees.
+    editions: {python: supported, typescript: supported}
     implementation:
       - packages/python/src/typeflux/yaml/local.py
       - packages/python/src/typeflux/yaml/__init__.py
@@ -14,6 +14,16 @@ entities:
       - packages/python/src/typeflux/execution/starter.py
       - packages/python/src/typeflux/metadata.py
       - scripts/probe_yaml_planning.py
+      - packages/typescript/yaml/src/local-metadata.ts
+      - packages/typescript/yaml/src/runtime-assembly.ts
+      - packages/typescript/yaml/src/subjects.ts
+      - packages/typescript/yaml/src/local.ts
+      - packages/typescript/yaml/src/local-contract.ts
+      - packages/typescript/temporal/src/artifact-resolver.ts
+      - packages/typescript/temporal/src/metadata.ts
+      - packages/typescript/temporal-yaml/src/runtime.ts
+      - scripts/probe-yaml-planning.mjs
+      - contracts/local-runtime/golden/execution-cases.json
     documentation: [docs/local-runtime.md, docs/yaml-planning.md]
     links:
       - {relation: requires, target: invariant.local-engine-boundary}
@@ -28,6 +38,7 @@ entities:
     environment: python-non-live
     ci: [python-3.12]
     tests:
+      - {path: packages/python/tests/test_yaml_local.py, name: test_shared_local_execution_fixtures}
       - {path: packages/python/tests/test_yaml_local.py, name: test_local_sequence_gate_validation_and_snapshot}
       - {path: packages/python/tests/test_yaml_local.py, name: test_local_parallel_collects_skipped_branch_as_null}
       - {path: packages/python/tests/test_yaml_local.py, name: test_local_maps_preserve_order_and_share_provider_limits}
@@ -41,5 +52,30 @@ entities:
       - {path: packages/python/tests/test_yaml_local.py, name: test_local_cancellation_during_cache_preparation_releases_handle}
       - {path: packages/python/tests/test_composition.py, name: test_fan_out_does_not_start_queued_work_after_failure}
       - {path: packages/python/tests/test_yaml_planning.py, name: test_yaml_and_project_planning_without_temporal}
+    links:
+      - {relation: verifies, target: invariant.local-yaml-execution}
+  - id: check.local-yaml-execution-typescript
+    kind: check
+    description: Shared execution fixtures, whole-closure admission and typed collections, cancellation and cache draining, pipeline reuse, policy checks and redacted local metadata. Packed candidate executes with no Temporal dependency.
+    environment: typescript-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "matches the shared Python and TypeScript execution fixtures"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "snapshots admission inputs and keeps invocations independent"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "uses portable code descriptors and rejects worker functions and Temporal policies"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "rejects the complete skipped closure before provider construction"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "validates resolved collection schemas before prompt resolution"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "shares provider concurrency across maps and invocations"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "reuses provider retry without retrying a failed activity"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "stops queued work, aborts siblings and drains before cache release"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "releases a cache created while cancellation was pending without starting items"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "enforces collect size and validates collected values at runtime"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "retains repair, output checks, hooks, moderation, caching and dependency context"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "preserves policy admission, including skipped child requirements and required observation"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "redacts predicate literals and emits no Temporal identity"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "keeps parallel branch mutation and context isolated"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: passes admitted artifact files to the existing provider pipeline}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: releases session caches on success and external cancellation}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: enforces targeted cache erasure declared by a skipped child}
     links:
       - {relation: verifies, target: invariant.local-yaml-execution}

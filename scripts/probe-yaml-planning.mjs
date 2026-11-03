@@ -3,7 +3,7 @@ import { z } from "zod";
 import { executeActivity } from "@typeflux/temporal";
 import { FakeProvider } from "@typeflux/temporal/testing";
 import {
-  defineActivitiesFromSpec, evaluatePlanWhen, inlineRegistryFromSpec,
+  buildLocalRuntime, defineActivitiesFromSpec, evaluatePlanWhen, inlineRegistryFromSpec,
   loadYamlSpec, workflowPlanFromSpec, validateLocalCapabilities, requireTemporalEngine, RuntimeCapabilityError,
 } from "@typeflux/yaml";
 
@@ -39,10 +39,16 @@ assert.equal(evaluatePlanWhen(plan.steps[0].when, { input: { text: "go" } }), tr
 assert.equal(evaluatePlanWhen(plan.steps[0].when, { input: { text: "stop" } }), false);
 assert.throws(() => workflowPlanFromSpec(loadYamlSpec(yaml.replace("input.text", "future.text"))), /future/);
 
-// Use the existing activity executor; this probe is not a YAML workflow runner.
+// Both direct activities and complete local YAML runs use the existing pipeline.
 const activities = defineActivitiesFromSpec(spec, { schemas: { "schemas:Value": z.object({ text: z.string() }) } });
 const result = await executeActivity(activities.echo, { text: "hello" }, {
   registry: inlineRegistryFromSpec(spec), provider: new FakeProvider([{ text: "accepted" }]),
 });
 assert.deepEqual(result, { text: "accepted" });
-console.log("TypeScript YAML planning and activity execution passed without Temporal");
+const runtime = await buildLocalRuntime(local, {
+  schemas: {"schemas:Value": z.object({text: z.string()})},
+  provider: new FakeProvider([{text: "local accepted"}]),
+});
+assert.deepEqual(await runtime.executeWorkflow({text: "hello"}), {text: "local accepted"});
+assert.deepEqual(await runtime.executeWorkflow({text: "stop"}), {text: "stop"});
+console.log("TypeScript YAML planning and local workflow execution passed without Temporal");
