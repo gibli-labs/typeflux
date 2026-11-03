@@ -72,7 +72,13 @@ binds the source commit and input digest to commands and actual per-test outcome
 Collection, execution, and passing assertions are distinct. Skipped, missing,
 failed, or stale tests cannot establish a passing journey. Browser operation tests
 use controlled responses; the separate Temporal lane uses real local execution and
-fake providers. Neither proves behavior in a deployed environment.
+fake providers. That lane also runs the shared eight-case local/Temporal
+computational fixtures through actual Python and TypeScript workers and local SDK
+adapters. Separate foreground CLI subprocess tests in the Python and TypeScript
+lanes use SIGKILL after a completed first-step effect, then verify a fresh command
+repeats it and executes from the beginning. Their append-only test logs observe
+external effects; they are not runtime checkpoints or a persistence service.
+Neither lane proves behavior in a deployed environment.
 
 Finish local validation before committing with sign-off, pushing once, and opening
 the PR. Batch corrections from reviews. Avoid repeated reviewer invocations on work

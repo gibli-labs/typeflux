@@ -18,10 +18,16 @@ entities:
         failures: [non-JSON stdout, wrong input failure category, failed preparation leaks observation resources, hidden orchestration connection]
       - id: interrupt
         action: Send SIGINT or SIGTERM while the provider is active.
-        outcome: Cooperative cancellation drains the active call before observation shutdown and exits with the signal category. A new command starts from the beginning.
+        outcome: Cooperative cancellation drains the active call before observation shutdown and exits with the signal category.
         capabilities: [capability.local-yaml-cli]
         checks: [check.local-yaml-cli-python]
         failures: [shutdown before cancellation settles, result printed after interruption, invented durable resume]
+      - id: lose-process
+        action: Complete one step, SIGKILL the CLI during the next provider call, then invoke a new command using the same YAML and input.
+        outcome: The killed process returns no result and performs no graceful shutdown; its first effect remains. The new process starts at step one, repeats that effect and completes downstream steps.
+        capabilities: [capability.local-yaml-cli]
+        checks: [check.local-yaml-cli-python]
+        failures: [invented crash cleanup guarantee, completed effect reversed, fresh command resumes midway, killed command prints a successful result]
   - id: journey.execute-local-yaml-cli-typescript
     kind: journey
     description: A TypeScript user executes a local YAML workflow or project without a worker or orchestration service.
@@ -40,7 +46,14 @@ entities:
         failures: [non-JSON stdout, wrong input failure category, failed preparation leaks observation resources, hidden orchestration connection]
       - id: interrupt
         action: Send SIGINT or SIGTERM while the provider is active.
-        outcome: Cooperative cancellation drains the active call before observation shutdown and exits with the signal category. A new command starts from the beginning.
+        outcome: Cooperative cancellation drains the active call before observation shutdown and exits with the signal category.
         capabilities: [capability.local-yaml-cli]
         checks: [check.local-yaml-cli-typescript]
         failures: [shutdown before cancellation settles, result printed after interruption, invented durable resume]
+
+      - id: lose-process
+        action: Complete one step, SIGKILL the CLI during the next provider call, then invoke a new command using the same YAML and input.
+        outcome: The killed process returns no result and performs no graceful shutdown; its first effect remains. The new process starts at step one, repeats that effect and completes downstream steps.
+        capabilities: [capability.local-yaml-cli]
+        checks: [check.local-yaml-cli-typescript]
+        failures: [invented crash cleanup guarantee, completed effect reversed, fresh command resumes midway, killed command prints a successful result]

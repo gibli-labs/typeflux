@@ -1,0 +1,80 @@
+import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import type { ModelProvider, StructuredCallParams } from "@typeflux/temporal";
+import { buildLocalRuntime, typefluxYamlSpec } from "@typeflux/yaml";
+import { buildRuntime } from "../src/index.js";
+
+const fixtures = JSON.parse(readFileSync(new URL("../../../../contracts/local-runtime/golden/execution-cases.json", import.meta.url), "utf8"));
+const Item = z.object({ n: z.number().int() });
+const schemas = {
+  "models:Item": Item,
+  "models:Batch": z.object({ items: z.array(Item) }),
+  "models:Branches": z.object({ left: Item, right: Item.nullable() }),
+};
+
+class NumericProvider implements ModelProvider {
+  calls: number[] = [];
+  active = 0;
+  peak = 0;
+  async structuredCall(params: StructuredCallParams): Promise<unknown> {
+    const n = Number(params.messages.at(-1)!.content);
+    this.calls.push(n);
+    this.active++;
+    this.peak = Math.max(this.peak, this.active);
+    try {
+      await new Promise(resolve => setTimeout(resolve, (10 - Math.min(n, 9)) * 5));
+      return { n: n + 1 };
+    } finally { this.active--; }
+  }
+}
+
+describe.skipIf(process.env["TYPEFLUX_LIVE_TEMPORAL"] !== "1")("local and Temporal computation parity", () => {
+  it("matches shared local execution fixtures on real Temporal workers", async () => {
+    const { NativeConnection } = await import("@temporalio/worker");
+    const { Client, Connection } = await import("@temporalio/client");
+    const connection = await NativeConnection.connect({ address: "localhost:7233" });
+    const clientConnection = await Connection.connect({ address: "localhost:7233" });
+    const client = new Client({ connection: clientConnection });
+    try {
+      for (const test of fixtures.cases) {
+        const results = [];
+        for (const engine of ["local", "temporal"] as const) {
+          const queue = `local-parity-${randomUUID()}`;
+          const spec = (id: string, workflow: object) => typefluxYamlSpec.parse({
+            ...structuredClone(fixtures.base), name: id,
+            runtime: { ...structuredClone(fixtures.base.runtime), engine },
+            ...(engine === "temporal" ? { task_queue: queue } : {}),
+            workflow: { name: id, ...workflow },
+          });
+          const root = spec("root", test.workflow);
+          const children = Object.fromEntries(Object.entries(test.children).map(([id, workflow]) => [id, spec(id, workflow as object)]));
+          const provider = new NumericProvider();
+          const options = { provider, schemas, subworkflows: { selfId: "root", specFor: (id: string) => children[id] } };
+          let result;
+          if (engine === "local") {
+            result = await (await buildLocalRuntime(root, options)).executeWorkflow(test.input);
+          } else {
+            const runtime = await buildRuntime(root, {
+              ...options, worker: { connection },
+              workflowsPath: new URL("../src/workflows.ts", import.meta.url).pathname,
+            });
+            result = await runtime.worker.runUntil(runtime.runWorkflow(client, test.input, { workflowId: `local-parity-${randomUUID()}` }));
+          }
+          expect(result, `${engine}: ${test.name}`).toEqual(test.expected);
+          results.push(result);
+          const unordered = test.call_order === "unordered";
+          expect(unordered ? [...provider.calls].sort((a, b) => a - b) : provider.calls, `${engine}: ${test.name}`)
+            .toEqual(unordered ? [...test.calls].sort((a, b) => a - b) : test.calls);
+          expect(provider.active).toBe(0);
+          expect(provider.peak).toBeLessThanOrEqual(2);
+        }
+        expect(results[0], test.name).toEqual(results[1]);
+      }
+    } finally {
+      await clientConnection.close();
+      await connection.close();
+    }
+  }, 120_000);
+});

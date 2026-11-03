@@ -52,7 +52,9 @@ class Provider(FakeProvider):
 
     async def async_structured_call(self, *, messages, output_schema, **kwargs):
         record("called")
-        if os.getenv("CLI_MODE") == "block":
+        mode = os.getenv("CLI_MODE")
+        n = int(messages[-1].content)
+        if mode == "block" or (mode == "process_loss" and n == 2):
             record("ready")
             try:
                 await asyncio.Event().wait()
@@ -60,6 +62,8 @@ class Provider(FakeProvider):
                 record("cancelled")
         if os.getenv("CLI_MODE") == "failure":
             raise RuntimeError("provider execution refused")
+        if mode in ("process_loss", "fresh_run"):
+            record(f"effect:{n}")
         print("extension diagnostic")
         return output_schema(n=int(messages[-1].content) + int(os.getenv("INCREMENT", "1")))
 """
@@ -400,3 +404,56 @@ def test_local_cli_signals_cancel_and_drain_before_shutdown(application, signum,
         if process.poll() is None:
             process.kill()
             process.communicate()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX SIGKILL process-loss semantics")
+def test_local_cli_process_loss_keeps_effects_and_fresh_run_repeats_from_start(application):
+    root, raw = application
+    raw["workflow"]["steps"] = [
+        {"id": name, "activity": "echo"} for name in ("first", "second", "downstream")
+    ]
+    (root / "workflow.yaml").write_text(yaml.safe_dump(raw))
+    command = [sys.executable, "-I", "-c", GUARDED_RUN, *arguments(root)]
+    process = subprocess.Popen(
+        command,
+        env={**os.environ, "CLI_MODE": "process_loss"},
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 15
+        while "ready" not in events(root):
+            assert process.poll() is None
+            assert time.monotonic() < deadline
+            time.sleep(0.01)
+        # The second provider call proves the first step returned; its effect survives.
+        process.kill()
+        out, err = process.communicate(timeout=15)
+        assert process.returncode == -signal.SIGKILL, err
+        assert out == ""
+        before_restart = ["constructed", "called", "effect:1", "called", "ready"]
+        assert events(root) == before_restart  # No graceful cancellation/shutdown after SIGKILL.
+        fresh = subprocess.run(
+            command,
+            env={**os.environ, "CLI_MODE": "fresh_run"},
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        assert fresh.returncode == 0, fresh.stderr
+        assert json.loads(fresh.stdout) == {"n": 4}
+        assert events(root) == before_restart + [
+            "constructed",
+            "called",
+            "effect:1",
+            "called",
+            "effect:2",
+            "called",
+            "effect:3",
+            "shutdown",
+        ]
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.communicate(timeout=15)

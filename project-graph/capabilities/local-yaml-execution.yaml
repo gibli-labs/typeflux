@@ -30,6 +30,7 @@ entities:
       - {relation: requires, target: invariant.shared-yaml-planning}
       - {relation: requires, target: invariant.local-yaml-execution}
       - {relation: requires, target: invariant.local-execution-errors}
+      - {relation: requires, target: invariant.local-temporal-computation-parity}
   - id: invariant.local-yaml-execution
     kind: invariant
     description: Validate the complete reachable graph and portable activity contracts before constructing services; execute the computational subset through existing activity services, stop queued work on failure, clean up caches cooperatively and omit Temporal placement from observations.
@@ -110,3 +111,25 @@ entities:
       - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_signals_cancel_and_drain_before_shutdown}
     links:
       - {relation: verifies, target: invariant.local-execution-errors}
+
+  - id: invariant.local-temporal-computation-parity
+    kind: invariant
+    description: The shared eight-case computational fixture has the same expected outputs and reached provider calls in both local SDKs and actual Temporal workers. Gates and early exit, skipped branches, ordered bounded activity maps, empty maps, nested workflows and workflow maps retain the same contracts; concurrent provider start order is unspecified. This proves computation, not equal durability or lifecycle guarantees.
+  - id: check.local-temporal-parity-python
+    kind: check
+    description: Each shared fixture runs on the Python local SDK and a real isolated Temporal worker with the same contracts, prompts and steps; assert normative output, call order or multiset, drained work and concurrency bound.
+    environment: isolated-temporal
+    ci: [temporal]
+    tests:
+      - {path: packages/python/tests/test_live_local_runtime_parity.py, name: test_shared_local_and_temporal_execution_fixtures}
+    links:
+      - {relation: verifies, target: invariant.local-temporal-computation-parity}
+  - id: check.local-temporal-parity-typescript
+    kind: check
+    description: Run all eight shared fixtures through the TypeScript local SDK and actual Temporal workers on the isolated server; compare outputs, reached provider calls and bounded work.
+    environment: isolated-temporal
+    ci: [temporal]
+    tests:
+      - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: matches shared local execution fixtures on real Temporal workers}
+    links:
+      - {relation: verifies, target: invariant.local-temporal-computation-parity}

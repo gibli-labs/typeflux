@@ -8,6 +8,11 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Verify the shared computational YAML fixtures on local and real Temporal
+  runtimes in both editions. Foreground CLI process-loss tests demonstrate that
+  completed effects survive SIGKILL and a new command repeats execution from the
+  beginning. This adds acceptance evidence, not crash recovery or durable state.
+
 - Attribute Python local YAML execution failures with public `LocalWorkflowError`
   workflow/step fields and the original exception as `__cause__`. Nested failures
   retain child context; collection failures identify their step, while cancellation

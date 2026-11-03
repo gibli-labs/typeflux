@@ -53,7 +53,7 @@ entities:
       - {relation: requires, target: invariant.local-yaml-execution}
   - id: invariant.local-cli-admission
     kind: invariant
-    description: Resolve and admit the reachable local graph and composed project policy before service construction; keep JSON stdout separate from diagnostics, validate input, retain expected-hash refusal and drain cooperative cancellation before observation shutdown. Each command starts a fresh execution.
+    description: Resolve and admit the reachable local graph and composed project policy before service construction; keep JSON stdout separate from diagnostics, validate input, retain expected-hash refusal and drain cooperative cancellation before observation shutdown. SIGKILL loses progress and may prevent cleanup; completed effects remain and each new command executes from the beginning, repeating effects.
   - id: check.local-yaml-cli-python
     kind: check
     description: Real loaders, profiles, environment and child policy admission; file/stdin input, output isolation, typed failures and cleanup; subprocess execution without Temporal or network, POSIX signals, and the offline example. The quality lane separately probes the installed base-wheel console command.
@@ -69,6 +69,7 @@ entities:
       - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_refuses_temporal_engine_before_services}
       - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_offline_example_file_and_project_without_services}
       - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_signals_cancel_and_drain_before_shutdown}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_process_loss_keeps_effects_and_fresh_run_repeats_from_start}
     links:
       - {relation: verifies, target: invariant.local-cli-admission}
   - id: check.local-yaml-cli-typescript
@@ -96,6 +97,7 @@ entities:
       - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "accepts default bindings and the existing worker bindings environment convention"}
       - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "drains cooperative SIGINT cancellation before observations"}
       - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "drains cooperative SIGTERM cancellation before observations"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "keeps completed effects after SIGKILL and repeats from the start on a fresh command"}
       - {path: packages/typescript/yaml/test/runtime-wiring.test.ts, name: "refuses skipped local capabilities and project policy before any automatic clients"}
       - {path: packages/typescript/yaml/test/runtime-wiring.test.ts, name: "shuts down an automatic observer if subsequent service construction fails"}
       - {path: packages/typescript/yaml/test/runtime-wiring.test.ts, name: "returns the owned observer for foreground shutdown without closing it prematurely"}
