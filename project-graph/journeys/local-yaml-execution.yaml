@@ -22,6 +22,12 @@ entities:
         capabilities: [capability.local-yaml-execution]
         checks: [check.local-yaml-errors-python]
         failures: [parent replaces child error context, original exception lost, cancellation wrapped as failure, cache release precedes active-call draining]
+      - id: compare-engines
+        action: Execute the shared computational fixtures through both SDK engines on an isolated Temporal server with fake providers.
+        outcome: Both engines match normative outputs and reached calls, including gates, skipped branches, ordered bounded maps and transitive children. Concurrent provider start order is not pinned.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-temporal-parity-python]
+        failures: [engine silently changes computational steps, provider call omitted or duplicated, map result order differs, concurrency exceeds fixture bound]
   - id: journey.execute-local-yaml-typescript
     kind: journey
     description: A TypeScript SDK caller runs computational YAML in-process without Temporal.
@@ -38,3 +44,10 @@ entities:
         capabilities: [capability.local-yaml-execution]
         checks: [check.local-yaml-execution-typescript]
         failures: [queued work starts after failure, cache released before siblings settle, provider pipeline bypassed, predicate literal escapes redaction]
+
+      - id: compare-engines
+        action: Execute the shared computational fixtures through both SDK engines on an isolated Temporal server with fake providers.
+        outcome: Both engines match normative outputs and reached calls, including gates, skipped branches, ordered bounded maps and transitive children. Concurrent provider start order is not pinned.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-temporal-parity-typescript]
+        failures: [engine silently changes computational steps, provider call omitted or duplicated, map result order differs, concurrency exceeds fixture bound]

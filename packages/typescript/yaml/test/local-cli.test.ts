@@ -26,7 +26,9 @@ export const observer = new class extends NoOpObserver { async flush() { event('
 export const provider = {providerName: 'fake', async structuredCall(params) {
   event('provider'); console.log('provider diagnostic');
   if (process.env.FAIL_EXECUTION) throw new Error('execution failed');
-  if (process.env.WAIT_FOR_SIGNAL) {
+  const n = Number(params.messages.at(-1).content);
+  if (process.env.LOSS_TEST) event('input:'+n);
+  if (process.env.WAIT_FOR_SIGNAL || (process.env.WAIT_AFTER_FIRST && n === 2)) {
     event('ready');
     try { await new Promise((resolve, reject) => {
       const timer = setInterval(() => {}, 1000);
@@ -34,7 +36,8 @@ export const provider = {providerName: 'fake', async structuredCall(params) {
       if (params.signal?.aborted) abort(); else params.signal?.addEventListener('abort', abort, {once:true});
     }); } finally { event('settled'); }
   }
-  return {n: Number(params.messages.at(-1).content) + Number(process.env.INCREMENT || 1)};
+  if (process.env.LOSS_TEST) event('effect:'+n);
+  return {n: n + Number(process.env.INCREMENT || 1)};
 }};
 `;
 
@@ -194,4 +197,40 @@ describe("local foreground CLI", () => {
   it("drains cooperative SIGINT cancellation before observations", () => signalDrain("SIGINT"), 10000);
   it("drains cooperative SIGTERM cancellation before observations", () => signalDrain("SIGTERM"), 10000);
 
+});
+
+
+describe.skipIf(process.platform === "win32")("local CLI process loss", () => {
+  it("keeps completed effects after SIGKILL and repeats from the start on a fresh command", async () => {
+    const {dir, source} = fixture();
+    source.workflow.steps = ["first", "second", "downstream"].map(id => ({id, activity: "echo"}));
+    writeFileSync(join(dir, "workflow.yaml"), stringify(source));
+    const events = join(dir, "events");
+    writeFileSync(events, "");
+    const child = spawn(process.execPath, ["--import", join(dir, "guard.mjs"), cli, "workflow.yaml", "--bindings", "bindings.mjs", "--input", "input.json"],
+      {cwd: dir, env: {...process.env, TYPEFLUX_EXPECTED_POLICY_HASH: "", LOSS_TEST: "1", WAIT_AFTER_FIRST: "1", EVENTS: events}, stdio: ["ignore", "pipe", "pipe"]});
+    let stdout = "", stderr = "";
+    child.stdout.on("data", data => { stdout += data; });
+    child.stderr.on("data", data => { stderr += data; });
+    const completion = new Promise<{code: number | null; signal: NodeJS.Signals | null}>((resolve, reject) => {
+      child.once("error", reject);
+      child.once("close", (code, signal) => resolve({code, signal}));
+    });
+    try {
+      await expect.poll(() => readFileSync(events, "utf8"), {timeout: 10000}).toContain("ready");
+      expect(child.kill("SIGKILL")).toBe(true);
+      expect(await completion, stderr).toEqual({code: null, signal: "SIGKILL"});
+      expect(stdout).toBe("");
+      const beforeRestart = ["bindings", "provider", "input:1", "effect:1", "provider", "input:2", "ready"];
+      expect(readFileSync(events, "utf8").trim().split("\n")).toEqual(beforeRestart);
+      const fresh = run(dir, ["workflow.yaml"], {env: {LOSS_TEST: "1", EVENTS: events}});
+      expect(fresh.status, fresh.stderr).toBe(0);
+      expect(JSON.parse(fresh.stdout)).toEqual({n: 4});
+      expect(readFileSync(events, "utf8").trim().split("\n")).toEqual([...beforeRestart,
+        "bindings", "provider", "input:1", "effect:1", "provider", "input:2", "effect:2", "provider", "input:3", "effect:3", "flush"]);
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+      await completion;
+    }
+  }, 20000);
 });

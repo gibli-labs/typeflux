@@ -256,10 +256,20 @@ class Runner:
                         )
                     time.sleep(0.25)
                 env = {"TYPEFLUX_LIVE_TEMPORAL": "1"}
-                self.pytest("tests/test_live_ts_binding.py", label="temporal-python", env=env)
+                self.pytest(
+                    "tests/test_live_ts_binding.py",
+                    "tests/test_live_local_runtime_parity.py",
+                    label="temporal-python",
+                    env=env,
+                )
                 self.vitest(
                     "packages/typescript/temporal-controlplane",
                     "test/live-operate.test.ts",
+                    env=env,
+                )
+                self.vitest(
+                    "packages/typescript/temporal-yaml",
+                    "test/live-local-runtime-parity.test.ts",
                     env=env,
                 )
             finally:
