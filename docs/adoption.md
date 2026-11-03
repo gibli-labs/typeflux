@@ -1,19 +1,25 @@
 # Adopting Typeflux in an existing project
 
-How a project — greenfield or already running Temporal — sets itself up to use Typeflux
-effectively: which authoring mode to start in, where the files go, how the project manifest
-grows, and how to pin the engine while the TypeScript SDK ships from a sibling checkout
-(`engine.lock`). The agent-facing distillation of this page ships in the MCP server as
+How a project — using local YAML or Temporal — selects its runtime and authoring
+mode, lays out files, grows its manifest, and records the package/source version it
+uses (`engine.lock`). That dependency/source pin is separate from the workflow's
+`runtime.engine` selection. The agent-facing distillation of this page ships in the MCP server as
 `typeflux://guide/project-layout` (#865).
 
 ## 1. Choose your entry point
 
-Three authoring modes, one runtime. They compose — this is a dial, not a fork.
+Choose the runtime first: local foreground execution needs no Temporal SDK/server
+and loses progress on exit; Temporal supplies durable orchestration and the existing
+review/management surfaces. See the [local quickstarts, capabilities and migration](local-runtime.md).
+Omitted `runtime.engine` retains Temporal behavior. Local control-plane/console/MCP
+run management is outside the local runtime MVP.
+
+Authoring modes compose with that runtime choice:
 
 | Mode | What it is | Choose it when |
 | --- | --- | --- |
-| **Pure YAML** | `typeflux.yaml` declares prompts, activities, and the workflow graph; the YAML worker runs it. No project code in the workflow path. | Every activity is prompt+schemas. Lowest friction, fully governable, both editions. |
-| **Code-first SDK** | `defineActivity` / `defineCodeActivity` (TS) or `@ai_activity.defn` (Python) descriptors, orchestrated by your own Temporal workflows. | You are already on Temporal, or activities need code (DB reads, side effects) and you want incremental adoption activity-by-activity. |
+| **Pure YAML** | `typeflux.yaml` declares prompts, activities and the graph; application code supplies schemas/bindings. Use the local foreground runner or a Temporal worker. | Every activity is prompt+schemas. Lowest friction, fully governable, both editions. |
+| **Code-first SDK** | Portable `defineActivity` / `defineCodeActivity` (TS) or `AIActivity` objects (Python) can be executed directly or supplied to local YAML. Temporal workflows and Python `@ai_activity.defn` use the Temporal integration. | You are already on Temporal, or activities need code (DB reads, side effects) and you want incremental adoption activity-by-activity. |
 | **Hybrid** | A YAML workflow whose steps reference **injected** code activities (`extraActivities` in TS, `activities.modules` in Python) alongside declared AI activities. | You want the declarative graph + governance, but some activities can't be a prompt. This is the intended shape, not a compromise. |
 
 Two constraints to know before choosing:
@@ -22,10 +28,13 @@ Two constraints to know before choosing:
   injected code activity is outside declarative bundle validation (a spec-level
   code-activity declaration is tracked upstream as #868). The model call is what policy
   most cares about — keep it declarable where you can.
-- **Privacy can force fusion.** Anything crossing the workflow→activity boundary lands in
-  Temporal event history. If a payload must never appear there (PII, document text), fuse
-  the read and the model call inside one code activity rather than splitting them into two
-  steps — see [privacy.md](privacy.md) for the codec/retention story.
+- **Temporal privacy can force fusion.** On the Temporal path, values crossing the
+  workflow→activity boundary land in Temporal event history. Local runs do not have
+  that history, but configured logs, artifacts and backend observations remain egress
+  points. If a payload must never appear in Temporal history (PII, document text),
+  fuse the read and the model call inside one code activity rather than splitting
+  them into two steps. Fusion does not prevent other configured egress; see
+  [privacy.md](privacy.md) for redaction and the codec/retention story.
 
 ## 2. Where the files go
 
@@ -37,7 +46,8 @@ your-repo/
 │       ├── typeflux.yaml        # one workflow spec per directory
 │       └── schemas.py|.ts       # the spec's schema source, next to it
 ├── environments/
-│   ├── local.yaml               # Temporal address/namespace per environment
+│   ├── local.yaml               # runtime.engine: local (no Temporal placement)
+│   ├── temporal.yaml            # runtime.engine: temporal, connection and queue
 │   └── staging.yaml
 ├── policies/
 │   └── base.yaml                # org policy: providers, secrets, risk tiers
@@ -92,10 +102,14 @@ under `defaults:` rather than being repeated per spec.
 
 ## 4. Pinning the engine: `engine.lock`
 
-The Python edition installs from a registry. The TypeScript edition currently ships from a
-**sibling checkout** (`file:`/`link:` deps into `typeflux`), which makes "which
-engine am I on?" a question your repo must answer explicitly. The convention — proven in a
-real adopting project — is a committed `engine.lock` at the repo root:
+This pins the Typeflux dependency/source revision; it does not select local versus
+Temporal execution. Use `runtime.engine` and project environments for that choice.
+
+Install a release that contains the needed APIs, or matching candidate wheels/
+tarballs as described in the local quickstarts. If you consume a **sibling checkout**
+through `file:`/`link:` dependencies instead, record the exact source revision. An
+optional convention for that setup is a committed `engine.lock` at the repo root
+(the example below uses the Temporal integration):
 
 ```json
 {

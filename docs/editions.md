@@ -7,6 +7,19 @@ leads on which surface.
 Read this before picking an edition, and before assuming a feature is missing
 because your edition's docs are quieter about it.
 
+## Runtime choice is separate from edition
+
+Both SDKs support **local foreground YAML execution** and the **Temporal integration**.
+Use `runtime.engine: local` with `build_local_runtime` / `buildLocalRuntime` or
+`typeflux-local` for sequences, conditions, parallel branches, ordered bounded maps
+and same-project children without a Temporal SDK/server. Local runs reuse the
+activity pipeline but lose progress on exit; reruns can repeat effects.
+Omitting the engine retains Temporal behavior. Durable history, timers, reviews,
+compensation and management remain on the Temporal path. The workflow shape/type
+identity differences below describe that integration, not local child runs.
+See the [local guide](local-runtime.md), [Python quickstart](../packages/python/examples/local_runtime/README.md)
+and [TypeScript quickstart](../packages/typescript/yaml/examples/local-runtime/README.md).
+
 ## What is shared
 
 The **contracts are language-neutral**. A `typeflux.yaml` spec, a resolved
@@ -54,11 +67,12 @@ Status is measured against the shipped code, not against intent.
 | Providers (OpenAI, Anthropic, Gemini) | ✅ | ✅ | |
 | Prompt registries (inline, Langfuse, LangSmith) | ✅ | ✅ | |
 | Content parts / artifacts (multimodal) | ✅ | ✅ | All four part kinds both sides |
-| YAML runtime + project manifests | ✅ | ✅ | |
+| Local YAML SDK + foreground CLI | ✅ | ✅ | No Temporal dependency/server; shared computation and activity pipeline; non-durable |
+| YAML runtime + project manifests | ✅ | ✅ | Engine selection is independent of language |
 | Composition — `parallel`, `when`, sub-workflows, `map` | ✅ | ✅ | |
-| Lifecycle review gates + compensation | ✅ | ✅ | |
+| Lifecycle review gates + compensation | ✅ | ✅ | Temporal only; refused locally |
 | Policy, admission, risk tiers | ✅ | ✅ | Full governance parity |
-| Privacy — payload codec, custom redaction, erasure | ✅ | ✅ | |
+| Privacy — payload codec, custom redaction, erasure | ✅ | ✅ | Temporal payload codecs are refused locally; existing activity redaction/cache policies remain |
 | Deployment plans + Kubernetes rendering | ✅ | ⚠️ | Same plan/render contract and four artifacts; Python's `deploy --base-env-file` / `--hermetic` (reproducible env interpolation) have no TS flag yet |
 | Control-plane server | ✅ | ✅ | Same OpenAPI contract, client, and console; TS ships a `typeflux-controlplane` bin |
 | Git-sourced project serving + GitHub provenance | ✅ | ❌ | The TS registry serves local checkouts only; the provenance surface reports `not_configured` (seam ported, degrades honestly) |
@@ -82,6 +96,7 @@ Three groups, and the first one is not edition-specific:
 **Shared / language-neutral** — the spec fields, the governance model, and the
 operator surfaces mean the same thing in both editions:
 
+- [Local Runtime](local-runtime.md) · [Acceptance Matrix](local-runtime-acceptance.md) — CLI/SDK, engine limits and migration
 - [Concepts](concepts.md) · [YAML Runtime](yaml.md) — field semantics
 - [Control Plane](control-plane.md) · [Control-Plane Auth](control-plane-auth.md)
 - [YAML Worker Deployment](yaml-worker-deployment.md)

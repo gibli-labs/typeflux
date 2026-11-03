@@ -31,6 +31,16 @@ trace writer or configures provider SDK instrumentation. Ambient
 `runtime.registry.type: langfuse` only make credentials available; they do not
 change YAML trace-egress behavior by themselves.
 
+## Local runtime observations
+
+Local YAML reuses the same optional observation/redaction pipeline. It emits local
+engine attribution and planned workflow/activity manifests without Temporal
+queue/run IDs; a correlation ID or trace is not resumable history. Python direct/
+local OTEL initializes a writer-owned provider without importing Temporal, while
+Temporal builders explicitly configure their plugin. Install the chosen optional
+backend integration and supply its credentials only when tracing is enabled.
+See the [local SDK/CLI guide](local-runtime.md) for cleanup and process-loss limits.
+
 ## Trace Shape
 
 When Langfuse is enabled, Typeflux creates:

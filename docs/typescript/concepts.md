@@ -1,9 +1,9 @@
 # Concepts (TypeScript)
 
 The TypeScript counterpart of [Concepts](../concepts.md). Typeflux Temporal's
-TypeScript SDK lets you define typed AI activities and run them as ordinary
-Temporal activities — the same ownership model and execution contract as the
-Python SDK, reproduced against the language-neutral
+TypeScript SDK defines typed AI activities for local foreground YAML execution
+and the optional Temporal integration, matching the Python engine boundary.
+See the [local CLI/SDK guide](../local-runtime.md) and the language-neutral
 [cross-SDK contracts](../../contracts) (`CONTRACT_VERSION=1`). Behavior is
 parity, not byte-identical: schemas are Zod instead of Pydantic, and everything
 vendor-shaped is **injected as a thin structural transport** rather than
@@ -14,6 +14,12 @@ If you already know the Python SDK, read this page for what changes; the
 contracts are the same.
 
 ## Ownership Boundary
+
+Local YAML reuses the ordinary activity pipeline and process-scoped provider
+retry/limits, observations and caches. It provides no durable state, scheduling,
+review controller or compensation. A new command starts from step one and may
+repeat effects. The ownership/determinism and lifecycle descriptions below apply
+to the Temporal integration; local entry points refuse unsupported configuration.
 
 Temporal owns durable execution:
 
@@ -29,7 +35,7 @@ Typeflux owns the AI activity body:
 - prompt references and registry resolution
 - prompt rendering
 - structured model provider calls
-- validation repair retries inside one Temporal activity attempt
+- validation repair retries inside an AI invocation (separate from Temporal retries)
 - optional post-LLM hooks
 - execution manifests
 - observability metadata and redaction
@@ -54,6 +60,8 @@ dependency-light (its only dependency is `zod`):
   transports, artifacts, session cache, composition primitives, observability
   writer/observer. The parity of Python's `typeflux.core` /
   `.prompts` / `.providers` / `.manifests` / `.observability`.
+- [`@typeflux/yaml`](../../packages/typescript/yaml) — shared YAML planning and
+  `buildLocalRuntime` / `typeflux-local`, without Temporal.
 - [`@typeflux/temporal-worker`](../../packages/typescript/temporal-worker) —
   Temporal runtime integration: wrap descriptors into Temporal activities
   (`buildTemporalActivity`), `createTypefluxWorker`, `executeWorkflow`/

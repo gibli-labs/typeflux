@@ -4,6 +4,12 @@ The TypeScript counterpart of the [YAML Runtime](../yaml.md). A `typeflux.yaml`
 describes a project's provider, prompt registry, activities, and workflow
 declaratively; [`@typeflux/temporal-yaml`](../../packages/typescript/temporal-yaml)
 loads it, validates it, derives its workflow, and runs it on a Temporal worker.
+For non-durable foreground execution use [`@typeflux/yaml`](../../packages/typescript/yaml),
+`buildLocalRuntime` or `typeflux-local` with `runtime.engine: local`; no Temporal
+SDK/server is required. Omitting the engine retains Temporal behavior and requires
+a task queue. The Temporal examples below use `buildRuntime` and a worker;
+they are not the local entry point. See the [local capability/migration guide](../local-runtime.md)
+and [offline TypeScript quickstart](../../packages/typescript/yaml/examples/local-runtime/README.md).
 
 The YAML **schema is language-neutral** — the same `typeflux.yaml` describes a
 project for either SDK. What differs is the *wiring*: the TS runtime injects

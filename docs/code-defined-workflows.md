@@ -11,6 +11,10 @@ broad picture.
 
 > Using the TypeScript SDK? See [Code-Defined Workflows (TypeScript)](typescript/code-defined-workflows.md).
 
+For the same non-durable execution model expressed as YAML, use the
+[local YAML CLI/SDK](local-runtime.md). Portable Python `AIActivity` objects can
+be imported into local YAML; Temporal-decorated callables require the integration.
+
 ## Two ways to orchestrate
 
 | | Plain async runner | Durable `@workflow.defn` |

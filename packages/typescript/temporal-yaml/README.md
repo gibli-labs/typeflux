@@ -4,11 +4,16 @@
 npm install @typeflux/temporal-yaml   # Node 24.15+ (pulls the worker + core)
 ```
 
-Opt-in **declarative YAML runtime** for the Typeflux TypeScript SDK — the parity of
+Opt-in **Temporal declarative YAML runtime** for the Typeflux TypeScript SDK — the parity of
 Python's `typeflux.yaml`. A `typeflux.yaml` describes a project's provider,
 prompt registry, activities, and workflow declaratively; this package loads,
 validates, and runs it. It is a companion package so the core
 [`@typeflux/temporal`](../temporal) stays dependency-light.
+
+For YAML execution without Temporal, use [`@typeflux/yaml`](../yaml),
+`buildLocalRuntime` or `typeflux-local` with `runtime.engine: local`.
+This package's `buildRuntime`, workers and management surfaces require Temporal
+and reject local engine selection. See the [engine comparison and migration guide](../../../docs/local-runtime.md).
 
 ## Status (#452)
 

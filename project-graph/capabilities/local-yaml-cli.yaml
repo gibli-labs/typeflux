@@ -32,7 +32,7 @@ entities:
       - packages/typescript/temporal-yaml/src/runtime.ts
       - scripts/probe-yaml-local-cli.mjs
       - scripts/verify-yaml-planning-pack.mjs
-    documentation: [docs/local-runtime.md, docs/local-runtime-acceptance.md, docs/yaml-planning.md, packages/python/README.md, packages/typescript/yaml/README.md]
+    documentation: [README.md, docs/local-runtime.md, docs/local-runtime-acceptance.md, docs/yaml-planning.md, docs/editions.md, docs/typescript/README.md, packages/python/README.md, packages/typescript/README.md, packages/typescript/yaml/README.md]
     examples:
       - packages/python/examples/local_runtime/README.md
       - packages/python/examples/local_runtime/workflow.yaml

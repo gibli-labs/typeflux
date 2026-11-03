@@ -11,6 +11,15 @@ Read the [Python doc](../observability.md) for the full trace-shape, manifest,
 and CLI reference; this page covers the TS write surface and the redaction
 contract.
 
+## Local runtime observations
+
+`buildLocalRuntime` in `@typeflux/yaml` accepts an explicit observer; its caller
+owns redaction and transport lifecycle. The foreground `typeflux-local` command
+can wire configured vendor observers, drains started work before cleanup and
+flushes injected observers. Local typed attribution and manifests omit Temporal
+queue/run IDs; traces and correlation IDs are not durable execution handles.
+See the [local observation contract](../local-runtime.md#typescript-sdk-execution).
+
 ## The write path
 
 The TS observability core lives in

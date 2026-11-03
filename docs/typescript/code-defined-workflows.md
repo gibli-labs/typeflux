@@ -9,6 +9,12 @@ deterministic.
 
 Start with [Concepts](concepts.md) for the ownership model.
 
+For foreground YAML orchestration without a server, use `buildLocalRuntime`
+or `typeflux-local` from `@typeflux/yaml`. Portable `defineActivity` /
+`defineCodeActivity` descriptors can be supplied as `extraActivities`; worker
+functions and Temporal policies remain integration-specific. See the
+[local guide](../local-runtime.md).
+
 ## Two ways to orchestrate
 
 | | Plain async runner | Durable Temporal workflow |
