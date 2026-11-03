@@ -5,6 +5,15 @@ bounded context and explains impact; it does not execute commands or select away
 mandatory validation. `tools/development/checks.json` defines stable check IDs and
 CI display names; the Python runner owns their executable commands.
 
+Graph checks must reference registered execution IDs in `tools/development/checks.json`
+(such as `python-3.12`), rather than verifier names (`python`) or CI display names.
+Normal graph validation reports unknown IDs with the declaration path, check ID and
+registered replacements; missing/malformed working-tree registries fail as well.
+Historical base/head reads use their own registry data without executing revision
+code. Immutable pre-registry snapshots retain their original job names
+for impact, while current worktrees require the registry. These static checks do
+not replace required CI or turn missing/skipped/stale/failed evidence into passes.
+
 ## Reproducible setup
 
 Use Node **24.22.1**, pnpm **12.15.0**, uv **0.13.5**, and Python **3.12** for the

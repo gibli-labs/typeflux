@@ -16,6 +16,7 @@ from . import VERSION
 from .repository import GraphError, Repository, digest, safe_path
 
 API_VERSION = "typeflux.dev/graph/v1alpha1"
+CI_REGISTRY = "tools/development/checks.json"
 RELATIONS = {
     "part_of": ({"file"}, {"component"}),
     "implements": ({"component", "file"}, {"capability"}),
@@ -94,6 +95,42 @@ def owners(path: str, rules: list[tuple[str, list[str]]]) -> list[str]:
     return result
 
 
+def ci_execution_ids(repo: Repository) -> set[str] | None:
+    # The earliest graph had no CI policy; the next format used display names.
+    # Preserve both as data, without projecting later execution IDs backwards.
+    policy_path = "project-graph/policy.yaml"
+    if repo.is_snapshot and CI_REGISTRY not in repo.inputs:
+        if policy_path not in repo.inputs:
+            return None
+        policy = yaml_data(repo.text(policy_path))
+        if (
+            isinstance(policy, dict)
+            and policy.get("apiVersion") == "typeflux.dev/graph-policy/v1alpha1"
+        ):
+            return None
+    # Read the selected revision's JSON, never import its registry Python/code.
+    try:
+        registry = json.loads(repo.text(CI_REGISTRY))
+    except json.JSONDecodeError as error:
+        raise GraphError(f"{CI_REGISTRY}: invalid execution registry JSON: {error}") from error
+    if (
+        not isinstance(registry, dict)
+        or not registry
+        or not all(
+            identifier
+            and isinstance(entry, dict)
+            and all(
+                isinstance(entry.get(field), str) and entry[field] for field in ("name", "verifier")
+            )
+            for identifier, entry in registry.items()
+        )
+    ):
+        raise GraphError(
+            f"{CI_REGISTRY}: expected execution IDs with nonempty name/verifier fields"
+        )
+    return set(registry)
+
+
 def compile_graph(repo: Repository) -> dict:
     schema_path = "project-graph/schema/catalog.schema.json"
     try:
@@ -149,6 +186,17 @@ def compile_graph(repo: Repository) -> dict:
                 fields = {k: v for k, v in entity.items() if k not in {"id", "kind", "links"}}
                 node(entity["id"], entity["kind"], path, "declared", **fields)
                 declarations.append((path, entity))
+
+    checks = [(path, entity) for path, entity in declarations if entity["kind"] == "check"]
+    if checks:
+        registered = ci_execution_ids(repo)
+        for path, entity in checks:
+            for identifier in entity["ci"]:
+                if registered is not None and identifier not in registered:
+                    raise GraphError(
+                        f"{path}: {entity['id']}: unknown CI execution ID {identifier!r}; "
+                        f"registered execution IDs from {CI_REGISTRY}: {', '.join(sorted(registered))}"
+                    )
 
     components = [n for n in nodes.values() if n["kind"] == "component"]
     rules = []
@@ -394,6 +442,11 @@ def compile_for_impact(repo: Repository) -> dict:
         ],
         "edges": [],
         "unknownFiles": sorted(repo.inputs),
-        "gaps": [{"source": "project-graph/", "reason": "no graph declarations at this revision"}],
+        "gaps": [
+            {
+                "source": "project-graph/",
+                "reason": "no graph declarations at this revision",
+            }
+        ],
     }
     return {**body, "digest": digest(body)}

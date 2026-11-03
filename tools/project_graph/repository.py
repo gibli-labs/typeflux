@@ -41,6 +41,7 @@ def safe_path(path: str) -> bool:
 class Repository:
     def __init__(self, root: Path, revision: str | None = None):
         self.root = root.resolve()
+        self.is_snapshot = revision is not None
         self.revision = (
             git(
                 self.root,

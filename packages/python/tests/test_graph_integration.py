@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 import yaml
+from test_project_graph import edit_entities, run_git, write
 from test_project_graph import graph_repo as graph_repo
-from test_project_graph import run_git, write
+from tools.development.results import journey_evidence
 from tools.project_graph.ci import aggregate, plan, required_jobs, workflow_jobs
-from tools.project_graph.compiler import compile_graph
+from tools.project_graph.compiler import compile_for_impact, compile_graph
 from tools.project_graph.explorer import render
 from tools.project_graph.records import Ledger
 from tools.project_graph.release import receipt
@@ -45,6 +47,73 @@ def test_policy_removal_cannot_reduce_own_obligations(graph_repo):
     result = plan(Repository(graph_repo, base), Repository(graph_repo))
     assert result["requiredJobs"] == ["New check", "Python", "Web"]
     assert not result["selectionEnabled"]
+
+
+def test_pre_registry_impact_preserves_legacy_ci_obligations(graph_repo):
+    registry = graph_repo / "tools/development/checks.json"
+    modern = registry.read_text()
+    registry.unlink()
+    policy(graph_repo, ["Tests"])
+    edit_entities(graph_repo, lambda entities: entities[-1].update(ci=["Tests"]))
+    base = commit(graph_repo)
+    registry.write_text(modern)
+    edit_entities(graph_repo, lambda entities: entities[-1].update(ci=["python-3.12"]))
+    write(
+        graph_repo,
+        "project-graph/policy.yaml",
+        yaml.safe_dump(
+            {
+                "apiVersion": "typeflux.dev/graph-policy/v1",
+                "mode": "advisory",
+                "requiredChecks": ["python-3.12"],
+            }
+        ),
+    )
+    historical = compile_for_impact(Repository(graph_repo, base))
+    assert next(node for node in historical["nodes"] if node["id"] == "check.review")["ci"] == [
+        "Tests"
+    ]
+    result = plan(Repository(graph_repo, base), Repository(graph_repo))
+    assert result["requiredJobs"] == ["Tests", "Tests (Python 3.12)"]
+    assert not result["selectionEnabled"]
+
+
+def test_registry_changes_preserve_base_jobs_and_test_obligations(graph_repo):
+    def revision(lane, name):
+        write(
+            graph_repo,
+            "tools/development/checks.json",
+            json.dumps({lane: {"name": name, "verifier": "python"}}),
+        )
+        write(
+            graph_repo,
+            "project-graph/policy.yaml",
+            yaml.safe_dump(
+                {
+                    "apiVersion": "typeflux.dev/graph-policy/v1",
+                    "mode": "advisory",
+                    "requiredChecks": [lane],
+                }
+            ),
+        )
+        edit_entities(graph_repo, lambda entities: entities[-1].update(ci=[lane]))
+
+    revision("base-lane", "Base lane")
+    base = commit(graph_repo)
+    revision("head-lane", "Head lane")
+    base_repo, head_repo = Repository(graph_repo, base), Repository(graph_repo)
+    result = plan(base_repo, head_repo)
+    assert result["requiredJobs"] == ["Base lane", "Head lane"]
+    assert not result["selectionEnabled"]
+    receipts = [
+        {
+            "checkId": "head-lane",
+            "status": "passed",
+            "tests": [{"path": "tests/test_review.py", "name": "test_review", "status": "passed"}],
+        }
+    ]
+    assert journey_evidence(compile_graph(head_repo), receipts)[0]["status"] == "passed"
+    assert journey_evidence(compile_graph(base_repo), receipts)[0]["status"] == "missing"
 
 
 def test_bootstrap_expands_base_workflow_matrix(graph_repo):

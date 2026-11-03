@@ -1,6 +1,7 @@
 # Project graph development tool
 
-Run from the repository root, after `uv sync --project packages/python --frozen --extra live --group dev`:
+Run from the repository root after the maintained setup in
+[Development](../../docs/development.md):
 
 ```sh
 uv run --project packages/python python -m tools.project_graph validate
@@ -25,6 +26,21 @@ or CI artifacts, not source control. Dirty results are not release evidence.
 YAML catalogs in `project-graph/` describe reviewed semantics. JSON Schema validates
 their shape; compilation checks unique identities, references, typed endpoints,
 nonempty path selectors, exclusive primary file ownership and test declarations.
+Every check's `ci` entry is an execution ID from
+[`tools/development/checks.json`](../development/checks.json), not a verifier or CI
+display name. For example, `python-3.12` is registered; `python` and
+`Tests (Python 3.12)` are not IDs. `validate` rejects an unknown reference with its
+catalog path, check ID and registered replacements, before collection or CI.
+A missing or malformed working-tree registry also fails validation.
+
+Revision reads use that revision's registry JSON as data, never its Python code.
+Immutable pre-registry snapshots with absent or legacy graph policies retain
+their original job-name references for historical context and impact; the
+current registry is not projected backwards. A working tree cannot opt into that
+exception by deleting its registry. Both base and head obligations still apply.
+Registered membership proves neither execution nor a passing result: trusted CI
+continues to reject missing, skipped, stale and failed evidence.
+
 Selectors use case-sensitive Python `fnmatch` (a `*` can span `/`). `exclude`
 removes paths from a component. Capability membership may be many-to-many.
 
