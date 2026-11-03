@@ -11,6 +11,10 @@ The control-plane API is defined once, in
 **same generated client and the same console work against either edition's
 server** — snake_case DTO field names match exactly.
 
+Run-management operations are Temporal-backed. `@typeflux/yaml` local execution
+uses its foreground CLI/SDK and does not add local run management to this server,
+the console or MCP. See the [local runtime guide](../local-runtime.md).
+
 ## Serving a TypeScript project
 
 `@typeflux/temporal-controlplane` ships a `typeflux-controlplane` bin:

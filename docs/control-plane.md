@@ -10,8 +10,13 @@ The control-plane API (#241) is a thin, versioned HTTP adapter over the
 existing `typeflux.project` functions — routing, serialization, and
 error mapping only. It exists so a browser console (#212) or any non-Python
 client (#242) can reach the resolved contracts; it adds no project/YAML
-resolution logic of its own, and it is **read-only inspection, not an
-authoring surface**: workflows stay authored in code and YAML.
+resolution logic of its own. It exposes resolved-contract inspection and supported
+Temporal execution operations; workflows stay authored in code and YAML.
+
+The run-management operations described here are Temporal-backed. The local
+foreground CLI/SDK does not expose durable handles, lifecycle operations or a
+managed local service through this API, console or MCP. Project authoring/planning
+and local execution are distinct surfaces; see the [local runtime guide](local-runtime.md).
 
 ## Install and run
 

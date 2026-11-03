@@ -10,8 +10,17 @@ Temporal/observability clients) is **injected as a thin structural transport**
 rather than imported by module path. A spec block this runtime does not honor is
 **rejected with a pointer error**, never silently ignored.
 
+## Start without Temporal
+
+Both editions support local foreground YAML execution. Use `@typeflux/yaml` with
+`buildLocalRuntime` or `typeflux-local`, select `runtime.engine: local`, and supply
+compiled JavaScript bindings for schemas/services. See the [offline CLI/SDK quickstart](../../packages/typescript/yaml/examples/local-runtime/README.md)
+and [capability comparison and migration](../local-runtime.md). The durable
+workflow, deployment and management examples in this documentation use Temporal.
+
 ## Pages
 
+- [Local Runtime](../local-runtime.md) — supported subset, CLI/SDK, cancellation, policies and migration
 - [Tutorial](tutorial.md) — the TS-first arc from zero to a governed, observed,
   deployed AI workflow, and operating it
 - [Concepts](concepts.md) — ownership boundary, package layout, the AI-activity
@@ -54,6 +63,7 @@ both editions, and their runnable commands do not:
 
 Package READMEs carry the API-level detail and adapter examples:
 [`@typeflux/temporal`](../../packages/typescript/temporal) ·
+[`@typeflux/yaml`](../../packages/typescript/yaml) ·
 [`@typeflux/temporal-worker`](../../packages/typescript/temporal-worker) ·
 [`@typeflux/temporal-yaml`](../../packages/typescript/temporal-yaml) ·
 [`@typeflux/temporal-controlplane`](../../packages/typescript/temporal-controlplane)

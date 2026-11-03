@@ -14,6 +14,12 @@ plan → PR → promote → observe.**
 > language-neutral and runs on both editions; the SDK wiring differs (Pydantic vs Zod,
 > import-path vs injected resolution). This page narrates the Python path.
 
+This tutorial follows the **Temporal integration** because its later sections
+use durable history, review, compensation and management. For a simpler first run
+without a server or credentials, start with the [Python local CLI/SDK quickstart](../packages/python/examples/local_runtime/README.md)
+and the [engine comparison](local-runtime.md#choosing-an-engine). Local execution
+is supported; it does not provide the durable/management features taught below.
+
 **Sections**
 
 1. [Your first workflow in 10 minutes](#1-your-first-workflow-in-10-minutes)

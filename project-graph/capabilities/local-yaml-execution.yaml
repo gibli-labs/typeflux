@@ -25,7 +25,31 @@ entities:
       - packages/typescript/temporal-yaml/src/runtime.ts
       - scripts/probe-yaml-planning.mjs
       - contracts/local-runtime/golden/execution-cases.json
-    documentation: [docs/local-runtime.md, docs/yaml-planning.md, docs/local-runtime-acceptance.md]
+    documentation:
+      - README.md
+      - docs/local-runtime.md
+      - docs/yaml-planning.md
+      - docs/local-runtime-acceptance.md
+      - docs/adoption.md
+      - docs/concepts.md
+      - docs/code-defined-workflows.md
+      - docs/dependencies.md
+      - docs/editions.md
+      - docs/observability.md
+      - docs/tutorial.md
+      - docs/yaml.md
+      - docs/control-plane.md
+      - docs/typescript/README.md
+      - docs/typescript/concepts.md
+      - docs/typescript/code-defined-workflows.md
+      - docs/typescript/observability.md
+      - docs/typescript/tutorial.md
+      - docs/typescript/yaml.md
+      - docs/typescript/control-plane.md
+      - packages/python/README.md
+      - packages/typescript/README.md
+      - packages/typescript/temporal/README.md
+      - packages/typescript/temporal-yaml/README.md
     links:
       - {relation: requires, target: invariant.local-engine-boundary}
       - {relation: requires, target: invariant.shared-yaml-planning}

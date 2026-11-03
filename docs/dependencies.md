@@ -30,7 +30,12 @@ available for downstream installs.
 
 
 The base `typeflux` package installs no Temporal SDK or encryption dependency. It
-provides core activity execution and [shared YAML planning](yaml-planning.md).
+provides core activity execution, [shared YAML planning](yaml-planning.md),
+`build_local_runtime` and the `typeflux-local` foreground command. Supported local
+YAML needs no orchestration service. See the [offline CLI/SDK quickstart](../packages/python/examples/local_runtime/README.md)
+for current source/candidate installation; registry versions must contain these
+entry points. Provider/backend extras remain optional and do not select the
+runtime engine.
 For Temporal workflows and workers, add the `temporal` extra (Temporal SDK and
 payload-codec encryption dependencies). Existing consumers upgrading from an
 installation of `typeflux` or a provider-only extra must add `temporal` to keep
@@ -39,6 +44,8 @@ using those entry points. No import path changes are required.
 Install only the runtime, provider and backend dependencies needed:
 
 ```bash
+pip install typeflux                     # local YAML, CLI and direct activities
+pip install "typeflux[openai]"           # local/direct model provider
 pip install "typeflux[temporal]"
 pip install "typeflux[temporal,openai]"
 pip install "typeflux[anthropic]"
@@ -51,7 +58,11 @@ pip install "typeflux[api]"
 The `langsmith` extra covers both the LangSmith prompt registry
 (`runtime.registry.type: langsmith`) and the LangSmith observability backend
 (`runtime.observability.type: langsmith`); it pulls the OTLP exporter via
-`langsmith[otel]` for OpenTelemetry trace export.
+`langsmith[otel]` for OpenTelemetry trace export. Direct/local OTEL initialization
+uses an ordinary writer-owned tracer provider without importing Temporal; the
+Temporal runtime explicitly configures its tracing plugin. The equivalent local
+TypeScript package is `@typeflux/yaml` (the historical core `@typeflux/temporal`
+name is not a Temporal SDK dependency).
 
 The `gemini` extra pulls `google-genai` for the Gemini provider
 (`runtime.provider.type: gemini`). The `api` extra pulls FastAPI/uvicorn/

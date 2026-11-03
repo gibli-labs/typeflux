@@ -15,6 +15,11 @@ this one carries the TS surface. Package-level API detail lives in the package R
 [`@typeflux/temporal-yaml`](../../packages/typescript/temporal-yaml),
 [`@typeflux/temporal-controlplane`](../../packages/typescript/temporal-controlplane).
 
+This tutorial follows the **Temporal integration**. For foreground YAML execution
+without a server, start with the [local TypeScript CLI/SDK quickstart](../../packages/typescript/yaml/examples/local-runtime/README.md)
+and [engine comparison](../local-runtime.md#choosing-an-engine). Local execution
+is supported but does not provide the durable review/management features below.
+
 ---
 
 ## 1. Your first workflow

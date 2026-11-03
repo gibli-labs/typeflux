@@ -4,6 +4,12 @@ entities:
     kind: journey
     description: A Python SDK caller runs a computational YAML workflow in-process with no Temporal SDK or server.
     steps:
+      - id: discover-runtime
+        action: Follow the root README and edition/package documentation to choose local execution or Temporal, then open the matching executable quickstart.
+        outcome: Public entry points agree on engine defaults, package and CLI/SDK names, portable activities and non-durable limits; durable tutorials and management surfaces are scoped to Temporal. Editorial alignment is reviewed separately; referenced checks execute the linked CLI and adoption examples.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-yaml-cli-python, check.local-adoption-python]
+        failures: [README calls local execution pending, local quickstart requires a Temporal server, environment name mistaken for runtime choice, durable guarantee implied for local runs]
       - id: prepare
         action: Resolve the local workflow closure and construct the local SDK runtime.
         outcome: Unsupported graph features, types, references and activity descriptors fail before providers or observers are constructed.
@@ -38,6 +44,12 @@ entities:
     kind: journey
     description: A TypeScript SDK caller runs computational YAML in-process without Temporal.
     steps:
+      - id: discover-runtime
+        action: Follow the root README and edition/package documentation to choose local execution or Temporal, then open the matching executable quickstart.
+        outcome: Public entry points agree on engine defaults, package and CLI/SDK names, portable activities and non-durable limits; durable tutorials and management surfaces are scoped to Temporal. Editorial alignment is reviewed separately; referenced checks execute the linked CLI and adoption examples.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-yaml-cli-typescript, check.local-adoption-typescript]
+        failures: [README calls local execution pending, local quickstart requires a Temporal server, environment name mistaken for runtime choice, durable guarantee implied for local runs]
       - id: prepare
         action: Resolve the full local graph and portable Zod activity contracts, then assemble the runtime.
         outcome: Unsupported capabilities, policy failures, references and collection contract mismatches fail before services or activity effects.

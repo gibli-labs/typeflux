@@ -4,13 +4,16 @@
 npm install @typeflux/temporal        # Node 24.15+
 ```
 
-Typed AI activities for [Temporal](https://temporal.io): Zod-schema'd LLM
-calls with validation-repair, execution manifests, redaction, and provider
+Typed AI activities for direct execution, local YAML and the optional
+[Temporal](https://temporal.io) integration: Zod-schema'd LLM calls with validation-repair, execution manifests, redaction, and provider
 portability. Dependency-light core — workers, the YAML runtime, and the
 control plane are separate packages.
 
-The Typeflux **TypeScript SDK** — typed AI activities for Temporal, the
-TypeScript counterpart to the Python SDK at `packages/python`.
+This historical package name is the dependency-light activity core; it does not
+install `@temporalio/*` or require a server. For foreground YAML execution use
+[`@typeflux/yaml`](../yaml) and its `typeflux-local` command / `buildLocalRuntime`.
+For durable orchestration add the Temporal worker/YAML integration. See the
+[local quickstart](../yaml/examples/local-runtime/README.md).
 
 It is built against the language-neutral **cross-SDK contracts** in
 [`contracts/`](../../../contracts) (`CONTRACT_VERSION=1`). The contracts are

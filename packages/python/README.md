@@ -1,19 +1,19 @@
 # typeflux (Python SDK)
 
-The Python SDK for **Typeflux Temporal** — a Temporal-native framework for typed
-AI Activities. Temporal owns durable execution; Typeflux owns the AI activity
+The Python SDK for **Typeflux Temporal** — typed AI activities and YAML workflows
+with a foreground local runtime and an optional Temporal integration. Temporal
+owns durable execution; both paths reuse the Typeflux AI activity
 layer: Pydantic schemas, prompt references, structured provider calls,
 validation-repair retries, input-aware output checks, post-acceptance hooks,
 execution manifests, redaction, and trace enrichment.
 
 ## Install
 
-```bash
-pip install "typeflux[temporal]"
-```
-
-For local YAML execution without a Temporal SDK or service, install `typeflux`
-alone and select `runtime.engine: local` in the workflow:
+The [local quickstart](examples/local_runtime/README.md) describes current
+source/candidate installation, complete fake-provider CLI/SDK commands and the
+Temporal migration example. Do not assume an older published version includes the
+new local entry points. For a release containing them, install the base package
+and select `runtime.engine: local`:
 
 ```bash
 pip install typeflux
@@ -24,12 +24,18 @@ The foreground command also accepts `--project`, `--workflow` and `--environment
 to reuse project profiles and policy admission. See the
 [local runtime guide](https://github.com/gibli-labs/typeflux/blob/main/docs/local-runtime.md)
 and [offline example](examples/local_runtime/README.md). Temporal execution requires
-the `temporal` extra and a reachable Temporal server.
+the `temporal` extra and a reachable Temporal server. Omitting `runtime.engine`
+retains Temporal behavior; local execution never falls back automatically.
+Process loss discards local progress and a new invocation may repeat effects.
+Durability, scheduling, review/lifecycle, compensation and run management remain
+Temporal features. Portable local activities use YAML definitions or `AIActivity`
+objects; Temporal decorators remain integration-specific.
 
 Provider integrations compose with the runtime extra:
 
 ```bash
-pip install "typeflux[temporal,openai]"
+pip install "typeflux[openai]"           # local/direct activity use
+pip install "typeflux[temporal,openai]"  # add durable execution
 pip install "typeflux[temporal,anthropic]"
 pip install "typeflux[temporal,gemini]"
 pip install "typeflux[api]"       # FastAPI control plane

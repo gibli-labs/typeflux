@@ -1,8 +1,8 @@
 # Typeflux Temporal — TypeScript SDK
 
 The TypeScript execution SDK for Typeflux Temporal, a peer to the Python SDK at
-[`../python`](../python). Temporal owns durable execution; Typeflux owns the AI
-activity layer — Zod schemas, prompt references, structured provider calls,
+[`../python`](../python). Choose local foreground YAML execution or the optional Temporal integration.
+Temporal owns durable execution; both engines share the AI activity layer — Zod schemas, prompt references, structured provider calls,
 validation-repair retries, input-aware output checks, post-acceptance hooks,
 execution manifests, redaction, and trace enrichment.
 
@@ -21,7 +21,7 @@ See [Editions](../../docs/editions.md) for which edition leads on which surface.
 | Package | What it is | Bins |
 | --- | --- | --- |
 | [`@typeflux/temporal`](temporal) | Core SDK — `defineActivity`, Zod↔JSON-Schema adapter, `PromptRef`, artifacts and content parts, the OpenAI/Anthropic/Gemini provider adapters, manifests, redaction, session cache, composition primitives. Dependency-light. | — |
-| [`@typeflux/yaml`](yaml) | Shared YAML loading, activity definitions and workflow planning without a Temporal SDK. See [planning](../../docs/yaml-planning.md) for the boundary; local YAML execution is tracked in #89. | — |
+| [`@typeflux/yaml`](yaml) | Shared YAML loading/planning and local execution via `buildLocalRuntime`, without a Temporal SDK or service. See the [local guide](../../docs/local-runtime.md). | `typeflux-local` |
 | [`@typeflux/temporal-worker`](temporal-worker) | Opt-in Temporal integration — builds Temporal activities from Typeflux definitions and bootstraps a worker + client. | — |
 | [`@typeflux/temporal-yaml`](temporal-yaml) | Opt-in declarative runtime — loads, env-interpolates, and validates a `typeflux.yaml` spec, then builds activities and a workflow from it. Also carries project manifests, policy, admission, deployment planning, and erasure. | `typeflux-project`, `typeflux-yaml-worker` |
 | [`@typeflux/temporal-controlplane`](temporal-controlplane) | Control-plane server for TypeScript projects — governance reads, validation, and Temporal-backed start/status/drain operations at contract parity with the Python control plane. | `typeflux-controlplane` |
@@ -32,7 +32,10 @@ a live model.
 
 ## Build and test
 
-These packages are **not yet published to npm**. Build them from the monorepo:
+For the implementation in this checkout, build the matching candidate packages
+from the monorepo. The [local quickstart](yaml/examples/local-runtime/README.md)
+shows standalone tarball installation and distinguishes source/candidate support
+from the availability of a particular registry release:
 
 ```bash
 pnpm install
@@ -48,9 +51,15 @@ pnpm -r --filter "./packages/typescript/**" typecheck
 
 ## Runnable examples
 
-Every example runs against a **scripted (offline) provider** — no model API key
-or observability backend required. They do drive real Temporal workflows, so
-start a local dev server first:
+Start without Temporal using the [offline local CLI/SDK example](yaml/examples/local-runtime/README.md).
+It includes file/stdin/project commands, compiled bindings and a migration script.
+`runtime.engine: local` selects foreground, non-durable execution. The historical
+`@typeflux/temporal` core name does not install the Temporal SDK. See the
+[capability comparison](../../docs/local-runtime.md#choosing-an-engine).
+
+The Temporal examples below use **scripted providers** (no model credentials or
+observability backend) and real Temporal workflows. Only this route requires a
+reachable Temporal service:
 
 ```bash
 temporal server start-dev            # in a separate terminal
@@ -71,6 +80,7 @@ scenarios that back the conformance suite.
 
 ## Docs
 
+- [Local runtime, engine choice and migration](../../docs/local-runtime.md)
 - [TypeScript docs](../../docs/typescript) — tutorial, concepts, YAML runtime,
   code-defined workflows, observability, privacy, provider portability,
   extending, control plane, content parts

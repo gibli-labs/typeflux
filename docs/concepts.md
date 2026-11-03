@@ -1,11 +1,19 @@
 # Concepts
 
-Typeflux Temporal lets you define typed AI Activities and run them as ordinary
-Temporal activities.
+Typeflux Temporal defines typed AI activities shared by local YAML execution and
+the optional Temporal integration. Local runs use one foreground process with no
+Temporal SDK/server; the Temporal path adds durable orchestration. See the
+[engine comparison](local-runtime.md#choosing-an-engine).
 
 > Using the TypeScript SDK? See [Concepts (TypeScript)](typescript/concepts.md).
 
 ## Ownership Boundary
+
+Local YAML reuses the ordinary activity pipeline and process-scoped provider
+retry/limits, observations and caches. It provides no durable state, scheduling,
+review controller or compensation. A new command starts from step one and may
+repeat effects. The ownership/determinism and lifecycle descriptions below apply
+to the Temporal integration; local entry points refuse unsupported configuration.
 
 Temporal owns durable execution:
 
@@ -21,7 +29,7 @@ Typeflux owns the AI activity body:
 - prompt references and registry resolution
 - prompt rendering
 - structured model provider calls
-- validation repair retries inside one Temporal activity attempt
+- validation repair retries inside an AI invocation (separate from Temporal retries)
 - optional post-LLM hooks
 - execution manifests
 - Langfuse metadata and redaction

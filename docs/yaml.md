@@ -1,8 +1,25 @@
 # YAML Runtime
 
-YAML V1 assembles a Typeflux Temporal runtime from Python schemas, prompt refs,
-and optional Python-defined activities. Hookless AI Activities can be declared
-directly in YAML; Python activity modules remain the path for hooks.
+YAML assembles local or Temporal execution from schemas, prompt refs and portable
+activities. Python can declare hookless activities in YAML or import `AIActivity`
+objects for hooks. Temporal-decorated callables require the Temporal integration;
+they are not portable local descriptors.
+
+## Select an execution engine
+
+`runtime.engine: local` selects foreground non-durable execution through
+`build_local_runtime` or `typeflux-local`. Omit `task_queue` and explicit Temporal
+settings. The base Python install runs it without a Temporal SDK/server. The
+same shared computation supports sequences, predicates, parallel branches, bounded
+ordered maps and same-project children; unsupported durable/lifecycle features
+are refused across the entire closure before execution.
+
+Omitted `runtime.engine` retains Temporal behavior and requires a queue;
+`runtime.engine: temporal` is explicit. Profiles/environments can select the engine
+without rewriting steps. See the [runtime guide](local-runtime.md) for the complete
+capability/CLI/SDK contract and migration, and the [offline Python quickstart](../packages/python/examples/local_runtime/README.md).
+The Temporal connection/policy/lifecycle examples below use that integration;
+`build_runtime` and worker/deployment commands are not local entry points.
 
 > Using the TypeScript SDK? See [YAML Runtime (TypeScript)](typescript/yaml.md).
 > The `typeflux.yaml` schema is language-neutral; the TS doc covers the injected

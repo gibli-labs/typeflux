@@ -1,7 +1,9 @@
 # Typeflux Temporal
 
-Typeflux Temporal is a Temporal-native framework for defining typed AI
-Activities, with **two first-class SDKs — Python and TypeScript**.
+Typeflux Temporal is a framework for typed AI activities and YAML workflows,
+with **two first-class SDKs — Python and TypeScript**. Run supported computational
+YAML in one foreground process with **Typeflux Local**, or use the **Temporal
+integration** for durable orchestration.
 
 Temporal owns durable execution: workflows, activity scheduling, retries,
 timeouts, history, task queues, workers, signals, queries, and timers.
@@ -11,7 +13,10 @@ references, registry resolution, prompt rendering, structured provider calls,
 validation repair retries, input-aware output checks, optional post-acceptance
 hooks, execution manifests, redaction, and trace enrichment.
 
-The workflow stays plain Temporal. AI work happens inside Temporal activities.
+Both engines reuse the AI activity pipeline. Temporal workflows stay plain
+Temporal; local YAML runs through the in-process executor without a Temporal SDK,
+server, worker daemon or workflow database. Local progress is lost on process exit,
+and a fresh invocation can repeat completed effects.
 
 The `typeflux.yaml` spec, resolved bundles, execution manifests, and deployment
 plans are **language-neutral contracts** — a spec written to the shared subset
@@ -33,16 +38,38 @@ clients/              Control-plane API client + console + MCP server
 docs/                 Documentation
 ```
 
-Python development happens in `packages/python/`. **Run the `uv` and `python`
-commands shown in this README from that directory** (`cd packages/python`); the
-`examples/...` paths below are relative to it.
+The Python walkthrough below uses `packages/python/` as its working directory;
+its `examples/...` paths are relative to that directory. Repository development
+setup/checks run from the root as described in [development.md](docs/development.md).
+The local quickstarts specify their own application-directory commands.
 
 ## Quickstart
 
-Install from the public registries — no credentials, no checkout:
+Choose the runtime independently of SDK language:
+
+| Runtime | Python | TypeScript | Use it for |
+| --- | --- | --- | --- |
+| Local | Base `typeflux`; `build_local_runtime` / `typeflux-local` | `@typeflux/yaml`; `buildLocalRuntime` / `typeflux-local` | Foreground YAML sequences, gates, parallel branches, ordered maps and same-project children |
+| Temporal | `typeflux[temporal]` | `@typeflux/temporal-yaml` + worker/client | Durable history/recovery and existing lifecycle, review and compensation features |
+
+Start without a server or credentials using the executable
+[Python local quickstart](packages/python/examples/local_runtime/README.md) or
+[TypeScript local quickstart](packages/typescript/yaml/examples/local-runtime/README.md).
+They include CLI, async SDK and project/environment examples with inline prompts
+and fake providers. The [runtime guide](docs/local-runtime.md) compares guarantees
+and shows switching to Temporal without rewriting supported computational steps.
+
+The new local implementation is described against current source/candidate
+packages; the quickstarts show installing the actual candidate wheel/tarballs.
+Registry installs apply once a release containing the feature is available:
 
 ```bash
-# Python SDK (3.11+); provider integrations are extras
+# Python local execution (3.11+); add only the provider/backend extras you need
+pip install typeflux
+# TypeScript local execution (Node 24.x, minimum 24.15)
+npm install @typeflux/yaml @typeflux/temporal zod
+
+# Optional Temporal integration
 pip install "typeflux[temporal]"
 pip install "typeflux[temporal,openai]"               # or [temporal,anthropic], [temporal,gemini], [api], [live]
 
@@ -55,19 +82,20 @@ npm install @typeflux/temporal-controlplane  # control-plane server
 npx -y typeflux-mcp
 ```
 
-The base Python package (`pip install typeflux`) and TypeScript `@typeflux/yaml`
-support [shared YAML planning](docs/yaml-planning.md) without Temporal. YAML
-workflow execution still uses the Temporal integration; the local runner is tracked
-in [#89](https://github.com/gibli-labs/typeflux/issues/89).
+The base Python package and `@typeflux/yaml` support both
+[shared planning](docs/yaml-planning.md) and local YAML execution without Temporal.
+Select `runtime.engine: local` explicitly. Omitting the engine retains Temporal
+behavior and requires a task queue; neither entry point automatically falls back.
+The historical `@typeflux/temporal` core package name does not install `@temporalio/*`.
 
-A local [Temporal dev server](https://docs.temporal.io/cli#server) is the only
-other prerequisite for running workflows (`temporal server start-dev`). No paid
-provider credentials are needed to get started: authoring and validation run
-fully offline with `type: fake`, and the testing fake provider
-(`typeflux.testing` / `@typeflux/temporal`) executes workflows offline with
-scripted responses.
+Only the Temporal route needs a reachable service, such as a
+[Temporal dev server](https://docs.temporal.io/cli#server). Both routes can use
+scripted fake providers without model credentials. Local execution supports the
+shared computation and activity pipeline; durable history/retries, timers,
+review/lifecycle, compensation and run management require Temporal and their
+existing configuration/APIs. See the [acceptance matrix](docs/local-runtime-acceptance.md).
 
-**First workflow with no checkout:** the [tutorial](docs/tutorial.md) §1 is
+**First durable workflow with no checkout:** the [Temporal tutorial](docs/tutorial.md) §1 is
 fully self-contained — it creates every file it runs. The worked example
 below, by contrast, runs from a checkout of this repository (the
 `examples/...` paths and `uv run` commands above assume it).
@@ -75,14 +103,18 @@ below, by contrast, runs from a checkout of this repository (the
 **Working on Typeflux itself** (a checkout of this repository):
 
 ```bash
-uv sync --extra live --group dev   # Python env (run tools via `uv run ...`)
-pnpm install && pnpm -r build      # TypeScript workspace
+# Run from the repository root; installs the locked toolchain dependencies
+uv run --project packages/python python -m tools.development sync all
 ```
 
 See [Dependency Management](docs/dependencies.md) for the full extras matrix
 and release validation commands.
 
-Create a `.env`:
+### Temporal and live-provider walkthrough
+
+The rest of this walkthrough uses the Temporal integration with optional model
+and Langfuse services. These service settings are not prerequisites for the local
+fake-provider quickstarts above. From `packages/python/`, create a `.env`:
 
 ```bash
 cp .env.example .env
@@ -200,8 +232,11 @@ uv run python -m typeflux.observability trace diff <left-trace-id> <right-trace-
 
 ## Code-Defined AI Activities
 
-An AI Activity is a Temporal activity generated by Typeflux from a schema,
-prompt reference, provider, registry, hook, and runtime policy.
+The Temporal integration wraps an activity contract (schemas, prompt, provider,
+registry, hook and runtime policy) as a Temporal activity. The decorator example
+below uses that integration. Local YAML uses YAML activity definitions or imported
+portable `AIActivity` objects; Temporal-decorated callables are refused locally.
+See the [local SDK contract](docs/local-runtime.md#python-sdk-execution).
 
 ```python
 from pydantic import BaseModel
@@ -240,9 +275,12 @@ classification = await workflow.execute_activity(
 
 ## YAML Runtime
 
-YAML V1 assembles a runtime from Python schemas, prompt refs, and optional
-Python-defined activities. Hookless AI Activities can be declared directly in
-YAML; use Python modules when an activity needs a hook.
+YAML assembles either runtime from schemas, prompt refs and portable activities.
+For local execution, select `runtime.engine: local`, omit Temporal placement and
+use `typeflux-local` or the local SDK builder. The example below selects Temporal
+through the default engine and task queue, and uses Python-specific module wiring.
+Hookless AI Activities can be declared directly in YAML; use Python modules when
+an activity needs a hook.
 
 ```yaml
 project: examples.support_triage
@@ -395,9 +433,11 @@ uv run python -m typeflux.project run examples/typeflux.project.yaml \
 
 Environment profiles may point at ignored `.env` files for secrets and overlay
 safe runtime settings such as Temporal address, namespace, TLS posture,
-observability mode, provider model, and task queue. Policy application and
-enforcement are tracked in #129; project validation currently checks policy
-references only.
+observability mode, provider model, engine and task queue. Environment-aware
+validation and runtime admission use the selected composed policies; validation
+without an environment checks references. The local project CLI admits the entire
+reachable child closure before execution, including skipped branches. Existing
+worker/deployment commands remain Temporal entry points.
 
 Applied overrides are represented in workflow metadata and execution manifests as
 safe provenance: Typeflux records the project/environment/workflow context and
@@ -418,7 +458,11 @@ prompt refs, model, and environment. High-cardinality values such as workflow
 IDs, run IDs, schema hashes, manifest hashes, prompt versions, deployment IDs,
 and git SHAs stay in metadata.
 
-The trace root carries the workflow execution manifest. Activity spans carry
+When observations are enabled, the trace root carries the workflow execution
+manifest. Local manifests omit Temporal queue/run IDs, and local correlation IDs
+are not resumable execution handles. Python direct/local OTEL initialization does
+not require a Temporal plugin; TypeScript local SDK callers supply an observer,
+while the foreground CLI can use the configured vendor wiring. Activity spans carry
 resolved activity execution manifests. Generation, hook, provider, and Temporal
 spans carry compact join metadata. Activity manifests also record whether the
 activity was defined in YAML, discovered from Python, or supplied directly.
@@ -472,6 +516,9 @@ table and the router between the three groups below.
 **Shared / language-neutral** (currently narrated in Python; the semantics apply
 to both editions):
 
+- [Local Runtime: CLI/SDK, capabilities and Temporal migration](docs/local-runtime.md)
+- [Local Runtime Acceptance](docs/local-runtime-acceptance.md)
+- [YAML Planning Without Temporal](docs/yaml-planning.md)
 - [Concepts](docs/concepts.md)
 - [YAML Runtime](docs/yaml.md)
 - [Control Plane](docs/control-plane.md)
@@ -515,7 +562,12 @@ to both editions):
 
 This is an early experiment focused on typed AI Activities, YAML runtime
 assembly, and manifest-rich observability, shipped in
-[two editions](docs/editions.md). Shipped YAML capabilities include sequential
+[two editions](docs/editions.md). Both editions support the non-durable local YAML
+subset through async SDKs and foreground CLIs, with offline examples and a basic
+Temporal adoption path. The Temporal integration additionally provides durable
+orchestration and the lifecycle/compensation/management surfaces below.
+
+Shipped YAML capabilities include sequential
 workflow compilation, map steps with collect, composition (`parallel`, `when`,
 sub-workflows and `map.workflow`), lifecycle review gates (human approval) with
 routed decision signals, saga-LIFO compensation, cooperative cancellation
