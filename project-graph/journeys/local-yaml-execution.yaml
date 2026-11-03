@@ -16,6 +16,12 @@ entities:
         capabilities: [capability.local-yaml-execution]
         checks: [check.local-yaml-execution-python]
         failures: [new queued work after failure, cache leaked on cancellation, false Temporal execution identity, activity pipeline bypassed]
+      - id: diagnose
+        action: Catch a failed provider, extension, collection or child execution, or cancel the running task.
+        outcome: LocalWorkflowError exposes the deepest workflow and step with the original cause. Workflow boundaries use no invented step; queued/downstream work stops and cleanup drains. Cancellation keeps its native type.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-yaml-errors-python]
+        failures: [parent replaces child error context, original exception lost, cancellation wrapped as failure, cache release precedes active-call draining]
   - id: journey.execute-local-yaml-typescript
     kind: journey
     description: A TypeScript SDK caller runs computational YAML in-process without Temporal.

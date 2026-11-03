@@ -276,7 +276,10 @@ def test_local_cli_shuts_down_after_execution_and_preparation_failure(
     root, _ = application
     monkeypatch.setenv("CLI_MODE", mode)
     assert main(arguments(root)) == code
-    assert capsys.readouterr().out == ""
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    if mode == "failure":
+        assert "workflow 'Root' step 'echo' failed: provider execution refused" in captured.err
     assert events(root) == expected_events
 
 
@@ -297,6 +300,27 @@ try:
 finally:
     assert not any(n == "temporalio" or n.startswith("temporalio.") for n in sys.modules)
 """
+
+
+@pytest.mark.parametrize("project_mode", [False, True])
+def test_local_cli_subprocess_reports_sdk_failure_context_and_shuts_down(application, project_mode):
+    root, raw = application
+    args = project_arguments(root, raw) if project_mode else arguments(root)
+    completed = subprocess.run(
+        [sys.executable, "-c", GUARDED_RUN, *args],
+        cwd=root,
+        env={**os.environ, "CLI_MODE": "failure"},
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert completed.returncode == 1, completed.stderr
+    assert completed.stdout == ""
+    workflow = "Child" if project_mode else "Root"
+    assert (
+        f"workflow {workflow!r} step 'echo' failed: provider execution refused" in completed.stderr
+    )
+    assert events(root) == ["constructed", "called", "shutdown"]
 
 
 def test_local_cli_subprocess_executes_without_temporal_or_network(application):

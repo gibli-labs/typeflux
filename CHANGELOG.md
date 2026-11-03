@@ -8,6 +8,12 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Attribute Python local YAML execution failures with public `LocalWorkflowError`
+  workflow/step fields and the original exception as `__cause__`. Nested failures
+  retain child context; collection failures identify their step, while cancellation
+  and cleanup semantics remain unchanged. Foreground CLI diagnostics use the SDK
+  error contract (#114).
+
 - Add the TypeScript `typeflux-local` foreground command in `@typeflux/yaml` for
   YAML files and resolved projects, with JSON file/stdin input, policy/capability
   admission, diagnostic isolation, signal draining and observation cleanup. It shares

@@ -320,6 +320,34 @@ permits or cached resources. Session caches receive best-effort cleanup on succe
 failure and cancellation. Process termination can prevent cleanup; provider TTLs
 remain the fallback. Completed external effects are never rolled back.
 
+Execution failures raise `LocalWorkflowError`, exported from `typeflux.yaml`:
+
+```python
+from typeflux.yaml import LocalWorkflowError
+
+try:
+    result = await runtime.execute_workflow(input_value)
+except LocalWorkflowError as exc:
+    print(exc.workflow, exc.step)
+    original_error = exc.__cause__
+```
+
+`workflow` is the failing YAML workflow's name; `step` is its executing step ID.
+Activity preparation, provider and extension failures retain the original exception
+as `__cause__`. Map/parallel collection failures identify their collecting step.
+A child or `map.workflow` failure keeps the child's deepest attributed error;
+parent call steps do not replace it. Workflow input/output validation inside a run
+uses `step=None` rather than inventing an executed step. Initial public root-input
+validation still raises Pydantic `ValidationError`, and construction/admission
+errors keep their existing types. Callers that previously caught a raw activity or
+collection exception should catch `LocalWorkflowError` and inspect `__cause__`.
+
+`asyncio.CancelledError` and `ActivityCancelled` propagate unchanged. Attribution
+adds no retries or recovery, and existing fan-out draining and cache cleanup still
+run before the failure reaches the caller. The foreground CLI prints this SDK
+context on stderr with execution status 1 and no result stdout. No error text is
+added to protected operational metadata or workflow manifests.
+
 Typed metadata contributors identify `runtime.engine: local`. Workflow manifests
 include planned steps and activity contracts, and omit Temporal queues and run IDs.
 Each invocation has a new correlation ID; it is not a durable execution handle.
