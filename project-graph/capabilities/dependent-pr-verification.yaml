@@ -1,0 +1,35 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.dependent-pr-verification
+    kind: capability
+    description: Document the supported main-target dependency PR workflow, prerequisite merge order, fresh integration evidence and separately refreshed review without extending feature-branch trust.
+    editions: {python: shared, typescript: shared}
+    implementation:
+      - tools/development/acceptance.py
+      - tools/development/registry.py
+      - .github/workflows/ci.yml
+      - .github/workflows/ci-acceptance.yml
+      - .github/workflows/codeql.yml
+    documentation: [docs/dependent-pull-requests.md, docs/development.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.dependent-pr-evidence}
+      - {relation: requires, target: invariant.dependent-pr-review}
+  - id: invariant.dependent-pr-evidence
+    kind: invariant
+    description: Accepted PRs target main and retain exact current head/base integration, run/attempt, mandatory jobs and base/candidate tests; updating dependencies invalidates old evidence and cannot broaden feature-branch or release authority.
+  - id: invariant.dependent-pr-review
+    kind: invariant
+    description: Inspect review identity after head/base changes and reconcile prior findings; do not infer fresh review from a base edit, CI success or an older review. Finish coherent changes before requesting scarce reviewer signals.
+  - id: check.dependent-pr-evidence
+    kind: check
+    description: Existing automated regressions cover current-head PR association, delayed-run protection, exact receipt identity and refusal to reuse PR evidence for release. Historical main-target recovery and reviewer freshness are separately observed/manual evidence documented in the guide.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_development_loop.py, name: test_acceptance_resolves_pr_when_run_metadata_has_no_pull_requests}
+      - {path: packages/python/tests/test_development_loop.py, name: test_delayed_run_cannot_overwrite_newer_acceptance}
+      - {path: packages/python/tests/test_development_loop.py, name: test_receipt_must_match_exact_execution}
+      - {path: packages/python/tests/test_development_loop.py, name: test_release_cannot_reuse_pr_merge_or_incomplete_journey_evidence}
+    links:
+      - {relation: verifies, target: invariant.dependent-pr-evidence}
