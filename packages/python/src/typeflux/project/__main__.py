@@ -14,6 +14,18 @@ from pydantic import BaseModel
 
 from typeflux.execution.preflight import preflight_ai_activities
 from typeflux.project.bundle import resolve_workflow_bundle
+from typeflux.project.cli_support import (
+    PolicyHashUsageError as _PolicyHashUsageError,
+)
+from typeflux.project.cli_support import (
+    expected_policy_hash as _expected_policy_hash,
+)
+from typeflux.project.cli_support import (
+    read_input_json as _read_input_json,
+)
+from typeflux.project.cli_support import (
+    verify_expected_policy_hash as _verify_expected_policy_hash,
+)
 from typeflux.project.deployment import (
     build_project_deployment_plan,
     render_project_deployment_plan,
@@ -1022,36 +1034,6 @@ def _add_policy_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
-class _PolicyHashUsageError(Exception):
-    """A malformed or self-conflicting --expect-policy-hash INPUT (#818): a caller
-    mistake, exit 2 — distinct from an actual hash-drift verdict, which stays a
-    ProjectPolicyEnforcementError and exits 3."""
-
-
-def _expected_policy_hash(cli_value: str | None) -> str | None:
-    cli_hash = _normalize_policy_hash(cli_value)
-    env_hash = _normalize_policy_hash(os.getenv("TYPEFLUX_EXPECTED_POLICY_HASH"))
-    if cli_hash is not None and env_hash is not None and cli_hash != env_hash:
-        raise _PolicyHashUsageError(
-            "conflicting expected project policy hashes from --expect-policy-hash "
-            "and TYPEFLUX_EXPECTED_POLICY_HASH"
-        )
-    return cli_hash or env_hash
-
-
-def _normalize_policy_hash(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip().lower()
-    if not normalized:
-        return None
-    if len(normalized) != 64 or any(char not in "0123456789abcdef" for char in normalized):
-        raise _PolicyHashUsageError(
-            "expected project policy hash must be a 64-character sha256 hex digest"
-        )
-    return normalized
-
-
 def _print_workflow_table(report: ProjectValidationReport, *, json_output: bool = False) -> None:
     rows = [
         {
@@ -1293,24 +1275,6 @@ async def _run_project_worker(
         if isinstance(exc, _PolicyHashUsageError):
             return 2
         return EXIT_VALIDATION if isinstance(exc, ProjectPolicyEnforcementError) else 1
-
-
-def _verify_expected_policy_hash(
-    expected_policy_hash: str | None,
-    *,
-    policy_hash: str | None,
-) -> None:
-    if expected_policy_hash is None:
-        return
-    if policy_hash is None:
-        raise ProjectPolicyEnforcementError(
-            "expected project policy hash was provided, but no project policy was selected"
-        )
-    if policy_hash != expected_policy_hash:
-        raise ProjectPolicyEnforcementError(
-            "selected project policy hash does not match expected deployment policy hash "
-            f"(expected={expected_policy_hash}, actual={policy_hash})"
-        )
 
 
 async def _submit_project_workflow(
@@ -1835,14 +1799,6 @@ def _preflight_provider_capability_source(spec: Any) -> object:
     if provider_class is None:
         return spec.runtime.provider.type
     return import_object(provider_class)
-
-
-def _read_input_json(path: str) -> Any:
-    if path == "-":
-        raw = sys.stdin.read()
-    else:
-        raw = Path(path).read_text(encoding="utf-8")
-    return json.loads(raw)
 
 
 def _parse_metadata_json(value: str | None) -> dict[str, Any] | None:

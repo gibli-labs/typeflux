@@ -2,8 +2,8 @@
 
 Typeflux Local is in development ([#89](https://github.com/gibli-labs/typeflux/issues/89)).
 Both SDKs can now load local YAML and check its declared runtime capabilities without
-installing a Temporal SDK. **Python and TypeScript SDK local execution are available. The local CLI
-and automatic project adoption remain in development.** The existing worker, deployment and control-plane entry points remain
+installing a Temporal SDK. **Python and TypeScript SDK local execution and the Python foreground CLI are available.
+The TypeScript foreground CLI and final adoption journeys remain in development.** The existing worker, deployment and control-plane entry points remain
 Temporal-only and reject local engine selection before constructing runtime services.
 
 ## Engine selection
@@ -89,6 +89,54 @@ nor imports user activity modules. Resolver and extension code retain the existi
 trusted-code boundary. Code activity descriptors and project policy enforcement
 must also be checked when the local runtime is assembled; a successful capability
 check alone cannot establish those guarantees.
+
+## Python foreground CLI
+
+With the base Python installation, execute a YAML file and supply JSON input:
+
+```sh
+typeflux-local workflow.yaml --input input.json
+typeflux-local workflow.yaml --input - < input.json
+```
+
+`python -m typeflux.yaml.local_cli` is the equivalent module entry point. A successful
+command writes one validated JSON result to stdout. Logs, errors and trusted
+extension prints go to stderr. The YAML directory is the application's Python
+import root; install reusable modules or use the normal `PYTHONPATH` mechanism for
+code stored elsewhere. See the [offline example](../packages/python/examples/local_runtime/README.md)
+for a complete fake-provider invocation with no network or credentials.
+
+For a project workflow, use the existing environment, component-profile and policy
+resolution:
+
+```sh
+typeflux-local --project typeflux.project.yaml --workflow echo --environment local --input input.json
+```
+
+The manifest directory is the application import root. Runtime defaults, workflow
+profiles and environment overrides retain their existing precedence. Children
+resolve under the same project/environment and are admitted under the parent's
+composed policy, including skipped branches. `--policy ID` is repeatable; otherwise
+the project's matching validation targets select policies as on existing project
+commands. `--expect-policy-hash HASH` and `TYPEFLUX_EXPECTED_POLICY_HASH` use the
+existing normalization, conflict and selected-policy checks. Expected hashes require
+project mode; a standalone file cannot bypass project policy requirements.
+
+| Exit status | Meaning |
+| --- | --- |
+| 0 | Validated JSON result |
+| 1 | Execution, output, I/O or shutdown failure |
+| 2 | Command/input usage, malformed or schema-invalid input, malformed/conflicting hash |
+| 3 | YAML, capability, policy or runtime-preparation refusal |
+| 130 / 143 | Cooperative SIGINT / SIGTERM interruption on POSIX |
+
+SIGINT and SIGTERM cancel the current invocation, allow the runtime to drain started
+calls and release session caches, then shut down observations. A blocking provider
+or extension can delay interruption until it returns. A forced process exit cannot
+guarantee cleanup. Every new command starts from the beginning; no progress is
+persisted. The command requires `runtime.engine: local` after resolution and never
+falls back from Temporal. Existing worker and deployment commands retain their
+Temporal execution contract.
 
 ## TypeScript SDK execution
 
@@ -182,7 +230,9 @@ and credentials) or an existing custom provider class. The `fake` provider in th
 boundary example has no responses; use a custom `FakeProvider` subclass with canned
 responses for an offline executable example. The base installation needs no
 Temporal SDK or service. This is the explicit local SDK entry point; `build_runtime`
-and the current CLI still select the Temporal integration.
+and the worker CLI still select the Temporal integration. Use `typeflux-local` for
+foreground execution. SDK callers can inspect `runtime.input_type` and call
+`runtime.shutdown()` after all invocations have drained to release observations.
 
 The builder snapshots the specs and resolves the entire reachable graph, including
 skipped branches, before constructing runtime services. It reuses the shared graph
@@ -222,7 +272,8 @@ existing project policy admission for the full closure, then passing its
 and moderation checkpoints. A matching admitted guard is required when
 `TYPEFLUX_EXPECTED_POLICY_HASH` is set. Elevated risk tiers remain rejected by the
 local capability boundary. The SDK does not infer project policy from a standalone
-workflow file; project CLI integration remains a separate follow-up.
+workflow file; `typeflux-local --project` performs that admission before building
+the runtime.
 
 Use a runtime on one asyncio event loop. Concurrent invocations share provider
 limits. Cancel the task awaiting `execute_workflow` to request cooperative

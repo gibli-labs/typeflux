@@ -34,6 +34,7 @@ Issues = "https://github.com/gibli-labs/typeflux/issues"
 typeflux-project = "typeflux.project.__main__:main"
 typeflux-controlplane = "typeflux.controlplane.__main__:main"
 typeflux-trace = "typeflux.observability.__main__:main"
+typeflux-local = "typeflux.yaml.local_cli:main"
 
 [project.optional-dependencies]
 temporal = [

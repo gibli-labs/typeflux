@@ -160,6 +160,15 @@ class LocalYamlRuntime:
         self._retry = services._build_provider_retry_policy(root.spec)
         self._artifact_policy = services._build_artifact_policy(root.spec)
 
+    @property
+    def input_type(self) -> type[BaseModel]:
+        """The admitted input schema, for application/CLI boundary validation."""
+        return self._root.plan.input_type
+
+    def shutdown(self) -> None:
+        """Release the runtime's observation backend after draining active invocations."""
+        self._observability.writer.shutdown()
+
     async def execute_workflow(self, input_value: BaseModel | Mapping[str, Any]) -> BaseModel:
         """Run to completion; cancellation/failure never rolls back external effects."""
         value = _validated_value(self._root.plan.input_type, input_value)
@@ -557,7 +566,7 @@ def build_local_runtime(
     child_specs = tuple(children.items())
     # All graph, capability and descriptor checks precede constructors/remote reads.
     load_env()
-    expected_hash = os.getenv("TYPEFLUX_EXPECTED_POLICY_HASH")
+    expected_hash = (os.getenv("TYPEFLUX_EXPECTED_POLICY_HASH") or "").strip().lower()
     if expected_hash and expected_hash != getattr(
         getattr(policy_guard, "policy", None), "policy_hash", None
     ):
@@ -571,24 +580,29 @@ def build_local_runtime(
     observability = services._build_observability(
         spec, policy_guard=policy_guard, child_specs=child_specs
     )
-    registry = services._build_registry(spec, child_specs)
-    provider = services._build_provider(spec, enable_langfuse=services._uses_langfuse(spec))
-    services._validate_activity_provider_params(provider, tuple(activities.values()))
-    preflight_ai_activities(
-        activities=tuple(activities.values()),
-        registry=registry,
-        provider=provider,
-        provider_default_params=provider_default_params(provider),
-    ).raise_for_failures()
-    return LocalYamlRuntime(
-        root=root,
-        workflows=workflows,
-        activities=activities,
-        provider=provider,
-        registry=registry,
-        observability=observability,
-        policy_guard=policy_guard,
-        cache_store=cache_store,
-        deps=deps,
-        tenant_resolver=tenant_resolver,
-    )
+    try:
+        registry = services._build_registry(spec, child_specs)
+        provider = services._build_provider(spec, enable_langfuse=services._uses_langfuse(spec))
+        services._validate_activity_provider_params(provider, tuple(activities.values()))
+        preflight_ai_activities(
+            activities=tuple(activities.values()),
+            registry=registry,
+            provider=provider,
+            provider_default_params=provider_default_params(provider),
+        ).raise_for_failures()
+        return LocalYamlRuntime(
+            root=root,
+            workflows=workflows,
+            activities=activities,
+            provider=provider,
+            registry=registry,
+            observability=observability,
+            policy_guard=policy_guard,
+            cache_store=cache_store,
+            deps=deps,
+            tenant_resolver=tenant_resolver,
+        )
+    except BaseException:
+        with suppress(Exception):
+            observability.writer.shutdown()
+        raise

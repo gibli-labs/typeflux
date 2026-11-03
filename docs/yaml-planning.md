@@ -48,7 +48,8 @@ the Temporal integration. Python imports trusted project code during schema and
 activity resolution; planning is not a sandbox for untrusted code.
 
 The [Python and TypeScript local SDK executors](local-runtime.md) run supported
-YAML graphs without Temporal. CLI/project adoption remains tracked
+YAML graphs without Temporal. The Python `typeflux-local` foreground command also
+executes files and resolved projects. TypeScript CLI adoption and final acceptance remain tracked
 in [#89](https://github.com/gibli-labs/typeflux/issues/89). Durable recovery, scheduling,
 review gates and saga compensation remain Temporal features.
 
