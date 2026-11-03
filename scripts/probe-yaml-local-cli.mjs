@@ -28,4 +28,10 @@ for (const [target, input] of [
   assert.equal(result.status, 0, `${result.error ?? ""}\n${result.stderr}`);
   assert.equal(result.stdout, '{"text":"local result"}\n');
 }
-console.log("Installed typeflux-local: file, stdin and project execution passed without Temporal or network");
+const sdk = spawnSync(process.execPath, ["local-sdk.mjs"], {
+  cwd: join(process.cwd(), "local-example"),
+  env: {...process.env, NODE_OPTIONS: `--import=${guard}`}, encoding: "utf8", timeout: 15000,
+});
+assert.equal(sdk.status, 0, sdk.stderr);
+assert.equal(sdk.stdout, '{"text":"local result"}\n');
+console.log("Installed local CLI/SDK examples passed without Temporal or network");

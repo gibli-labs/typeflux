@@ -121,7 +121,7 @@
     {
       "name": "local-runtime",
       "issue": 89,
-      "operation": "Both SDKs reproduce static capability cases and the deterministic local execution cases (outputs and activity call order); cross-engine and process-loss adoption are separate acceptance work",
+      "operation": "Both local SDKs and real Temporal workers reproduce the shared computation/control-flow cases and registry conflict refusal; separate subprocess checks prove local process-loss/fresh-run behavior and both documented Temporal adoption scripts execute in the isolated lane",
       "fixtures": [
         {
           "golden": "local-runtime/golden/capability-cases.json"

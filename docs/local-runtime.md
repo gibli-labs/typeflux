@@ -1,10 +1,44 @@
 # Local runtime engine boundary
 
-Typeflux Local is in development ([#89](https://github.com/gibli-labs/typeflux/issues/89)).
-Both SDKs can now load local YAML and check its declared runtime capabilities without
-installing a Temporal SDK. **Python and TypeScript SDK local execution and foreground CLIs are available.
-Final adoption journeys remain in development.** The existing worker, deployment and control-plane entry points remain
-Temporal-only and reject local engine selection before constructing runtime services.
+Typeflux Local executes supported YAML workflows in one foreground process through
+Python or TypeScript SDKs and CLIs. It reuses the existing activity pipeline and
+needs no Temporal SDK, server, account, worker daemon or execution database.
+Progress lives only in the process. Choose Temporal for durable orchestration,
+scheduling, human review or compensation.
+
+These instructions describe the current source and candidate packages. They do
+not assert that a release containing this feature has been published. For a fresh
+installation and executable offline CLI/SDK examples, use the
+[Python quickstart](../packages/python/examples/local_runtime/README.md) or
+[TypeScript quickstart](../packages/typescript/yaml/examples/local-runtime/README.md).
+The [acceptance matrix](local-runtime-acceptance.md) identifies the checks behind
+this supported subset. Worker, deployment and control-plane entry points remain
+Temporal-only and reject local selection before constructing runtime services.
+
+To build candidate artifacts from this checkout, use the maintained setup and
+quality/TypeScript checks in [development.md](development.md). The Python wheel is
+written under `packages/python/dist/`. Pack the built TypeScript core and YAML
+packages with `pnpm --filter @typeflux/temporal pack --pack-destination /absolute/path/to/artifacts`
+and the same command for `@typeflux/yaml`. Use those actual filenames in the
+quickstarts; the maintained probes install and exercise the same candidate inputs.
+
+## Choosing an engine
+
+| Behavior | Local (both editions) | Temporal integration |
+| --- | --- | --- |
+| Typed YAML sequences, predicates, parallel branches, bounded ordered maps, same-project children | Supported | Supported |
+| Existing providers, prompts, repair, hooks, moderation, artifacts, caches and observations | Shared activity pipeline | Shared activity pipeline |
+| Invocation | Async SDK or foreground `typeflux-local` command | Worker plus workflow starter/client |
+| Provider request timeout/retry/limits | Existing provider behavior, scoped to the process | Existing provider behavior plus separately configured Temporal activity policies |
+| Crash/restart | Progress is lost; a new invocation starts at step one and can repeat effects | Durable workflow history and configured retry/recovery semantics |
+| Durable scheduling, timers, signals/queries, human review and lifecycle operations | Unsupported; configured features are refused | Use the existing Temporal integration |
+| Compensation | Unsupported; completed effects remain | Existing configured compensation support; external effects still require application design |
+| Independently addressable child executions | No; children are in-process calls | Temporal child workflows |
+| Console/control-plane/MCP management of runs | Outside the local runtime MVP | Existing Temporal management surfaces |
+
+Local execution never falls back automatically from an unavailable Temporal
+service. Neither engine implies exactly-once external side effects. Logs, caches,
+artifacts and correlation IDs are not local resumable history.
 
 ## Engine selection
 
@@ -199,9 +233,10 @@ console.log(result); // {text: "accepted"}
 `buildLocalRuntime` snapshots the resolved specs, validates the full reachable graph
 and injected contracts, assembles shared services, and resolves all prompts before
 returning. Pass `subworkflows: {selfId, specFor(id)}` for same-project composition.
-The shared eight-case execution fixture covers sequence/gate behavior, parallel
-collection, ordered and empty maps, and nested workflow calls in both editions.
-Cross-engine and process-loss adoption journeys remain part of #89.
+The shared eleven-case matrix covers sequence/gate behavior, scoped parallel
+context, ordered and empty maps, nested workflows, registry merge/deduplication
+and registry conflict refusal. Both local SDKs and real Temporal workers run it.
+Separate hard-termination tests demonstrate lost progress and fresh-run semantics.
 
 Supply `provider` directly or `transports` for the existing provider adapters.
 `registry`, `registryTransport`, `observer`, `cacheStore`, `hooks`, `outputChecks`,
@@ -355,3 +390,57 @@ Each invocation has a new correlation ID; it is not a durable execution handle.
 Existing observation/redaction paths are reused. No scheduler, persistent execution
 store, replay/resume, review gates, compensation, worker or control-plane service is
 added. Temporal remains the option for those guarantees.
+
+
+## Switch an application to Temporal
+
+For a workflow in the supported computational subset, keep its steps, schemas,
+activity definitions, prompts and portable hooks. Change placement and the entry
+point. Do not attempt to migrate an active local invocation or reuse its correlation
+ID as a durable run handle.
+
+1. Install the Temporal integration. Python needs `typeflux[temporal]` in addition
+   to any selected provider extras; TypeScript needs `@typeflux/temporal-yaml` and
+   the client/worker dependencies used by its starter. Use matching candidate
+   package versions when evaluating unreleased source. Base/provider-only Python
+   installs now intentionally omit `temporalio` and `cryptography`; public Temporal
+   import paths are unchanged when the extra is installed. The historical
+   TypeScript `@typeflux/temporal` core name alone does not install Temporal.
+2. Configure a reachable Temporal service and namespace. In a project environment,
+   add `task_queue` and override `runtime.engine` to `temporal`; put connection
+   settings under `runtime.temporal`. For example:
+
+   ```yaml
+   name: temporal
+   overrides:
+     task_queue: example-worker
+     runtime:
+       engine: temporal
+       temporal: {address: "localhost:7233", namespace: default}
+   ```
+
+   Register that file in the manifest's `environments` map and select the same
+   environment for the parent and its whole child closure. Existing environment,
+   profile and policy admission rules still apply. Standalone files can make the
+   same placement changes directly. Omitting the engine also retains Temporal
+   behavior and requires a queue.
+3. Replace the foreground local entry point with the existing Temporal runtime:
+   Python `build_runtime` / worker + `execute_workflow`; TypeScript `buildRuntime`
+   / worker + `runWorkflow`. The existing project worker commands are
+   `typeflux-project run ...` and `typeflux-yaml-worker ...`, respectively; a worker
+   polls and must be paired with a starter. `typeflux-local` deliberately refuses
+   Temporal selection. Both quickstarts contain executable `temporal_sdk` scripts
+   that resolve the new environment, serve a worker and start a fresh example run.
+4. Add any desired Temporal retries, heartbeats, schedules, reviews or compensation
+   through their existing APIs/configuration. Merely switching engines does not
+   enable every guarantee or configure recovery for external side effects. Portable
+   application extensions must still satisfy the destination runtime's contracts.
+
+Switching back requires selecting local on the whole closure and removing explicit
+Temporal placement/policies and unsupported lifecycle features; local preflight
+reports paths rather than silently degrading them. Keep completed effects when
+planning a rerun. Exclusions are tracked in [#90](https://github.com/gibli-labs/typeflux/issues/90)
+(durability), [#91](https://github.com/gibli-labs/typeflux/issues/91) (scheduling),
+[#92](https://github.com/gibli-labs/typeflux/issues/92) (review/lifecycle),
+[#93](https://github.com/gibli-labs/typeflux/issues/93) (compensation) and
+[#94](https://github.com/gibli-labs/typeflux/issues/94) (management surfaces).

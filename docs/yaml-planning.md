@@ -49,8 +49,8 @@ activity resolution; planning is not a sandbox for untrusted code.
 
 The [Python and TypeScript local SDK executors](local-runtime.md) run supported
 YAML graphs without Temporal. Both editions provide a `typeflux-local` foreground command for
-files and resolved projects. Shared adoption and final acceptance remain tracked
-in [#89](https://github.com/gibli-labs/typeflux/issues/89). Durable recovery, scheduling,
+files and resolved projects. See the [offline quickstarts and engine migration](local-runtime.md)
+and [acceptance matrix](local-runtime-acceptance.md). Durable recovery, scheduling,
 review gates and saga compensation remain Temporal features.
 
 ## Existing Temporal users
@@ -74,4 +74,4 @@ base installations, exercises planning and Python local workflow execution, and 
 the existing Temporal regression and live-local checks.
 
 Explicit local engine selection and recursive capability checks are described in
-[the local runtime boundary](local-runtime.md). Python execution is available through the explicit local builder.
+[the local runtime boundary](local-runtime.md). Execution in both editions is available through the explicit local builders.

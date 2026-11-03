@@ -72,9 +72,10 @@ binds the source commit and input digest to commands and actual per-test outcome
 Collection, execution, and passing assertions are distinct. Skipped, missing,
 failed, or stale tests cannot establish a passing journey. Browser operation tests
 use controlled responses; the separate Temporal lane uses real local execution and
-fake providers. That lane also runs the shared eight-case local/Temporal
+fake providers. That lane also runs the shared eleven-case local/Temporal
 computational fixtures through actual Python and TypeScript workers and local SDK
-adapters. Separate foreground CLI subprocess tests in the Python and TypeScript
+adapters, including registry conflict admission. The lane also executes both
+documented offline-to-Temporal adoption scripts. Separate foreground CLI subprocess tests in the Python and TypeScript
 lanes use SIGKILL after a completed first-step effect, then verify a fresh command
 repeats it and executes from the beginning. Their append-only test logs observe
 external effects; they are not runtime checkpoints or a persistence service.

@@ -1,4 +1,7 @@
-import { readFileSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
+import { cpSync, mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -42,16 +45,29 @@ describe.skipIf(process.env["TYPEFLUX_LIVE_TEMPORAL"] !== "1")("local and Tempor
         const results = [];
         for (const engine of ["local", "temporal"] as const) {
           const queue = `local-parity-${randomUUID()}`;
-          const spec = (id: string, workflow: object) => typefluxYamlSpec.parse({
-            ...structuredClone(fixtures.base), name: id,
-            runtime: { ...structuredClone(fixtures.base.runtime), engine },
+          const spec = (id: string, workflow: object) => {
+            const patch = test.spec_overrides?.[id] ?? {};
+            return typefluxYamlSpec.parse({
+            ...structuredClone(fixtures.base), ...patch, name: id,
+            runtime: { ...structuredClone(fixtures.base.runtime), ...patch.runtime, engine },
             ...(engine === "temporal" ? { task_queue: queue } : {}),
             workflow: { name: id, ...workflow },
           });
+          };
           const root = spec("root", test.workflow);
           const children = Object.fromEntries(Object.entries(test.children).map(([id, workflow]) => [id, spec(id, workflow as object)]));
           const provider = new NumericProvider();
           const options = { provider, schemas, subworkflows: { selfId: "root", specFor: (id: string) => children[id] } };
+          const build = () => engine === "local" ? buildLocalRuntime(root, options) : buildRuntime(root, {
+            ...options, worker: { connection },
+            workflowsPath: new URL("../src/workflows.ts", import.meta.url).pathname,
+          });
+          if (test.error) {
+            await expect(build()).rejects.toThrow(test.error);
+            expect(provider.calls).toEqual([]);
+            results.push("refused");
+            continue;
+          }
           let result;
           if (engine === "local") {
             result = await (await buildLocalRuntime(root, options)).executeWorkflow(test.input);
@@ -77,4 +93,15 @@ describe.skipIf(process.env["TYPEFLUX_LIVE_TEMPORAL"] !== "1")("local and Tempor
       await connection.close();
     }
   }, 120_000);
+  it("executes the documented offline example after switching its environment to Temporal", async () => {
+    // Copy the application under the Temporal consumer package, whose dependencies
+    // include the integration/client/worker required by the documented upgrade.
+    const directory = mkdtempSync(fileURLToPath(new URL("./tmp-adoption-", import.meta.url)));
+    try {
+      cpSync(fileURLToPath(new URL("../../yaml/examples/local-runtime", import.meta.url)), directory, {recursive: true});
+      const { stdout } = await promisify(execFile)(process.execPath, [`${directory}/temporal-sdk.mjs`], {timeout: 60000});
+      expect(JSON.parse(stdout)).toEqual({text: "local result"});
+    } finally { rmSync(directory, {recursive: true, force: true}); }
+  }, 65000);
+
 });

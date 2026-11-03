@@ -24,13 +24,14 @@ entities:
       - packages/typescript/temporal-yaml/src/runtime.ts
       - scripts/probe-yaml-planning.mjs
       - contracts/local-runtime/golden/execution-cases.json
-    documentation: [docs/local-runtime.md, docs/yaml-planning.md]
+    documentation: [docs/local-runtime.md, docs/yaml-planning.md, docs/local-runtime-acceptance.md]
     links:
       - {relation: requires, target: invariant.local-engine-boundary}
       - {relation: requires, target: invariant.shared-yaml-planning}
       - {relation: requires, target: invariant.local-yaml-execution}
       - {relation: requires, target: invariant.local-execution-errors}
       - {relation: requires, target: invariant.local-temporal-computation-parity}
+      - {relation: requires, target: invariant.local-yaml-adoption}
   - id: invariant.local-yaml-execution
     kind: invariant
     description: Validate the complete reachable graph and portable activity contracts before constructing services; execute the computational subset through existing activity services, stop queued work on failure, clean up caches cooperatively and omit Temporal placement from observations.
@@ -114,7 +115,7 @@ entities:
 
   - id: invariant.local-temporal-computation-parity
     kind: invariant
-    description: The shared eight-case computational fixture has the same expected outputs and reached provider calls in both local SDKs and actual Temporal workers. Gates and early exit, skipped branches, ordered bounded activity maps, empty maps, nested workflows and workflow maps retain the same contracts; concurrent provider start order is unspecified. This proves computation, not equal durability or lifecycle guarantees.
+    description: The shared eleven-case computational fixture has the same expected outputs and reached provider calls in both local SDKs and actual Temporal workers. Gates and early exit, skipped branches, ordered bounded activity maps, empty maps, nested workflows, workflow maps, scoped branch context and composed registry merge/deduplication retain the same contracts; conflicting shared prompts are refused before activity effects; concurrent provider start order is unspecified. This proves computation, not equal durability or lifecycle guarantees.
   - id: check.local-temporal-parity-python
     kind: check
     description: Each shared fixture runs on the Python local SDK and a real isolated Temporal worker with the same contracts, prompts and steps; assert normative output, call order or multiset, drained work and concurrency bound.
@@ -126,10 +127,41 @@ entities:
       - {relation: verifies, target: invariant.local-temporal-computation-parity}
   - id: check.local-temporal-parity-typescript
     kind: check
-    description: Run all eight shared fixtures through the TypeScript local SDK and actual Temporal workers on the isolated server; compare outputs, reached provider calls and bounded work.
+    description: Run all eleven shared fixtures through the TypeScript local SDK and actual Temporal workers on the isolated server; compare outputs, reached provider calls and bounded work.
     environment: isolated-temporal
     ci: [temporal]
     tests:
       - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: matches shared local execution fixtures on real Temporal workers}
     links:
       - {relation: verifies, target: invariant.local-temporal-computation-parity}
+
+  - id: invariant.local-yaml-adoption
+    kind: invariant
+    description: Local CLI and async SDK examples run from clean candidate installations without Temporal or network services. The same computational YAML adopts Temporal by changing environment placement and entry points, with no live-run migration. The documented A1–A9 matrix binds scope to actual verification; durability, scheduling, review, compensation and management remain excluded.
+  - id: check.local-adoption-python
+    kind: check
+    description: Execute the documented Python Temporal adoption script with the registered environment and unchanged workflow computation. Clean local CLI/SDK example installation is separately asserted by the mandatory quality probe.
+    environment: isolated-temporal
+    ci: [temporal]
+    tests:
+      - {path: packages/python/tests/test_live_local_runtime_parity.py, name: test_offline_example_temporal_adoption_script}
+    links:
+      - {relation: verifies, target: invariant.local-yaml-adoption}
+  - id: check.local-adoption-typescript
+    kind: check
+    description: Execute the documented Temporal adoption script in a consumer with the required integration/client/worker dependencies. Clean local example installation is separately asserted by the packed-candidate TypeScript probe.
+    environment: isolated-temporal
+    ci: [temporal]
+    tests:
+      - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: executes the documented offline example after switching its environment to Temporal}
+    links:
+      - {relation: verifies, target: invariant.local-yaml-adoption}
+  - id: check.local-artifact-observation-python
+    kind: check
+    description: Local YAML forwards admitted artifact files through the existing provider pipeline and a real OTEL writer with an in-memory exporter redacts private predicate literals and omits Temporal identity.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_artifacts_and_redacted_observations_use_existing_pipeline}
+    links:
+      - {relation: verifies, target: invariant.local-yaml-execution}
