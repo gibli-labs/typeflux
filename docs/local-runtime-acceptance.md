@@ -1,0 +1,33 @@
+# Local runtime acceptance matrix
+
+This matrix defines the source-level acceptance evidence for
+[#89](https://github.com/gibli-labs/typeflux/issues/89). It is not a saved test receipt
+or release/deployment attestation. The final PR/issue records exact-source local
+results, CI run/attempt, native per-test outcomes and trusted acceptance. Graph
+coverage, collection, execution and passing results are distinct.
+
+| Criterion | Evidence and maintained verification |
+| --- | --- |
+| A1 — Clean installation without Temporal | `quality` runs `scripts/verify_python_planning_install.py`: a fresh base-wheel environment lacks `temporalio` and `cryptography`, executes SDK/planning probes and the real CLI/local SDK example, then separately verifies the Temporal extra. `typescript` runs `scripts/verify-yaml-planning-pack.mjs`: install candidate core/YAML tarballs outside the workspace, reject every `@temporalio/*` dependency, execute SDK/planning and actual bin/example scripts. Local CLI/SDK examples run with Temporal imports and network connections blocked. |
+| A2 — Offline first run | Both [Python](../packages/python/examples/local_runtime/README.md) and [TypeScript](../packages/typescript/yaml/examples/local-runtime/README.md) examples use inline prompts and existing fake providers. Installed probes exercise file, stdin, project/environment and async SDK paths with no credentials or backend. `test_local_cli_offline_example_file_and_project_without_services` and TypeScript's `executes file and stdin without Temporal or network and isolates extension stdout` also cover the foreground journeys. |
+| A3 — Shared computation and migration | `contracts/local-runtime/golden/execution-cases.json` has eleven cases: gates/early exit, skipped branches, ordered bounded and empty maps, transitive children, workflow maps, parent/branch context, registry merge/deduplication and conflict refusal before effects. Both local SDK tests consume it. The `temporal` lane runs Python's `test_shared_local_and_temporal_execution_fixtures` for every case and TypeScript's `matches shared local execution fixtures on real Temporal workers` through actual workers and local adapters. Expected outputs remain ordered; concurrent call membership is a multiset. Both documented Temporal adoption scripts execute in the same lane without changing workflow steps. |
+| A4 — Whole-closure capability and policy refusal | Shared `capability-cases.json`, Python `test_local_closure_checks_skipped_nested_maps_and_references`, `test_local_complete_preflight_precedes_runtime_services`, and TypeScript `rejects the complete skipped closure before provider construction` cover hidden unsupported features/contracts. CLI refusal/hash tests cover composed parent/child policies and environment pin protection before services/bindings. Existing typed risk-tier and policy enforcement is retained; local execution cannot bypass reviews by ignoring them. |
+| A5 — Failure, cancellation and process loss | Local SDK failure, bounded-map, sibling-draining and cache-cleanup tests in both editions stop queued/downstream work and preserve causes. Both CLI suites test SIGINT/SIGTERM draining. Python `test_local_cli_process_loss_keeps_effects_and_fresh_run_repeats_from_start` and TypeScript `keeps completed effects after SIGKILL and repeats from the start on a fresh command` retain a completed effect, kill the next active call, observe no result/graceful cleanup, then prove a new invocation repeats from step one. No rollback is asserted. |
+| A6 — Shared activity behavior | Python `test_local_sync_pipeline_retains_repair_hooks_cache_and_moderation`, retry/provider-limit/session-cache cases and `test_local_artifacts_and_redacted_observations_use_existing_pipeline`; TypeScript `retains repair, output checks, hooks, moderation, caching and dependency context`, artifact, redaction, provider-limit/retry and cache-draining cases. Real local YAML uses existing executors, artifact resolver and typed metadata contributors; the Python OTEL test uses a real writer with an in-memory export processor, normal lazy tracer initialization and Temporal imports blocked. The explicit Temporal plugin path retains its workflow/activity export regression. Core provider/prompt/parameter regression suites remain mandatory. |
+| A7 — Temporal compatibility | Engine-default/profile tests, existing YAML/worker regressions, Temporal manifest golden/hash cases, clean Temporal-extra installation and real Temporal execution/adoption remain mandatory. `check.runtime-neutral-manifests-python` / `-typescript` retain existing goldens and optional-context hash invariance. The documented Python dependency split is intentional; existing imports work with the integration installed. |
+| A8 — User documentation | [Runtime guide](local-runtime.md): engine choice, capability comparison, CLI/SDK contracts, error/exit categories, policy, trusted extensions, cleanup/process-loss limits and a basic switch to Temporal. Both offline example directories contain executable local SDK/CLI and Temporal adoption commands. Candidate installation is distinguished from a published release. |
+| A9 — Graph and source-bound checks | Reviewed `local-yaml-execution`, `local-yaml-cli`, engine-boundary, planning and manifest declarations map requirements, components, docs/examples, journeys and actual test identities/CI lanes. Run focused checks, the full default profile, and `project_graph report --base STARTING_SHA`. Inspect every mandatory CI receipt and mapped native test for the candidate source; skipped/missing/stale evidence is not a pass. |
+
+Run the maintained setup and verification from [development.md](development.md).
+Python non-live checks run in CI on 3.11–3.15; TypeScript has its own fixed lane.
+The existing `temporal` lane owns an isolated server and uses fake providers.
+Browser and HTTP conformance lanes exercise existing management surfaces; they do
+not add local run management or establish deployed-environment behavior.
+
+The accepted scope is a foreground, non-durable YAML runtime. Durability, queues,
+daemons, recovery and live-run migration remain [#90](https://github.com/gibli-labs/typeflux/issues/90);
+scheduling/timers [#91](https://github.com/gibli-labs/typeflux/issues/91);
+review/lifecycle [#92](https://github.com/gibli-labs/typeflux/issues/92);
+compensation [#93](https://github.com/gibli-labs/typeflux/issues/93); and management
+surfaces [#94](https://github.com/gibli-labs/typeflux/issues/94). These are not
+commitments to reproduce Temporal guarantees in the local process.

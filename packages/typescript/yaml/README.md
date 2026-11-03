@@ -39,8 +39,8 @@ a fake provider. Default-export bindings and `TYPEFLUX_WORKER_BINDINGS` also wor
 Providers/registries/observers otherwise use the existing optional vendor wiring.
 The command emits JSON on stdout, diagnostics on stderr, and drains cooperative
 SIGINT/SIGTERM cancellation before observation cleanup. See the [CLI contract](../../../../docs/local-runtime.md#typescript-foreground-cli)
-for policy admission, exit statuses and limitations. Final adoption acceptance remains
-tracked in [issue #89](https://github.com/gibli-labs/typeflux/issues/89).
+for policy admission, exit statuses and limitations. The [offline CLI/SDK quickstart](examples/local-runtime/README.md) includes an
+executable Temporal adoption example using the same computational YAML.
 
 The `workflow-plan` subpath is safe for the existing Temporal workflow sandbox.
 Other subpaths expose the shared modules for the integration's existing consumers.

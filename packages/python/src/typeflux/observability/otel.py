@@ -8,9 +8,10 @@ auth) and the span-attribute conventions (run-type key, input/output keys,
 metadata prefix, …). LangSmith is the first profile; adding another OTLP backend
 is a profile, not a rewrite.
 
-The writer reuses Temporal's ``create_tracer_provider`` + ``OpenTelemetryPlugin``
-so the native Temporal workflow/activity spans and the Typeflux observation spans
-share one tracer provider and correlate into a single backend trace.
+Direct and local observations lazily create an ordinary OTEL tracer provider.
+Temporal builders explicitly configure ``create_tracer_provider`` +
+``OpenTelemetryPlugin`` so native workflow/activity spans and Typeflux observation
+spans share one provider and correlate into a single backend trace.
 
 Nested Typeflux metadata (``typeflux.execution_manifest`` and friends) cannot be
 an OTEL attribute directly — attributes are flat scalars — so non-scalar
@@ -552,9 +553,16 @@ class OtelTraceWriter:
 
     def _require_tracer(self) -> Any:
         if self._tracer is None:
-            self.configure_temporal_plugin()
-        if self._tracer is None:  # pragma: no cover - defensive.
-            raise RuntimeError("OTEL tracer is not configured")
+            # Direct activities and local YAML need an ordinary OTEL provider.
+            # Temporal builders explicitly configure their plugin before observers.
+            try:
+                from opentelemetry.sdk.trace import TracerProvider
+            except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency guard.
+                raise RuntimeError("opentelemetry-sdk is required for OTEL tracing") from exc
+            provider = TracerProvider()
+            provider.add_span_processor(self._profile.build_span_processor())
+            self._tracer_provider = provider
+            self._tracer = provider.get_tracer(f"typeflux.{self._profile.name}")
         return self._tracer
 
 

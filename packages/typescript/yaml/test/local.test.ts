@@ -33,9 +33,17 @@ describe("local YAML execution", () => {
   it("matches the shared Python and TypeScript execution fixtures", async () => {
     for (const test of fixtures.cases) {
       const provider = new Provider();
-      const root = spec({workflow: {name: "Root", ...test.workflow}});
-      const children = Object.fromEntries(Object.entries(test.children).map(([id, workflow]) =>
-        [id, spec({name: id, workflow: {name: id, ...(workflow as object)}})]));
+      const source = (id: string, workflow: object) => {
+        const patch = test.spec_overrides?.[id] ?? {};
+        return spec({...patch, name: id, runtime: {...structuredClone(fixtures.base.runtime), ...patch.runtime}, workflow: {name: id, ...workflow}});
+      };
+      const root = source("root", test.workflow);
+      const children = Object.fromEntries(Object.entries(test.children).map(([id, workflow]) => [id, source(id, workflow as object)]));
+      if (test.error) {
+        await expect(buildLocalRuntime(root, {schemas, provider, subworkflows: {selfId: "root", specFor: id => children[id]}})).rejects.toThrow(test.error);
+        expect(provider.calls).toEqual([]);
+        continue;
+      }
       const runtime = await buildLocalRuntime(root, {schemas, provider, subworkflows: {selfId: "root", specFor: id => children[id]}});
       expect(await runtime.executeWorkflow(test.input), test.name).toEqual(test.expected);
       expect(test.call_order === "unordered" ? [...provider.calls].sort((a, b) => a - b) : provider.calls, test.name)

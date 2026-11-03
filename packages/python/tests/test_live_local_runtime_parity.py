@@ -74,6 +74,9 @@ async def test_shared_local_and_temporal_execution_fixtures(case, tmp_path, monk
                 raw = copy.deepcopy(FIXTURES["base"])
                 raw["name"] = workflow_id
                 raw["workflow"] = {"name": workflow_id, **workflow}
+                patch = copy.deepcopy(case.get("spec_overrides", {}).get(workflow_id, {}))
+                raw["runtime"].update(patch.pop("runtime", {}))
+                raw.update(patch)
                 # Only placement changes; computational steps, contracts and prompts do not.
                 raw["runtime"]["engine"] = engine
                 if engine == "temporal":
@@ -96,29 +99,40 @@ async def test_shared_local_and_temporal_execution_fixtures(case, tmp_path, monk
             )
             provider = NumericProvider()
             monkeypatch.setattr(services, "_build_provider", lambda *args, **kwargs: provider)
-            if engine == "local":
-                runtime = build_local_runtime(
-                    resolved.spec,
-                    workflow_id="root",
-                    resolve_workflow=lambda key: (
-                        resolve_project_workflow(
-                            project, workflow_id=key, environment_id="offline"
-                        ).spec
-                    ),
-                )
-                try:
-                    result = await runtime.execute_workflow(case["input"])
-                finally:
-                    runtime.shutdown()
-            else:
+
+            async def build():
+                if engine == "local":
+                    return build_local_runtime(
+                        resolved.spec,
+                        workflow_id="root",
+                        resolve_workflow=lambda key: (
+                            resolve_project_workflow(
+                                project, workflow_id=key, environment_id="offline"
+                            ).spec
+                        ),
+                    )
                 children = resolve_subworkflows_for(project, resolved)
-                runtime = await build_runtime(
+                return await build_runtime(
                     resolved.spec,
                     subworkflow_records=children.records,
                     child_workflow_classes=children.workflow_classes,
                     child_activities=children.activities,
                     child_registry_specs=tuple(children.child_specs.items()),
                 )
+
+            if "error" in case:
+                with pytest.raises(services.RegistryCompositionError, match=case["error"]):
+                    await build()
+                assert provider.calls == []
+                results.append("refused")
+                continue
+            runtime = await build()
+            if engine == "local":
+                try:
+                    result = await runtime.execute_workflow(case["input"])
+                finally:
+                    runtime.shutdown()
+            else:
                 async with runtime.worker.build_worker():
                     result = await runtime.execute_workflow(
                         getattr(runtime.workflow_class, "__typeflux_input_type__").model_validate(
@@ -141,3 +155,22 @@ async def test_shared_local_and_temporal_execution_fixtures(case, tmp_path, monk
         for name in tuple(sys.modules):
             if name == "local_fixture" or name.startswith("local_fixture."):
                 sys.modules.pop(name, None)
+
+
+@pytest.mark.asyncio
+async def test_offline_example_temporal_adoption_script():
+    root = Path(__file__).resolve().parents[1] / "examples/local_runtime"
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        str(root / "temporal_sdk.py"),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        out, err = await asyncio.wait_for(process.communicate(), timeout=60)
+        assert process.returncode == 0, err.decode()
+        assert json.loads(out) == {"text": "local result"}
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()

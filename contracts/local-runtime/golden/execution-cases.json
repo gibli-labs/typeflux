@@ -391,6 +391,223 @@
           ]
         }
       }
+    },
+    {
+      "name": "parallel branch context and parent input",
+      "call_order": "unordered",
+      "workflow": {
+        "input": "models:Item",
+        "output": "models:Branches",
+        "steps": [
+          {
+            "id": "first",
+            "activity": "echo"
+          },
+          {
+            "id": "joined",
+            "parallel": {
+              "branches": [
+                {
+                  "id": "left",
+                  "steps": [
+                    {
+                      "id": "left_first",
+                      "activity": "echo",
+                      "when": {
+                        "path": "input.n",
+                        "eq": 1
+                      }
+                    },
+                    {
+                      "id": "left_tail",
+                      "activity": "echo",
+                      "when": {
+                        "path": "left_first.n",
+                        "eq": 3
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "right",
+                  "when": {
+                    "path": "first.n",
+                    "eq": 2
+                  },
+                  "steps": [
+                    {
+                      "id": "right_first",
+                      "activity": "echo"
+                    }
+                  ]
+                }
+              ],
+              "collect": {
+                "output": "models:Branches"
+              }
+            }
+          }
+        ]
+      },
+      "input": {
+        "n": 1
+      },
+      "expected": {
+        "left": {
+          "n": 4
+        },
+        "right": {
+          "n": 3
+        }
+      },
+      "calls": [
+        1,
+        2,
+        3,
+        2
+      ],
+      "children": {}
+    },
+    {
+      "name": "composed registries merge and deduplicate",
+      "workflow": {
+        "input": "models:Item",
+        "output": "models:Item",
+        "steps": [
+          {
+            "id": "first",
+            "activity": "echo"
+          },
+          {
+            "id": "child",
+            "workflow": "child"
+          }
+        ]
+      },
+      "input": {
+        "n": 1
+      },
+      "expected": {
+        "n": 3
+      },
+      "calls": [
+        1,
+        2
+      ],
+      "children": {
+        "child": {
+          "input": "models:Item",
+          "output": "models:Item",
+          "steps": [
+            {
+              "id": "child_step",
+              "activity": "child_echo"
+            }
+          ]
+        }
+      },
+      "spec_overrides": {
+        "root": {
+          "runtime": {
+            "registry": {
+              "type": "inline",
+              "prompts": {
+                "echo": "{{n}}",
+                "shared": "same"
+              }
+            }
+          }
+        },
+        "child": {
+          "runtime": {
+            "registry": {
+              "type": "inline",
+              "prompts": {
+                "child_echo": "{{n}}",
+                "shared": "same"
+              }
+            }
+          },
+          "activities": {
+            "definitions": [
+              {
+                "name": "child_echo",
+                "input": "models:Item",
+                "output": "models:Item",
+                "prompt": "child_echo"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "composed registry conflict refuses before effects",
+      "workflow": {
+        "input": "models:Item",
+        "output": "models:Item",
+        "steps": [
+          {
+            "id": "first",
+            "activity": "echo"
+          },
+          {
+            "id": "child",
+            "workflow": "child"
+          }
+        ]
+      },
+      "input": {
+        "n": 1
+      },
+      "calls": [],
+      "children": {
+        "child": {
+          "input": "models:Item",
+          "output": "models:Item",
+          "steps": [
+            {
+              "id": "child_step",
+              "activity": "child_echo"
+            }
+          ]
+        }
+      },
+      "spec_overrides": {
+        "root": {
+          "runtime": {
+            "registry": {
+              "type": "inline",
+              "prompts": {
+                "echo": "{{n}}",
+                "shared": "same"
+              }
+            }
+          }
+        },
+        "child": {
+          "runtime": {
+            "registry": {
+              "type": "inline",
+              "prompts": {
+                "child_echo": "{{n}}",
+                "shared": "different"
+              }
+            }
+          },
+          "activities": {
+            "definitions": [
+              {
+                "name": "child_echo",
+                "input": "models:Item",
+                "output": "models:Item",
+                "prompt": "child_echo"
+              }
+            ]
+          }
+        }
+      },
+      "error": "shared"
     }
   ]
 }

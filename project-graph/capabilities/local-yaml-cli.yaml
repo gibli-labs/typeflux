@@ -2,7 +2,7 @@ apiVersion: typeflux.dev/graph/v1alpha1
 entities:
   - id: capability.local-yaml-cli
     kind: capability
-    description: Execute Python and TypeScript YAML files or resolved project workflows in a foreground process without Temporal, with JSON I/O, project policy admission, cooperative interruption and observation cleanup. Final adoption acceptance remains in issue 89.
+    description: Execute Python and TypeScript YAML files or resolved project workflows in a foreground process without Temporal, with JSON I/O, project policy admission, cooperative interruption and observation cleanup.
     editions: {python: supported, typescript: supported}
     implementation:
       - packages/python/src/typeflux/yaml/local_cli.py
@@ -32,13 +32,16 @@ entities:
       - packages/typescript/temporal-yaml/src/runtime.ts
       - scripts/probe-yaml-local-cli.mjs
       - scripts/verify-yaml-planning-pack.mjs
-    documentation: [docs/local-runtime.md, docs/yaml-planning.md, packages/python/README.md, packages/typescript/yaml/README.md]
+    documentation: [docs/local-runtime.md, docs/local-runtime-acceptance.md, docs/yaml-planning.md, packages/python/README.md, packages/typescript/yaml/README.md]
     examples:
       - packages/python/examples/local_runtime/README.md
       - packages/python/examples/local_runtime/workflow.yaml
       - packages/python/examples/local_runtime/typeflux.project.yaml
       - packages/python/examples/local_runtime/environment.yaml
       - packages/python/examples/local_runtime/input.json
+      - packages/python/examples/local_runtime/local_sdk.py
+      - packages/python/examples/local_runtime/temporal_sdk.py
+      - packages/python/examples/local_runtime/temporal.yaml
       - packages/python/examples/local_runtime/local_example/__init__.py
       - packages/python/examples/local_runtime/local_example/models.py
       - packages/python/examples/local_runtime/local_example/provider.py
@@ -48,9 +51,13 @@ entities:
       - packages/typescript/yaml/examples/local-runtime/typeflux.project.yaml
       - packages/typescript/yaml/examples/local-runtime/environment.yaml
       - packages/typescript/yaml/examples/local-runtime/input.json
+      - packages/typescript/yaml/examples/local-runtime/local-sdk.mjs
+      - packages/typescript/yaml/examples/local-runtime/temporal-sdk.mjs
+      - packages/typescript/yaml/examples/local-runtime/temporal.yaml
     links:
       - {relation: requires, target: invariant.local-cli-admission}
       - {relation: requires, target: invariant.local-yaml-execution}
+      - {relation: requires, target: invariant.local-yaml-adoption}
   - id: invariant.local-cli-admission
     kind: invariant
     description: Resolve and admit the reachable local graph and composed project policy before service construction; keep JSON stdout separate from diagnostics, validate input, retain expected-hash refusal and drain cooperative cancellation before observation shutdown. SIGKILL loses progress and may prevent cleanup; completed effects remain and each new command executes from the beginning, repeating effects.

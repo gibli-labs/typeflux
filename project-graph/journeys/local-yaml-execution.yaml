@@ -14,7 +14,7 @@ entities:
         action: Await workflow execution with validated input and inspect its result and observations.
         outcome: Ordered bounded maps, branch gates and child workflows reuse activity services; errors stop downstream work and cache cleanup runs on all exits. Manifests omit Temporal placement.
         capabilities: [capability.local-yaml-execution]
-        checks: [check.local-yaml-execution-python]
+        checks: [check.local-yaml-execution-python, check.local-artifact-observation-python]
         failures: [new queued work after failure, cache leaked on cancellation, false Temporal execution identity, activity pipeline bypassed]
       - id: diagnose
         action: Catch a failed provider, extension, collection or child execution, or cancel the running task.
@@ -24,10 +24,16 @@ entities:
         failures: [parent replaces child error context, original exception lost, cancellation wrapped as failure, cache release precedes active-call draining]
       - id: compare-engines
         action: Execute the shared computational fixtures through both SDK engines on an isolated Temporal server with fake providers.
-        outcome: Both engines match normative outputs and reached calls, including gates, skipped branches, ordered bounded maps and transitive children. Concurrent provider start order is not pinned.
+        outcome: Both engines match normative outputs and reached calls, including gates, scoped branch context, skipped branches, ordered bounded maps, transitive children and composed registries; conflicts refuse before effects. Concurrent provider start order is not pinned.
         capabilities: [capability.local-yaml-execution]
         checks: [check.local-temporal-parity-python]
         failures: [engine silently changes computational steps, provider call omitted or duplicated, map result order differs, concurrency exceeds fixture bound]
+      - id: adopt-temporal
+        action: Install the Temporal integration and run the documented example with its Temporal environment and existing worker/starter entry point.
+        outcome: The unchanged computational YAML produces the same validated result on a real worker. Local progress is not resumed or migrated.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-adoption-python]
+        failures: [documented command fails, computational YAML must be rewritten, local progress mistaken for durable history]
   - id: journey.execute-local-yaml-typescript
     kind: journey
     description: A TypeScript SDK caller runs computational YAML in-process without Temporal.
@@ -47,7 +53,14 @@ entities:
 
       - id: compare-engines
         action: Execute the shared computational fixtures through both SDK engines on an isolated Temporal server with fake providers.
-        outcome: Both engines match normative outputs and reached calls, including gates, skipped branches, ordered bounded maps and transitive children. Concurrent provider start order is not pinned.
+        outcome: Both engines match normative outputs and reached calls, including gates, scoped branch context, skipped branches, ordered bounded maps, transitive children and composed registries; conflicts refuse before effects. Concurrent provider start order is not pinned.
         capabilities: [capability.local-yaml-execution]
         checks: [check.local-temporal-parity-typescript]
         failures: [engine silently changes computational steps, provider call omitted or duplicated, map result order differs, concurrency exceeds fixture bound]
+
+      - id: adopt-temporal
+        action: Install the Temporal integration and run the documented example with its Temporal environment and existing worker/starter entry point.
+        outcome: The unchanged computational YAML produces the same validated result on a real worker. Local progress is not resumed or migrated.
+        capabilities: [capability.local-yaml-execution]
+        checks: [check.local-adoption-typescript]
+        failures: [documented command fails, computational YAML must be rewritten, local progress mistaken for durable history]

@@ -1,4 +1,4 @@
 name: local-example
 workflows:
   - {id: echo, path: workflow.yaml}
-environments: {offline: environment.yaml}
+environments: {offline: environment.yaml, temporal: temporal.yaml}

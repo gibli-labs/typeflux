@@ -737,13 +737,29 @@ async def test_shared_local_execution_fixtures(fixture):
     for case in fixtures["cases"]:
         raw = copy.deepcopy(fixtures["base"])
         raw["workflow"].update(case["workflow"])
+        overrides = case.get("spec_overrides", {})
+        patch = copy.deepcopy(overrides.get("root", {}))
+        raw["runtime"].update(patch.pop("runtime", {}))
+        raw.update(patch)
         children = {}
         for child_id, workflow in case["children"].items():
             child = copy.deepcopy(fixtures["base"])
             child["name"] = child_id
             child["workflow"] = {"name": child_id, **workflow}
+            patch = copy.deepcopy(overrides.get(child_id, {}))
+            child["runtime"].update(patch.pop("runtime", {}))
+            child.update(patch)
             children[child_id] = TypefluxYamlSpec.model_validate(child)
         provider.calls.clear()
+        if "error" in case:
+            with pytest.raises(services.RegistryCompositionError, match=case["error"]):
+                build_local_runtime(
+                    TypefluxYamlSpec.model_validate(raw),
+                    resolve_workflow=children.get,
+                    workflow_id="root",
+                )
+            assert provider.calls == []
+            continue
         runtime = build_local_runtime(
             TypefluxYamlSpec.model_validate(raw), resolve_workflow=children.get, workflow_id="root"
         )
@@ -754,3 +770,79 @@ async def test_shared_local_execution_fixtures(fixture):
             assert sorted(calls) == sorted(case["calls"]), case["name"]
         else:
             assert calls == case["calls"], case["name"]
+
+
+@pytest.mark.asyncio
+async def test_local_artifacts_and_redacted_observations_use_existing_pipeline(
+    fixture, tmp_path, monkeypatch
+):
+    import builtins
+
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+    from typeflux.observability.langsmith import LangSmithOtelProfile
+    from typeflux.observability.otel import OtelTraceWriter
+
+    class Files(BaseModel):
+        n: int
+        files: list[str]
+
+    monkeypatch.setattr(sys.modules["local_fixture.models"], "Files", Files, raising=False)
+    provider, _ = fixture
+    (tmp_path / "evidence.txt").write_text("evidence")
+    raw = spec(input="Files").model_dump()
+    raw["runtime"]["artifacts"] = {"local_roots": [str(tmp_path)]}
+    raw["activities"]["definitions"][0]["input"] = "models:Files"
+    raw["activities"]["definitions"][0]["artifacts"] = [{"name": "docs", "from": "input.files"}]
+    raw["activities"]["definitions"].append(
+        {"name": "tail", "input": "models:Item", "output": "models:Item", "prompt": "echo"}
+    )
+    raw["workflow"]["steps"].append(
+        {
+            "id": "tail",
+            "activity": "tail",
+            "when": {"path": "input.n", "neq": "private@example.com"},
+        }
+    )
+    exporter = InMemorySpanExporter()
+    monkeypatch.setattr(
+        LangSmithOtelProfile, "build_span_processor", lambda self: SimpleSpanProcessor(exporter)
+    )
+    real_import = builtins.__import__
+
+    def no_temporal(name, *args, **kwargs):
+        if name == "temporalio" or name.startswith("temporalio."):
+            raise AssertionError("local observation attempted a Temporal import")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_temporal)
+    # Only replace the export transport; the real writer must initialize itself.
+    writer = OtelTraceWriter(profile=LangSmithOtelProfile(api_key="unused", project="offline"))
+    monkeypatch.setattr(
+        services, "_build_observability", lambda *a, **kw: SimpleNamespace(writer=writer)
+    )
+    runtime = build_local_runtime(TypefluxYamlSpec.model_validate(raw))
+    try:
+        result = await runtime.execute_workflow({"n": 1, "files": ["evidence.txt"]})
+        assert result == Item(n=3)
+        artifact = provider.calls[0][2]["artifacts"][0].artifacts[0]
+        assert artifact.source_kind == "local_path"
+        assert artifact.size_bytes == 8
+        assert artifact.local_path == tmp_path / "evidence.txt"
+        spans = exporter.get_finished_spans()
+        assert spans
+        exported = json.dumps([dict(span.attributes or {}) for span in spans])
+        assert "private@example.com" not in exported
+        assert "[REDACTED_EMAIL]" in exported
+        metadata = [
+            json.loads(value)
+            for span in spans
+            for key, value in (span.attributes or {}).items()
+            if key.endswith(".typeflux") and isinstance(value, str)
+        ]
+        assert any(value.get("runtime", {}).get("engine") == "local" for value in metadata)
+        assert "temporal_run_id" not in exported
+        assert "task_queue" not in exported
+    finally:
+        runtime.shutdown()

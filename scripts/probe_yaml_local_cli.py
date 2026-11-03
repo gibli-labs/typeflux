@@ -75,9 +75,17 @@ def main() -> None:
             assert result.returncode == 0, result.stderr
             assert (root / "guard-active").is_file(), "network/import guard did not load"
             assert json.loads(result.stdout) == {"text": "local result"}, result.stdout
-    print(
-        "Installed Python local CLI executes files, stdin and projects without Temporal or network"
-    )
+        result = subprocess.run(
+            [str(executable.parent / "python"), str(application / "local_sdk.py")],
+            cwd=root,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        assert json.loads(result.stdout) == {"text": "local result"}, result.stdout
+    print("Installed Python local CLI/SDK examples execute without Temporal or network")
 
 
 if __name__ == "__main__":

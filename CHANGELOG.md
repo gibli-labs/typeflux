@@ -8,6 +8,14 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Initialize direct/local Python OTEL observations without importing Temporal.
+  Explicit Temporal plugin setup retains its existing tracing path.
+
+- Complete Typeflux Local adoption examples and the cross-edition acceptance
+  matrix, including scoped branch context, composed registry admission, Python
+  artifact/redaction behavior, clean installed SDK/CLI examples and executable
+  local-to-Temporal migration. No durability, scheduler or review engine is added.
+
 - Verify the shared computational YAML fixtures on local and real Temporal
   runtimes in both editions. Foreground CLI process-loss tests demonstrate that
   completed effects survive SIGKILL and a new command repeats execution from the
@@ -23,14 +31,12 @@ heading as part of the release PR or tag preparation.
   YAML files and resolved projects, with JSON file/stdin input, policy/capability
   admission, diagnostic isolation, signal draining and observation cleanup. It shares
   project and automatic service wiring with the existing Temporal adapters. The
-  installed npm bin runs without any Temporal SDK. Final adoption acceptance remains
-  open in #89.
+  installed npm bin runs without any Temporal SDK.
 
 - Add the Python `typeflux-local` foreground CLI for YAML files and resolved project
   workflows. It reuses local SDK execution and project policy admission, supports
   JSON file/stdin input, clean JSON output, cooperative interruption and observation
   shutdown, and ships an offline example. The base wheel runs it without Temporal.
-  Final adoption acceptance remains open in #89.
 
 - Execute computational YAML locally through Python `build_local_runtime` and
   TypeScript `buildLocalRuntime`, without Temporal. Both SDKs support typed
@@ -38,18 +44,18 @@ heading as part of the release PR or tag preparation.
   children using existing activity pipelines. TypeScript now shares policy,
   provider, registry and artifact assembly with its Temporal integration; existing
   Temporal APIs remain exported. Local execution has no durability, scheduler,
-  review or compensation. Final adoption acceptance remains in progress (#89).
+  review or compensation.
 
 - Add explicit `runtime.engine: local | temporal` selection and recursive local
   capability checks in both SDKs. Local specs can omit task queues and Temporal
   settings; existing Temporal entry points reject local selection before runtime
   setup. Omitted engine behavior remains Temporal. Local SDK execution is available;
-  Final adoption acceptance remains in progress. See [local runtime](docs/local-runtime.md).
+  See [local runtime](docs/local-runtime.md) for installation and migration.
 
 - Allow workflow manifests without a Temporal task queue in both SDK builders
   and Python trace inspection. Omitted/null queue and run context is excluded
   from serialization; existing Temporal manifests and hashes are unchanged.
-  This is the manifest foundation for Typeflux Local (#89), not a local YAML runtime.
+  This is the shared manifest foundation for Typeflux Local (#89).
 
 - Make the Python Temporal integration optional. Existing workflow/worker users
   must install `typeflux[temporal]` (or combine it with provider extras); `api`
