@@ -44,6 +44,13 @@ budget; retries remain disabled. Failure probes cover missing data, unexpected
 errors retained after a later success, allowed outages and permanently pending
 requests. Allowlisted error responses never count as successful data.
 
+The run-URL smoke still uses real execution enumeration against the unreachable
+fixture Temporal service. Single-workflow lists follow the same no-client-retry
+policy as the matrix, so a bounded unavailable read is not automatically repeated.
+Controlled default/project-scoped regressions require one request to show the
+503 error and verify that a deliberate reload can render recovered execution data.
+They retain the API-health observer and do not stub the original cold-load listing.
+
 ## Implement and verify
 
 1. Read `AGENTS.md`, the issue and relevant source. Retrieve graph context for a

@@ -257,6 +257,9 @@ export function useExecutions(workflowId: string, env: string) {
   return useQuery({
     queryKey: executionsKey(workflowId, env),
     queryFn: () => fetchExecutions(workflowId, env),
+    // Like the matrix below, this Temporal-tier read already has a server-side
+    // bound. A client retry doubles the unavailable wait for no new information.
+    retry: false,
   });
 }
 

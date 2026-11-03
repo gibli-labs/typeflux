@@ -1,0 +1,28 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.console-execution-reads
+    kind: capability
+    description: Read single-workflow and cross-workflow executions through the console with project/environment scoping, honest unavailable results and no redundant client retry of bounded Temporal reads.
+    editions: {python: supported, typescript: supported, console: supported}
+    implementation:
+      - clients/console/src/queries.ts
+      - clients/console/src/panels/runs.tsx
+    documentation: [docs/control-plane.md, docs/development.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.console-bounded-execution-read}
+      - {relation: requires, target: invariant.browser-data-readiness}
+  - id: invariant.console-bounded-execution-read
+    kind: invariant
+    description: A failed execution-list read is not automatically repeated by the console; unavailability is not empty success, and deliberate fresh reads can recover while preserving project/environment identity. Server bounds and global retry policy remain unchanged.
+  - id: check.console-execution-reads
+    kind: check
+    description: Controlled single-workflow outages assert one GET, unavailable rendering and recovery on reload for default and project-scoped reads; the original cold-load flow still uses real enumeration and strict background API health on both editions.
+    environment: chromium-python-cp-and-ts-cp
+    ci: [browser-python, browser-typescript]
+    tests:
+      - {path: clients/console/e2e/smoke.spec.ts, name: 'execution listing reports unavailability once and reload recovers (default-project)'}
+      - {path: clients/console/e2e/smoke.spec.ts, name: 'execution listing reports unavailability once and reload recovers (project-scoped)'}
+      - {path: clients/console/e2e/smoke.spec.ts, name: 'a run URL cold-loads with the execution addressed (#580)'}
+    links:
+      - {relation: verifies, target: invariant.console-bounded-execution-read}

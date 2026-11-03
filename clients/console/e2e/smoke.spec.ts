@@ -1,4 +1,5 @@
-import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
+import { expect, test, type ApiHealth } from "./fixtures";
 import { delayFixtureData } from "./delayed-data";
 import { bundleReads, matrixReads, governanceReads } from "./data-reads";
 
@@ -144,6 +145,55 @@ test("a run URL cold-loads with the execution addressed (#580)", async ({ page, 
   await expect(page).toHaveURL(/run=smoke-run-001/);
 
   expect(errors, "no uncaught page errors").toEqual([]);
+});
+
+async function executionListRecovery(page: Page, apiHealth: ApiHealth, project?: string) {
+  if (project) await page.addInitScript((id) => localStorage.setItem("typeflux.project", id), project);
+  const prefix = project ? `/api/v1/projects/${project}` : "/api/v1";
+  const requests: Array<{ method: string; path: string; environment: string | null }> = [];
+  let unavailable = true;
+  await page.route(/\/api\/v1\/(?:projects\/[^/]+\/)?workflows\/[^/]+\/executions(?:\?|$)/, (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    requests.push({ method: request.method(), path: url.pathname, environment: url.searchParams.get("environment_id") });
+    return route.fulfill(unavailable ? {
+      status: 503,
+      json: { error: "TemporalUnavailable", message: "controlled execution visibility unavailable" },
+    } : {
+      json: {
+        logical_workflow: EXPECT.workflowId,
+        current_workflow_type: EXPECT.workflowName,
+        executions: [{
+          execution_id: "recovered-run-112", run_id: "recovered-attempt", workflow_type: EXPECT.workflowName,
+          current_version: true, status: "COMPLETED", start_time: null, close_time: null,
+        }],
+      },
+    });
+  });
+
+  // No addressed run: only the execution listing is controlled. Bundle reads
+  // still reach the real lane API; the observer must see the allowed 503.
+  await page.goto(`/#/workflows/${EXPECT.workflowId}/runs?env=${EXPECT.environment}`);
+  await expect(page.locator("#executions")).toContainText("Executions unavailable: TemporalUnavailable: controlled execution visibility unavailable");
+  await apiHealth.settle();
+  const expected = { method: "GET", path: `${prefix}/workflows/${EXPECT.workflowId}/executions`, environment: EXPECT.environment };
+  expect(requests, "a bounded Temporal read is not automatically repeated by the client").toEqual([expected]);
+
+  // Disabling automatic retries must not disable a deliberate fresh read or
+  // turn an outage into an empty-success result.
+  unavailable = false;
+  await page.reload();
+  await expect(page.locator("#executions").getByText("recovered-run-112", { exact: true })).toBeVisible();
+  await apiHealth.settle();
+  expect(requests).toEqual([expected, expected]);
+}
+
+test("execution listing reports unavailability once and reload recovers (default-project)", async ({ page, apiHealth }) => {
+  await executionListRecovery(page, apiHealth);
+});
+
+test("execution listing reports unavailability once and reload recovers (project-scoped)", async ({ page, apiHealth }) => {
+  await executionListRecovery(page, apiHealth, EXPECT.secondProject);
 });
 
 test("probe results are cached across navigation (#580)", async ({ page }) => {

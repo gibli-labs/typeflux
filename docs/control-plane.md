@@ -110,6 +110,12 @@ init still runs on the loop — #585 tracks that). Note the `workers`
 endpoint's soft degradation (`reachable: false` with a 200) still applies to
 fast failures; a probe that exceeds the bound is a hard 503.
 
+**Console execution lists:** single-workflow and cross-workflow execution queries
+do not automatically retry failed Temporal-backed reads. The server bounds each
+attempt; a client retry would repeat that wait before showing unavailability.
+An unavailable response remains an error, not an empty successful list. A deliberate
+reload or query invalidation can fetch again; successful results remain cached.
+
 **Execution binding (status / review / cancel):** before any query or signal,
 the operation `describe`s the addressed execution and verifies it is the
 workflow this route serves — its registered `workflow_type` must match the
