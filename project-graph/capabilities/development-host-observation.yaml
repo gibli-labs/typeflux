@@ -1,0 +1,42 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.development-host-observation
+    kind: capability
+    description: Observe bounded command clock gaps as uncertain local host diagnostics and optionally prevent macOS idle sleep for one development invocation without changing check outcomes, readiness or timeout budgets.
+    editions: {python: shared, typescript: shared}
+    implementation: [tools/development/host.py, tools/development/__main__.py]
+    documentation: [docs/development.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.host-diagnostics-uncertain}
+      - {relation: requires, target: invariant.local-keep-awake}
+  - id: invariant.host-diagnostics-uncertain
+    kind: invariant
+    description: Clock/sampling gaps are bounded uncertain observations, never proof of suspension or correctness. Command failures, interruption, native test outcomes, deadlines and source identity remain intact; preserve failed reports/traces before rerunning.
+  - id: invariant.local-keep-awake
+    kind: invariant
+    description: Keep-awake is opt-in, local and process-scoped; reject CI power control, gracefully report unsupported/unavailable helpers and clean up on success/failure/interruption without persistent settings or changed verification outcomes.
+  - id: check.development-host-observation
+    kind: check
+    description: Deterministic gap/stall/clock-adjustment tests, bounded samples, unavailable observer, actual failing command with source-bound native evidence, unchanged timeout, interrupt receipt and keep-awake lifecycle/platform/CI behavior.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_development_host.py, name: test_host_gaps_report_uncertainty_for_suspension_stalls_and_clock_changes}
+      - {path: packages/python/tests/test_development_host.py, name: test_host_observations_are_bounded_without_hiding_gap_count}
+      - {path: packages/python/tests/test_development_host.py, name: test_host_observer_degrades_when_sampling_thread_is_unavailable}
+      - {path: packages/python/tests/test_development_host.py, name: test_host_observer_stops_on_command_failure}
+      - {path: packages/python/tests/test_development_host.py, name: test_host_clock_unavailable_does_not_block_command}
+      - {path: packages/python/tests/test_development_host.py, name: test_runner_retains_failed_native_evidence_despite_suspected_host_gap}
+      - {path: packages/python/tests/test_development_host.py, name: test_runner_host_observations_do_not_change_command_timeout}
+      - {path: packages/python/tests/test_development_host.py, name: test_runner_writes_failed_receipt_before_propagating_interrupt}
+      - {path: packages/python/tests/test_development_host.py, name: test_keep_awake_is_process_scoped_and_cleans_up_on_exit}
+      - {path: packages/python/tests/test_development_host.py, name: test_keep_awake_kills_only_its_stuck_helper}
+      - {path: packages/python/tests/test_development_host.py, name: test_keep_awake_is_opt_in_and_graceful_on_unsupported_hosts}
+      - {path: packages/python/tests/test_development_host.py, name: test_keep_awake_missing_tool_does_not_fail_verification}
+      - {path: packages/python/tests/test_development_host.py, name: test_keep_awake_refuses_ci_without_starting_process}
+      - {path: packages/python/tests/test_development_host.py, name: test_cli_keeps_awake_for_selected_checks_and_cleans_up_after_failure}
+      - {path: packages/python/tests/test_development_host.py, name: test_cli_rejects_ci_keep_awake_before_executing_checks}
+    links:
+      - {relation: verifies, target: invariant.host-diagnostics-uncertain}
+      - {relation: verifies, target: invariant.local-keep-awake}
