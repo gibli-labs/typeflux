@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures";
 import { delayFixtureData } from "./delayed-data";
-import { matrixReads, governanceReads } from "./data-reads";
+import { bundleReads, matrixReads, governanceReads } from "./data-reads";
 
 import { EXPECT, LANE, rx } from "./expectations";
 
@@ -33,10 +33,12 @@ test("fixture bundles resolve across projects and environments without credentia
 });
 
 test("overview renders bundles and the project switch rescopes requests", async ({ page, apiHealth }) => {
+  const delivered = await delayFixtureData(page);
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
 
   await page.goto("/");
+  await apiHealth.waitForData(bundleReads());
 
   // The Overview table is API-backed: a versioned workflow type only appears
   // once its bundle resolved end-to-end through the served API.
@@ -71,6 +73,11 @@ test("overview renders bundles and the project switch rescopes requests", async 
   );
   await switcher.selectOption(EXPECT.secondProject);
   await scoped;
+  await apiHealth.waitForData(bundleReads(EXPECT.secondProject));
+  await expect(
+    page.locator("#workflows").getByText(EXPECT.overviewWorkflowText, { exact: false }),
+  ).toBeVisible();
+  expect(delivered(), "controlled slow fixture responses were exercised").toBeGreaterThan(0);
 
   expect(errors, "no uncaught page errors").toEqual([]);
 });

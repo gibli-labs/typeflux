@@ -2,7 +2,7 @@ apiVersion: typeflux.dev/graph/v1alpha1
 entities:
   - id: capability.browser-verification
     kind: capability
-    description: Verify console content against both control-plane editions with bounded successful-data readiness and strict background API health checks.
+    description: Verify console content against both control-plane editions with bounded successful-data readiness, including overview project switches, and strict background API health checks.
     editions: {python: supported, typescript: supported, console: supported}
     implementation:
       - clients/console/e2e/api-health.ts
