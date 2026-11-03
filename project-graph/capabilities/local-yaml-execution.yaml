@@ -64,12 +64,15 @@ entities:
       - {path: packages/typescript/yaml/test/local.test.ts, name: "snapshots admission inputs and keeps invocations independent"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "uses portable code descriptors and rejects worker functions and Temporal policies"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "rejects the complete skipped closure before provider construction"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "rejects optional outputs at required workflow and map boundaries before execution"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "validates resolved collection schemas before prompt resolution"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "shares provider concurrency across maps and invocations"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "reuses provider retry without retrying a failed activity"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "stops queued work, aborts siblings and drains before cache release"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "releases a cache created while cancellation was pending without starting items"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "enforces collect size and validates collected values at runtime"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "measures validated map and parallel collections including schema defaults"}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: "threads root subjects unchanged through child workflows and workflow maps"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "retains repair, output checks, hooks, moderation, caching and dependency context"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "preserves policy admission, including skipped child requirements and required observation"}
       - {path: packages/typescript/yaml/test/local.test.ts, name: "redacts predicate literals and emits no Temporal identity"}

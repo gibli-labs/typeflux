@@ -86,6 +86,22 @@ describe("local YAML execution", () => {
     expect(constructed).toBe(0);
   });
 
+  it("rejects optional outputs at required workflow and map boundaries before execution", async () => {
+    const handler = vi.fn(() => undefined);
+    const descriptor = defineCodeActivity({name: "echo", input: Item, output: Item.optional(), handler});
+    for (const source of [spec(), mapSpec()]) {
+      source.activities.definitions = [];
+      await expect(buildLocalRuntime(source, {schemas, provider: new Provider(), extraActivities: {echo: descriptor}}))
+        .rejects.toThrow(/optional output cannot feed a required contract/);
+    }
+    expect(handler).not.toHaveBeenCalled();
+    // A default consumes absent input and produces a required value; it is not optional output.
+    const defaulted = defineCodeActivity({name: "echo", input: Item, output: Item.default({n: 2}), handler: () => ({n: 2})});
+    const runtime = await buildLocalRuntime(spec({activities: {definitions: []}}),
+      {schemas, provider: new Provider(), extraActivities: {echo: defaulted}});
+    expect(await runtime.executeWorkflow({n: 1})).toEqual({n: 2});
+  });
+
   it("validates resolved collection schemas before prompt resolution", async () => {
     const resolve = vi.fn();
     const source = mapSpec();
@@ -170,6 +186,60 @@ describe("local YAML execution", () => {
     const refined = Batch.refine(batch => batch.items.length < 2, "too many items");
     const checked = await buildLocalRuntime(mapSpec(), {schemas: {...schemas, "models:Batch": refined}, provider: new Provider()});
     await expect(checked.executeWorkflow({items: [{n: 1}, {n: 2}]})).rejects.toThrow(/too many items/);
+  });
+
+  it("measures validated map and parallel collections including schema defaults", async () => {
+    const padded = {
+      ...schemas,
+      "models:Batch": Batch.extend({padding: z.string().default("é".repeat(100))}),
+      "models:Branches": schemas["models:Branches"].extend({padding: z.string().default("é".repeat(100))}),
+    };
+    for (const test of [fixtures.cases[3], fixtures.cases[4]]) {
+      const source = spec({workflow: {name: "Root", ...test.workflow}});
+      const step = source.workflow.steps[0]!;
+      (step.map?.collect ?? step.parallel!.collect).max_bytes = 50;
+      const runtime = await buildLocalRuntime(source, {schemas: padded, provider: new Provider()});
+      await expect(runtime.executeWorkflow(test.input)).rejects.toThrow(/collect.max_bytes=50/);
+    }
+  });
+
+  it("threads root subjects unchanged through child workflows and workflow maps", async () => {
+    const SubjectItem = Item.extend({subject: z.string().optional()});
+    const subjectSchemas = {...schemas, "models:Item": SubjectItem,
+      "models:Batch": z.object({items: z.array(SubjectItem), subject: z.string().optional()})};
+    const scenarios: {value?: string; explicit?: string[]; expected: string[]}[] = [
+      {expected: []}, {value: "root-subject", expected: ["root-subject"]},
+      {explicit: ["override", "override"], expected: ["override"]},
+    ];
+    for (const test of [fixtures.cases[6], fixtures.cases[7]]) for (const scenario of scenarios) {
+      const root = spec({workflow: {name: "Root", ...test.workflow,
+        subjects: [{from: "input.subject", required: scenario.explicit !== undefined}]}});
+      const children = Object.fromEntries(Object.entries(test.children).map(([id, workflow]) =>
+        [id, spec({name: id, workflow: {name: id, ...(workflow as object),
+          subjects: [{from: "input.missing", required: true}]}})]));
+      for (const source of [root, ...Object.values(children)]) {
+        source.activities.definitions![0]!.cross_run_cache = {enabled: true};
+      }
+      const seen: string[][] = [];
+      const cacheStore = new InMemoryCacheStore();
+      const writes = vi.spyOn(cacheStore, "set");
+      const runtime = await buildLocalRuntime(root, {schemas: subjectSchemas, provider: new Provider(), cacheStore,
+        subworkflows: {selfId: "root", specFor: id => children[id]},
+        hooks: {echo: (_input, output, context) => { seen.push([...(context.subjectIds ?? [])]); return output; }},
+      });
+      const input = {...test.input, ...(scenario.value === undefined ? {} : {subject: scenario.value})};
+      expect(await runtime.executeWorkflow(input,
+        scenario.explicit === undefined ? {} : {subjectIds: scenario.explicit})).toEqual(test.expected);
+      const count = test.calls.length;
+      expect(seen).toEqual(Array.from({length: count}, () => scenario.expected));
+      expect(writes).toHaveBeenCalledTimes(count);
+      for (const [, record] of writes.mock.calls) expect(record.subjects ?? []).toEqual(scenario.expected);
+    }
+    const required = spec(); required.workflow.subjects = [{from: "input.subject", required: true}];
+    const provider = new Provider();
+    const runtime = await buildLocalRuntime(required, {schemas: subjectSchemas, provider});
+    await expect(runtime.executeWorkflow({n: 1}, {subjectIds: []})).rejects.toThrow(/required subject/);
+    expect(provider.calls).toEqual([]);
   });
 
   it("retains repair, output checks, hooks, moderation, caching and dependency context", async () => {

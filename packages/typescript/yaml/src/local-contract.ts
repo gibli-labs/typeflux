@@ -29,6 +29,10 @@ function field(schema: z.ZodType, name: string, where: string): z.ZodType {
 }
 
 function same(actual: z.ZodType, expected: z.ZodType, where: string): void {
+  const absent = actual.safeParse(undefined);
+  if (absent.success && absent.data === undefined && !expected.safeParse(undefined).success) {
+    throw new Error(`${where}: optional output cannot feed a required contract`);
+  }
   if (actual.safeParse(null).success && !expected.safeParse(null).success) {
     throw new Error(`${where}: nullable output cannot feed a non-nullable contract`);
   }

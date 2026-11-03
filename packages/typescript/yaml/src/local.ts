@@ -115,7 +115,8 @@ export async function buildLocalRuntime(source: TypefluxYamlSpec, supplied: Loca
       async function invoke(owner: LocalContract, value: unknown, inheritedSubjects?: readonly string[]): Promise<unknown> {
         check(signal);
         const parsed = owner.input.parse(value);
-        const subjects = effectiveSubjectIds(inheritedSubjects, parsed,
+        // Resolve identity at the root only; an inherited empty list is still authoritative.
+        const subjects = inheritedSubjects ?? effectiveSubjectIds(execution.subjectIds, parsed,
           (owner.spec.workflow.subjects ?? []).map(s => ({fromPath: s.from, required: s.required})));
         const metadata = collectMetadata({correlationId, contract: owner, descriptors: assembled.descriptors}, [contributor]);
         const observer = shared.observer;
@@ -195,12 +196,12 @@ export async function buildLocalRuntime(source: TypefluxYamlSpec, supplied: Loca
                 }
               }
               if (step.kind === "map" || step.kind === "subworkflowMap" || step.kind === "parallel") {
+                const collect = owner.collects.get(step.id);
+                if (collect !== undefined) current = collect.parse(current);
                 const limit = step.collectMaxBytes;
                 if (limit !== undefined && limit > 0 && utf8ByteLength(JSON.stringify(current)) > limit) {
                   throw new Error(`collected payload exceeds collect.max_bytes=${limit}; shrink outputs or raise the limit`);
                 }
-                const collect = owner.collects.get(step.id);
-                if (collect !== undefined) current = collect.parse(current);
               }
               check(signal);
               context[step.id] = current;
@@ -213,7 +214,7 @@ export async function buildLocalRuntime(source: TypefluxYamlSpec, supplied: Loca
         }
         return owner.output.parse(await sequence(owner.plan.steps, parsed, Object.assign(Object.create(null), {input: parsed})));
       }
-      try { return await invoke(contract, input, execution.subjectIds); }
+      try { return await invoke(contract, input); }
       finally { execution.signal?.removeEventListener("abort", abort); }
     },
   };
