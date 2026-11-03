@@ -36,6 +36,17 @@ def main() -> None:
             [str(python), "-I", str(root / "scripts/probe_yaml_planning.py")], env=env, check=True
         )
         subprocess.run(
+            [
+                str(python),
+                "-I",
+                str(root / "scripts/probe_yaml_local_cli.py"),
+                str(venv / "bin/typeflux-local"),
+                str(root / "packages/python/examples/local_runtime"),
+            ],
+            env=env,
+            check=True,
+        )
+        subprocess.run(
             ["uv", "pip", "install", "--python", str(python), f"{wheels[0]}[temporal]"],
             env=env,
             check=True,

@@ -8,6 +8,12 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Add the Python `typeflux-local` foreground CLI for YAML files and resolved project
+  workflows. It reuses local SDK execution and project policy admission, supports
+  JSON file/stdin input, clean JSON output, cooperative interruption and observation
+  shutdown, and ships an offline example. The base wheel runs it without Temporal.
+  TypeScript CLI and final adoption acceptance remain open in #89.
+
 - Execute computational YAML locally through Python `build_local_runtime` and
   TypeScript `buildLocalRuntime`, without Temporal. Both SDKs support typed
   sequences, gates, parallel branches, ordered bounded maps and same-project

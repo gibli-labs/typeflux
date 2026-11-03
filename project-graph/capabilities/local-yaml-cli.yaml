@@ -1,0 +1,47 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.local-yaml-cli
+    kind: capability
+    description: Execute a Python YAML file or resolved project workflow in a foreground process without Temporal, with JSON I/O, project policy admission, cooperative interruption and observation shutdown. TypeScript CLI adoption remains in issue 89.
+    editions: {python: supported, typescript: unsupported}
+    implementation:
+      - packages/python/src/typeflux/yaml/local_cli.py
+      - packages/python/src/typeflux/yaml/local.py
+      - packages/python/src/typeflux/project/cli_support.py
+      - packages/python/src/typeflux/project/__main__.py
+      - packages/python/pyproject.toml
+      - scripts/probe_yaml_local_cli.py
+      - scripts/verify_python_planning_install.py
+    documentation: [docs/local-runtime.md, docs/yaml-planning.md, packages/python/README.md]
+    examples:
+      - packages/python/examples/local_runtime/README.md
+      - packages/python/examples/local_runtime/workflow.yaml
+      - packages/python/examples/local_runtime/typeflux.project.yaml
+      - packages/python/examples/local_runtime/environment.yaml
+      - packages/python/examples/local_runtime/input.json
+      - packages/python/examples/local_runtime/local_example/__init__.py
+      - packages/python/examples/local_runtime/local_example/models.py
+      - packages/python/examples/local_runtime/local_example/provider.py
+    links:
+      - {relation: requires, target: invariant.local-cli-admission}
+      - {relation: requires, target: invariant.local-yaml-execution}
+  - id: invariant.local-cli-admission
+    kind: invariant
+    description: Resolve and admit the reachable local graph and composed project policy before service construction; keep JSON stdout separate from diagnostics, validate input, retain expected-hash refusal and drain cooperative cancellation before observation shutdown. Each command starts a fresh execution.
+  - id: check.local-yaml-cli-python
+    kind: check
+    description: Real loaders, profiles, environment and child policy admission; file/stdin input, output isolation, typed failures and cleanup; subprocess execution without Temporal or network, POSIX signals, and the offline example. The quality lane separately probes the installed base-wheel console command.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_file_and_stdin_keep_json_output_clean}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_input_errors_are_usage_and_never_execute}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_project_profiles_environment_policy_and_children}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_refusals_precede_service_construction}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_shuts_down_after_execution_and_preparation_failure}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_subprocess_executes_without_temporal_or_network}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_refuses_temporal_engine_before_services}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_offline_example_file_and_project_without_services}
+      - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_signals_cancel_and_drain_before_shutdown}
+    links:
+      - {relation: verifies, target: invariant.local-cli-admission}

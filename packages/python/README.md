@@ -12,9 +12,19 @@ execution manifests, redaction, and trace enrichment.
 pip install "typeflux[temporal]"
 ```
 
-For core activity execution and YAML planning without a Temporal SDK, install
-`typeflux` alone. YAML workflow execution requires the `temporal` extra and a
-reachable Temporal server. See [shared YAML planning](https://github.com/gibli-labs/typeflux/blob/main/docs/yaml-planning.md).
+For local YAML execution without a Temporal SDK or service, install `typeflux`
+alone and select `runtime.engine: local` in the workflow:
+
+```bash
+pip install typeflux
+typeflux-local workflow.yaml --input input.json
+```
+
+The foreground command also accepts `--project`, `--workflow` and `--environment`
+to reuse project profiles and policy admission. See the
+[local runtime guide](https://github.com/gibli-labs/typeflux/blob/main/docs/local-runtime.md)
+and [offline example](examples/local_runtime/README.md). Temporal execution requires
+the `temporal` extra and a reachable Temporal server.
 
 Provider integrations compose with the runtime extra:
 
@@ -26,7 +36,7 @@ pip install "typeflux[api]"       # FastAPI control plane
 pip install "typeflux[live]"      # everything, for live testing
 ```
 
-Python 3.11+ and a reachable Temporal server (the
+Python 3.11+. The Temporal runtime also requires a reachable Temporal server (the
 [Temporal dev server](https://docs.temporal.io/cli#server) works for local
 development). The package is in **0.x beta** — see the release policy in the
 repository for compatibility expectations.
