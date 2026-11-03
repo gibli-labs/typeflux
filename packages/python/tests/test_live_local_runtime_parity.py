@@ -7,6 +7,7 @@ import copy
 import json
 import os
 import sys
+import textwrap
 from pathlib import Path
 from uuid import uuid4
 
@@ -170,6 +171,119 @@ async def test_offline_example_temporal_adoption_script():
         out, err = await asyncio.wait_for(process.communicate(), timeout=60)
         assert process.returncode == 0, err.decode()
         assert json.loads(out) == {"text": "local result"}
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+
+
+@pytest.mark.asyncio
+async def test_temporal_adoption_recovers_same_run_and_enforces_timeout():
+    root = Path(__file__).resolve().parents[1] / "examples/local_runtime"
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        str(root / "recovery_demo.py"),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        out, err = await asyncio.wait_for(process.communicate(), timeout=90)
+        assert process.returncode == 0, err.decode()
+        assert json.loads(out) == [
+            {
+                "scenario": "retry",
+                "attempts": [1, 2],
+                "sameRun": True,
+                "retryRecordedBeforeStop": True,
+                "status": "COMPLETED",
+                "maximumAttempts": 2,
+                "startToCloseSeconds": 10,
+                "result": {"text": "local result"},
+            },
+            {
+                "scenario": "timeout",
+                "attempts": [1],
+                "sameRun": True,
+                "retryRecordedBeforeStop": False,
+                "status": "FAILED",
+                "maximumAttempts": 1,
+                "startToCloseSeconds": 0.5,
+                "result": None,
+            },
+        ]
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+
+
+@pytest.mark.asyncio
+async def test_temporal_adoption_waits_for_delayed_failure_report_before_shutdown():
+    root = Path(__file__).resolve().parents[1] / "examples/local_runtime"
+    # Delay SDK failure encoding after the provider has notified the demo. The
+    # previous provider-local barrier shuts down during this controlled window.
+    script = textwrap.dedent("""
+        import asyncio, runpy, sys
+        from pathlib import Path
+        from unittest.mock import patch
+        from temporalio.converter import DataConverter
+        from temporalio.worker import Worker
+        from typeflux.providers.errors import ProviderTransientError
+        root = Path(sys.argv[1])
+        sys.path.insert(0, str(root))
+        from local_example.recovery_provider import RecoveryProvider
+        demo = runpy.run_path(str(root / "recovery_demo.py"))
+        async def verify():
+            failed, encoded = asyncio.Event(), asyncio.Event()
+            delays = 0
+            call = RecoveryProvider.async_structured_call
+            encode = DataConverter.encode_failure
+            shutdown = Worker.shutdown
+            async def observed_call(self, **kwargs):
+                try:
+                    return await call(self, **kwargs)
+                except ProviderTransientError:
+                    failed.set()
+                    raise
+            async def delayed_encode(self, error, failure):
+                nonlocal delays
+                observed = isinstance(error, ProviderTransientError)
+                if observed:
+                    delays += 1
+                    await asyncio.sleep(0.25)
+                result = await encode(self, error, failure)
+                if observed:
+                    encoded.set()
+                return result
+            async def checked_shutdown(self):
+                premature = failed.is_set() and not encoded.is_set()
+                try:
+                    await shutdown(self)
+                finally:
+                    assert not premature, "worker shutdown preceded failure report"
+            with patch.object(RecoveryProvider, "async_structured_call", observed_call), \
+                 patch.object(DataConverter, "encode_failure", delayed_encode), \
+                 patch.object(Worker, "shutdown", checked_shutdown):
+                await demo["main"]()
+            assert delays == 1 and encoded.is_set()
+        asyncio.run(verify())
+    """)
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-c",
+        script,
+        str(root),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        out, err = await asyncio.wait_for(process.communicate(), timeout=90)
+        assert process.returncode == 0, err.decode()
+        observations = json.loads(out)
+        assert observations[0]["attempts"] == [1, 2]
+        assert observations[0]["sameRun"] is True
+        assert observations[0]["retryRecordedBeforeStop"] is True
+        assert observations[1]["status"] == "FAILED"
     finally:
         if process.returncode is None:
             process.kill()

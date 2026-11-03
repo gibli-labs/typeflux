@@ -49,6 +49,13 @@ verification runs this script from a Temporal consumer with its integration/clie
 worker dependencies installed, against the existing isolated server.
 See the [engine comparison and migration guide](../../../../../docs/local-runtime.md#switch-an-application-to-temporal).
 
+For an optional credential-free worker interruption/recovery and activity timeout
+demonstration, install matching `@typeflux/temporal-worker` and `@temporalio/common`
+alongside the integration dependencies above, then run `node recovery-demo.mjs`.
+The offline bindings stay Temporal-free. See the
+[worked durable adoption guide](../../../../../docs/temporal-adoption.md) for
+expected attempt/history observations, isolated verification and limitations.
+
 A new local command always starts from the beginning. Process loss can prevent
 cleanup and a rerun may repeat completed effects. The packed-candidate probe executes
 these local CLI/SDK commands outside the workspace, with no `@temporalio/*` dependency
