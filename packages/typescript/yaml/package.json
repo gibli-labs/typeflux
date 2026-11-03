@@ -136,6 +136,58 @@
     "./subjects": {
       "types": "./dist/subjects.d.ts",
       "default": "./dist/subjects.js"
+    },
+    "./bindings-module": {
+      "types": "./dist/bindings-module.d.ts",
+      "default": "./dist/bindings-module.js"
+    },
+    "./project-fs-loader": {
+      "types": "./dist/project-fs-loader.d.ts",
+      "default": "./dist/project-fs-loader.js"
+    },
+    "./langfuse-otel": {
+      "types": "./dist/langfuse-otel.d.ts",
+      "default": "./dist/langfuse-otel.js"
+    },
+    "./langfuse-observer": {
+      "types": "./dist/langfuse-observer.d.ts",
+      "default": "./dist/langfuse-observer.js"
+    },
+    "./langfuse-registry": {
+      "types": "./dist/langfuse-registry.d.ts",
+      "default": "./dist/langfuse-registry.js"
+    },
+    "./langsmith-observer": {
+      "types": "./dist/langsmith-observer.d.ts",
+      "default": "./dist/langsmith-observer.js"
+    },
+    "./langsmith-registry": {
+      "types": "./dist/langsmith-registry.d.ts",
+      "default": "./dist/langsmith-registry.js"
+    },
+    "./observer-from-spec": {
+      "types": "./dist/observer-from-spec.d.ts",
+      "default": "./dist/observer-from-spec.js"
+    },
+    "./streaming-trace-writer": {
+      "types": "./dist/streaming-trace-writer.d.ts",
+      "default": "./dist/streaming-trace-writer.js"
+    },
+    "./provider-transports-from-env": {
+      "types": "./dist/provider-transports-from-env.d.ts",
+      "default": "./dist/provider-transports-from-env.js"
+    },
+    "./project-run": {
+      "types": "./dist/project-run.d.ts",
+      "default": "./dist/project-run.js"
+    },
+    "./runtime-wiring": {
+      "types": "./dist/runtime-wiring.d.ts",
+      "default": "./dist/runtime-wiring.js"
+    },
+    "./runtime-target": {
+      "types": "./dist/runtime-target.d.ts",
+      "default": "./dist/runtime-target.js"
     }
   },
   "scripts": {
@@ -151,6 +203,68 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "7.0.2",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "@anthropic-ai/sdk": "^1.1.0",
+    "@google/genai": "^2.30.0",
+    "openai": "^7.39.0",
+    "langsmith": "^0.11.0",
+    "@langfuse/client": "^6.0.1",
+    "@langfuse/tracing": "^6.0.1",
+    "@langfuse/otel": "^6.0.1",
+    "@opentelemetry/api": "~1.9.1",
+    "@opentelemetry/sdk-trace": "^2.12.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.223.0",
+    "@opentelemetry/otlp-exporter-base": "^0.223.0"
+  },
+  "bin": {
+    "typeflux-local": "./dist/local-cli.js"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
+    "@google/genai": "^2.0.0",
+    "openai": "^7.39.0",
+    "langsmith": "^0.11.0",
+    "@langfuse/client": "^6.0.1",
+    "@langfuse/tracing": "^6.0.1",
+    "@langfuse/otel": "^6.0.1",
+    "@opentelemetry/api": "~1.9.1",
+    "@opentelemetry/sdk-trace": "^2.12.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.223.0",
+    "@opentelemetry/otlp-exporter-base": "^0.223.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@google/genai": {
+      "optional": true
+    },
+    "langsmith": {
+      "optional": true
+    },
+    "openai": {
+      "optional": true
+    },
+    "@langfuse/client": {
+      "optional": true
+    },
+    "@langfuse/tracing": {
+      "optional": true
+    },
+    "@langfuse/otel": {
+      "optional": true
+    },
+    "@opentelemetry/api": {
+      "optional": true
+    },
+    "@opentelemetry/sdk-trace": {
+      "optional": true
+    },
+    "@opentelemetry/exporter-trace-otlp-http": {
+      "optional": true
+    },
+    "@opentelemetry/otlp-exporter-base": {
+      "optional": true
+    }
   }
 }

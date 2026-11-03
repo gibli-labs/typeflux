@@ -2,8 +2,8 @@
 
 Typeflux Local is in development ([#89](https://github.com/gibli-labs/typeflux/issues/89)).
 Both SDKs can now load local YAML and check its declared runtime capabilities without
-installing a Temporal SDK. **Python and TypeScript SDK local execution and the Python foreground CLI are available.
-The TypeScript foreground CLI and final adoption journeys remain in development.** The existing worker, deployment and control-plane entry points remain
+installing a Temporal SDK. **Python and TypeScript SDK local execution and foreground CLIs are available.
+Final adoption journeys remain in development.** The existing worker, deployment and control-plane entry points remain
 Temporal-only and reject local engine selection before constructing runtime services.
 
 ## Engine selection
@@ -138,6 +138,41 @@ persisted. The command requires `runtime.engine: local` after resolution and nev
 falls back from Temporal. Existing worker and deployment commands retain their
 Temporal execution contract.
 
+## TypeScript foreground CLI
+
+Install `@typeflux/yaml` in a Node application, then provide compiled JavaScript bindings
+for the Zod schemas and any code-defined activity services:
+
+```sh
+typeflux-local workflow.yaml --bindings bindings.mjs --input input.json
+typeflux-local workflow.yaml --bindings bindings.mjs --input - < input.json
+typeflux-local --project typeflux.project.yaml --workflow echo --environment local \
+  --bindings bindings.mjs --input input.json
+```
+
+The command follows the same JSON stdout/stderr separation, exit categories,
+project/profile/policy resolution and cooperative POSIX interruption contract described
+above. Each invocation starts fresh. Bindings use named exports or a default object;
+`--bindings` falls back to `TYPEFLUX_WORKER_BINDINGS`. Paths resolve from the command's
+working directory, as for the existing worker bindings loader. Compile TypeScript
+bindings to JavaScript before running; the command does not install a compiler.
+See the [complete offline example](../packages/typescript/yaml/examples/local-runtime/README.md).
+
+Bindings may supply the existing local runtime activity options: schemas, provider or
+transports, registry/registryTransport, hooks, outputChecks, moderators, extraActivities,
+cacheStore, observer, deps and tenant. Project policy and child resolution come from the
+selected project. Executable bindings retain the trusted application-code boundary;
+capability and composed-policy admission run before their import.
+
+When not supplied in bindings, vendor providers, prompt registries and Langfuse/LangSmith
+observers reuse the existing environment/secret-based automatic wiring. Install the
+corresponding optional vendor SDK in your application. No vendor peer is needed for the
+offline example. Configured tracing must resolve an observer for local execution; missing
+credentials or an unsupported automatic backend fail preparation. Automatic observers
+shut down after activity draining, including preparation failure; injected observers
+are flushed, with their transport lifecycle owned by the bindings module. The CLI adds
+no workflow/control-plane metadata or execution-manifest events.
+
 ## TypeScript SDK execution
 
 Install `@typeflux/yaml` and `zod`; no `@temporalio/*` package or server is required.
@@ -192,8 +227,8 @@ remain available when the corresponding workflow schema ref is omitted.
 
 Supply a composed `policy` from existing project admission. The SDK applies root
 and closure admission before services, then retains provider/model and moderation
-guards during execution. Resolving project policy/environment files and choosing the
-engine in the foreground CLI remain the next integration slice. Elevated risk tiers
+guards during execution. The foreground CLI resolves project policy/environment files
+through the shared project helpers. Elevated risk tiers
 and review requirements continue to require Temporal.
 
 `executeWorkflow(input, {signal, subjectIds})` accepts an `AbortSignal` and the existing
@@ -203,7 +238,8 @@ queued work stops after failure, and reference-style session caches are released
 handler that ignores cancellation can delay completion. A failed cache release is
 best effort and its provider TTL still applies. Activity errors carry workflow and
 step in `LocalWorkflowError`, retaining the original cause; cancellation uses
-`ActivityCancelledError`. The runner never retries an activity as a workflow step.
+`ActivityCancelledError`. Root input rejection is `LocalWorkflowInputError`, distinct
+from workflow-result validation or activity failure. The runner never retries an activity as a workflow step.
 
 Local attribution uses a typed metadata contributor through the ordinary activity
 observer. `typeflux.runtime.engine` is `local`; `typeflux.local` carries a correlation

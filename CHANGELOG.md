@@ -8,11 +8,18 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Add the TypeScript `typeflux-local` foreground command in `@typeflux/yaml` for
+  YAML files and resolved projects, with JSON file/stdin input, policy/capability
+  admission, diagnostic isolation, signal draining and observation cleanup. It shares
+  project and automatic service wiring with the existing Temporal adapters. The
+  installed npm bin runs without any Temporal SDK. Final adoption acceptance remains
+  open in #89.
+
 - Add the Python `typeflux-local` foreground CLI for YAML files and resolved project
   workflows. It reuses local SDK execution and project policy admission, supports
   JSON file/stdin input, clean JSON output, cooperative interruption and observation
   shutdown, and ships an offline example. The base wheel runs it without Temporal.
-  TypeScript CLI and final adoption acceptance remain open in #89.
+  Final adoption acceptance remains open in #89.
 
 - Execute computational YAML locally through Python `build_local_runtime` and
   TypeScript `buildLocalRuntime`, without Temporal. Both SDKs support typed
@@ -20,13 +27,13 @@ heading as part of the release PR or tag preparation.
   children using existing activity pipelines. TypeScript now shares policy,
   provider, registry and artifact assembly with its Temporal integration; existing
   Temporal APIs remain exported. Local execution has no durability, scheduler,
-  review or compensation. CLI/project adoption remains in progress (#89).
+  review or compensation. Final adoption acceptance remains in progress (#89).
 
 - Add explicit `runtime.engine: local | temporal` selection and recursive local
   capability checks in both SDKs. Local specs can omit task queues and Temporal
   settings; existing Temporal entry points reject local selection before runtime
   setup. Omitted engine behavior remains Temporal. Local SDK execution is available;
-  CLI adoption remains in progress. See [local runtime](docs/local-runtime.md).
+  Final adoption acceptance remains in progress. See [local runtime](docs/local-runtime.md).
 
 - Allow workflow manifests without a Temporal task queue in both SDK builders
   and Python trace inspection. Omitted/null queue and run context is excluded

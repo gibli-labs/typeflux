@@ -2,8 +2,8 @@ apiVersion: typeflux.dev/graph/v1alpha1
 entities:
   - id: capability.local-yaml-cli
     kind: capability
-    description: Execute a Python YAML file or resolved project workflow in a foreground process without Temporal, with JSON I/O, project policy admission, cooperative interruption and observation shutdown. TypeScript CLI adoption remains in issue 89.
-    editions: {python: supported, typescript: unsupported}
+    description: Execute Python and TypeScript YAML files or resolved project workflows in a foreground process without Temporal, with JSON I/O, project policy admission, cooperative interruption and observation cleanup. Final adoption acceptance remains in issue 89.
+    editions: {python: supported, typescript: supported}
     implementation:
       - packages/python/src/typeflux/yaml/local_cli.py
       - packages/python/src/typeflux/yaml/local.py
@@ -12,7 +12,27 @@ entities:
       - packages/python/pyproject.toml
       - scripts/probe_yaml_local_cli.py
       - scripts/verify_python_planning_install.py
-    documentation: [docs/local-runtime.md, docs/yaml-planning.md, packages/python/README.md]
+      - packages/typescript/yaml/src/local-cli.ts
+      - packages/typescript/yaml/src/runtime-target.ts
+      - packages/typescript/yaml/src/runtime-wiring.ts
+      - packages/typescript/yaml/src/bindings-module.ts
+      - packages/typescript/yaml/src/project-fs-loader.ts
+      - packages/typescript/yaml/src/project-run.ts
+      - packages/typescript/yaml/src/provider-transports-from-env.ts
+      - packages/typescript/yaml/src/observer-from-spec.ts
+      - packages/typescript/yaml/src/langfuse-observer.ts
+      - packages/typescript/yaml/src/langfuse-otel.ts
+      - packages/typescript/yaml/src/langfuse-registry.ts
+      - packages/typescript/yaml/src/langsmith-observer.ts
+      - packages/typescript/yaml/src/langsmith-registry.ts
+      - packages/typescript/yaml/src/streaming-trace-writer.ts
+      - packages/typescript/yaml/src/local.ts
+      - packages/typescript/yaml/package.json
+      - packages/typescript/temporal-yaml/src/worker-entry.ts
+      - packages/typescript/temporal-yaml/src/runtime.ts
+      - scripts/probe-yaml-local-cli.mjs
+      - scripts/verify-yaml-planning-pack.mjs
+    documentation: [docs/local-runtime.md, docs/yaml-planning.md, packages/python/README.md, packages/typescript/yaml/README.md]
     examples:
       - packages/python/examples/local_runtime/README.md
       - packages/python/examples/local_runtime/workflow.yaml
@@ -22,6 +42,12 @@ entities:
       - packages/python/examples/local_runtime/local_example/__init__.py
       - packages/python/examples/local_runtime/local_example/models.py
       - packages/python/examples/local_runtime/local_example/provider.py
+      - packages/typescript/yaml/examples/local-runtime/README.md
+      - packages/typescript/yaml/examples/local-runtime/workflow.yaml
+      - packages/typescript/yaml/examples/local-runtime/bindings.mjs
+      - packages/typescript/yaml/examples/local-runtime/typeflux.project.yaml
+      - packages/typescript/yaml/examples/local-runtime/environment.yaml
+      - packages/typescript/yaml/examples/local-runtime/input.json
     links:
       - {relation: requires, target: invariant.local-cli-admission}
       - {relation: requires, target: invariant.local-yaml-execution}
@@ -43,5 +69,35 @@ entities:
       - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_refuses_temporal_engine_before_services}
       - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_offline_example_file_and_project_without_services}
       - {path: packages/python/tests/test_yaml_local_cli.py, name: test_local_cli_signals_cancel_and_drain_before_shutdown}
+    links:
+      - {relation: verifies, target: invariant.local-cli-admission}
+  - id: check.local-yaml-cli-typescript
+    kind: check
+    description: Subprocess JSON file/stdin and project/profile/environment execution without Temporal or network; full closure and pinned-hash refusals before bindings, failure attribution, signal draining, observation cleanup and shared automatic client lifecycle. The TypeScript lane also probes the packed installed console bin.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "executes file and stdin without Temporal or network and isolates extension stdout"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "resolves profiles, environment, parent policy and nested project execution"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "classifies malformed input and never calls the provider"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "classifies schema input and never calls the provider"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "refuses temporal before bindings/service construction"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "refuses skipped capability before bindings/service construction"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "refuses skipped policy before bindings/service construction"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "refuses hash mismatch before bindings/service construction"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "refuses hash replacement before bindings/service construction"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "refuses hash clearing before bindings/service construction"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "refuses standalone pin before bindings/service construction"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "refuses hash conflict before bindings/service construction"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "refuses malformed hash before bindings/service construction"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "attributes execution failures and flushes observations before exit"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "flushes injected observations when preparation fails"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "flushes injected observations when automatic provider construction fails"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "accepts default bindings and the existing worker bindings environment convention"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "drains cooperative SIGINT cancellation before observations"}
+      - {path: packages/typescript/yaml/test/local-cli.test.ts, name: "drains cooperative SIGTERM cancellation before observations"}
+      - {path: packages/typescript/yaml/test/runtime-wiring.test.ts, name: "refuses skipped local capabilities and project policy before any automatic clients"}
+      - {path: packages/typescript/yaml/test/runtime-wiring.test.ts, name: "shuts down an automatic observer if subsequent service construction fails"}
+      - {path: packages/typescript/yaml/test/runtime-wiring.test.ts, name: "returns the owned observer for foreground shutdown without closing it prematurely"}
     links:
       - {relation: verifies, target: invariant.local-cli-admission}
