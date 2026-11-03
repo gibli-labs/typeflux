@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from tools.project_graph.__main__ import main as graph_main
 from tools.project_graph.compiler import compile_for_impact, compile_graph
 from tools.project_graph.queries import context, explain, impact
 from tools.project_graph.repository import GraphError, Repository, canonical
@@ -38,6 +39,11 @@ def graph_repo(tmp_path):
         (ROOT / "project-graph/schema/catalog.schema.json").read_text(),
     )
     write(tmp_path, ".github/CODEOWNERS", "* @default\n/src/ @source\n")
+    write(
+        tmp_path,
+        "tools/development/checks.json",
+        (ROOT / "tools/development/checks.json").read_text(),
+    )
     write(
         tmp_path,
         "contracts/controlplane/openapi.v1.json",
@@ -77,7 +83,7 @@ def graph_repo(tmp_path):
             "kind": "check",
             "description": "Check binding",
             "environment": "offline",
-            "ci": ["Tests"],
+            "ci": ["python-3.12"],
             "tests": [{"path": "tests/test_review.py", "name": "test_review"}],
             "links": [{"relation": "verifies", "target": "invariant.bound"}],
         },
@@ -97,6 +103,112 @@ def edit_entities(root, update):
     document = yaml.safe_load(path.read_text())
     update(document["entities"])
     path.write_text(yaml.safe_dump(document))
+
+
+@pytest.mark.parametrize("lane", ["python", "Tests (Python 3.12)", "unknown-ci"])
+def test_validate_rejects_unknown_ci_execution_ids(graph_repo, capsys, lane):
+    edit_entities(graph_repo, lambda entities: entities[-1].update(ci=[lane]))
+    code = graph_main(["--root", str(graph_repo), "validate"])
+    output = capsys.readouterr()
+    assert code == 2, output.out
+    assert "project-graph/components.yaml" in output.err
+    assert "check.review" in output.err
+    assert f"unknown CI execution ID {lane!r}" in output.err
+    assert "tools/development/checks.json" in output.err
+    registry = json.loads((graph_repo / "tools/development/checks.json").read_text())
+    assert all(identifier in output.err for identifier in registry)
+
+
+def test_registered_ci_execution_ids_validate(graph_repo, capsys):
+    registry = json.loads((graph_repo / "tools/development/checks.json").read_text())
+    edit_entities(graph_repo, lambda entities: entities[-1].update(ci=sorted(registry)))
+    assert graph_main(["--root", str(graph_repo), "validate"]) == 0
+    assert json.loads(capsys.readouterr().out)["valid"] is True
+
+
+@pytest.mark.parametrize(
+    "content", [None, "{", "[]", "{}", '{"python-3.12": {"name": "Tests", "verifier": null}}']
+)
+def test_missing_or_malformed_ci_registry_fails_validation(graph_repo, content):
+    path = graph_repo / "tools/development/checks.json"
+    if content is None:
+        path.unlink()
+    else:
+        path.write_text(content)
+    with pytest.raises(GraphError, match=r"tools/development/checks\.json"):
+        compile_graph(Repository(graph_repo))
+
+
+def test_ci_registry_is_revision_bound_data_without_imports(graph_repo):
+    base = run_git(graph_repo, "rev-parse", "HEAD")
+    marker = graph_repo / "imported-candidate-code"
+    write(
+        graph_repo,
+        "tools/development/registry.py",
+        f"from pathlib import Path\nPath({str(marker)!r}).write_text('executed')\n"
+        "raise RuntimeError('candidate registry code must not execute')\n",
+    )
+    write(
+        graph_repo,
+        "tools/development/checks.json",
+        json.dumps({"candidate-lane": {"name": "Candidate lane", "verifier": "python"}}),
+    )
+    edit_entities(graph_repo, lambda entities: entities[-1].update(ci=["candidate-lane"]))
+    for repo, expected in (
+        (Repository(graph_repo), "candidate-lane"),
+        (Repository(graph_repo, base), "python-3.12"),
+    ):
+        graph = compile_graph(repo)
+        assert next(node for node in graph["nodes"] if node["id"] == "check.review")["ci"] == [
+            expected
+        ]
+    assert not marker.exists()
+    edit_entities(graph_repo, lambda entities: entities[-1].update(ci=["python-3.12"]))
+    with pytest.raises(GraphError, match="unknown CI execution ID 'python-3.12'"):
+        compile_graph(Repository(graph_repo))
+
+
+@pytest.mark.parametrize("with_policy", [False, True])
+def test_legacy_policy_cannot_bypass_worktree_ci_validation(graph_repo, capsys, with_policy):
+    (graph_repo / "tools/development/checks.json").unlink()
+    if with_policy:
+        write(
+            graph_repo,
+            "project-graph/policy.yaml",
+            yaml.safe_dump(
+                {
+                    "apiVersion": "typeflux.dev/graph-policy/v1alpha1",
+                    "mode": "advisory",
+                    "requiredJobs": ["Tests"],
+                }
+            ),
+        )
+    edit_entities(graph_repo, lambda entities: entities[-1].update(ci=["Tests"]))
+    run_git(graph_repo, "add", ".")
+    run_git(graph_repo, "commit", "-m", "pre-registry snapshot")
+    assert graph_main(["--root", str(graph_repo), "validate"]) == 2
+    assert "tools/development/checks.json" in capsys.readouterr().err
+    assert graph_main(["--root", str(graph_repo), "validate", "--revision", "HEAD"]) == 0
+    assert json.loads(capsys.readouterr().out)["valid"] is True
+
+
+def test_modern_snapshot_requires_ci_registry(graph_repo):
+    (graph_repo / "tools/development/checks.json").unlink()
+    write(
+        graph_repo,
+        "project-graph/policy.yaml",
+        yaml.safe_dump(
+            {
+                "apiVersion": "typeflux.dev/graph-policy/v1",
+                "mode": "advisory",
+                "requiredChecks": ["python-3.12"],
+            }
+        ),
+    )
+    run_git(graph_repo, "add", ".")
+    run_git(graph_repo, "commit", "-m", "missing modern registry")
+    with pytest.raises(GraphError, match=r"tools/development/checks\.json"):
+        compile_graph(Repository(graph_repo, "HEAD"))
 
 
 def test_snapshot_reproducible_and_dirty_inputs_identified(graph_repo):

@@ -1,0 +1,46 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.graph-ci-validation
+    kind: capability
+    description: Reject unknown graph CI execution IDs before collection or dispatch using revision-bound registry data, while retaining historical/base obligations and trusted CI evidence requirements.
+    editions: {python: shared, typescript: shared}
+    implementation:
+      - tools/project_graph/compiler.py
+      - tools/project_graph/repository.py
+      - tools/development/checks.json
+    documentation: [docs/development.md, tools/project_graph/README.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.graph-ci-registry}
+      - {relation: requires, target: invariant.graph-ci-revision-data}
+      - {relation: requires, target: invariant.graph-ci-evidence-boundary}
+  - id: invariant.graph-ci-registry
+    kind: invariant
+    description: Normal compilation requires a valid registry and reports the declaration path, check ID, unknown execution ID and registered replacements; verifier/display names are not inferred as execution IDs and the schema contains no copied ID list.
+  - id: invariant.graph-ci-revision-data
+    kind: invariant
+    description: Read each revision's registry JSON without importing candidate code. Only immutable pre-registry snapshots with absent or legacy policies retain job-name references; deleting the registry in a working tree cannot opt out. Base obligations cannot be erased by head registry/policy changes.
+  - id: invariant.graph-ci-evidence-boundary
+    kind: invariant
+    description: Static membership does not attest collection, execution or passing outcomes. Full trusted CI and both-revision job/test obligations remain mandatory; missing, skipped, stale and failed evidence cannot pass.
+  - id: check.graph-ci-validation
+    kind: check
+    description: Exercise normal CLI rejection, valid registered lanes, missing/malformed registries, immutable legacy history, revision data isolation and unchanged base/receipt/test-evidence refusal.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_project_graph.py, name: test_validate_rejects_unknown_ci_execution_ids}
+      - {path: packages/python/tests/test_project_graph.py, name: test_registered_ci_execution_ids_validate}
+      - {path: packages/python/tests/test_project_graph.py, name: test_missing_or_malformed_ci_registry_fails_validation}
+      - {path: packages/python/tests/test_project_graph.py, name: test_ci_registry_is_revision_bound_data_without_imports}
+      - {path: packages/python/tests/test_project_graph.py, name: test_legacy_policy_cannot_bypass_worktree_ci_validation}
+      - {path: packages/python/tests/test_project_graph.py, name: test_modern_snapshot_requires_ci_registry}
+      - {path: packages/python/tests/test_graph_integration.py, name: test_pre_registry_impact_preserves_legacy_ci_obligations}
+      - {path: packages/python/tests/test_graph_integration.py, name: test_registry_changes_preserve_base_jobs_and_test_obligations}
+      - {path: packages/python/tests/test_graph_integration.py, name: test_policy_removal_cannot_reduce_own_obligations}
+      - {path: packages/python/tests/test_development_loop.py, name: test_job_success_cannot_substitute_for_each_required_test}
+      - {path: packages/python/tests/test_development_loop.py, name: test_receipt_must_match_exact_execution}
+    links:
+      - {relation: verifies, target: invariant.graph-ci-registry}
+      - {relation: verifies, target: invariant.graph-ci-revision-data}
+      - {relation: verifies, target: invariant.graph-ci-evidence-boundary}
