@@ -1,0 +1,396 @@
+{
+  "base": {
+    "project": "local_fixture",
+    "name": "Root",
+    "runtime": {
+      "engine": "local",
+      "registry": {
+        "type": "inline",
+        "prompts": {
+          "echo": "{{n}}"
+        }
+      },
+      "provider": {
+        "type": "fake"
+      }
+    },
+    "activities": {
+      "definitions": [
+        {
+          "name": "echo",
+          "input": "models:Item",
+          "output": "models:Item",
+          "prompt": "echo"
+        }
+      ]
+    },
+    "workflow": {
+      "name": "Root",
+      "input": "models:Item",
+      "output": "models:Item",
+      "steps": [
+        {
+          "id": "first",
+          "activity": "echo"
+        }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "name": "sequence and prior-step gate",
+      "workflow": {
+        "input": "models:Item",
+        "output": "models:Item",
+        "steps": [
+          {
+            "id": "first",
+            "activity": "echo",
+            "when": {
+              "path": "input.n",
+              "gt": 0
+            }
+          },
+          {
+            "id": "second",
+            "activity": "echo",
+            "when": {
+              "path": "first.n",
+              "lt": 5
+            }
+          }
+        ]
+      },
+      "input": {
+        "n": 1
+      },
+      "expected": {
+        "n": 3
+      },
+      "calls": [
+        1,
+        2
+      ],
+      "children": {}
+    },
+    {
+      "name": "sequence early exit",
+      "workflow": {
+        "input": "models:Item",
+        "output": "models:Item",
+        "steps": [
+          {
+            "id": "first",
+            "activity": "echo",
+            "when": {
+              "path": "input.n",
+              "gt": 0
+            }
+          },
+          {
+            "id": "second",
+            "activity": "echo",
+            "when": {
+              "path": "first.n",
+              "lt": 5
+            }
+          }
+        ]
+      },
+      "input": {
+        "n": 0
+      },
+      "expected": {
+        "n": 0
+      },
+      "calls": [],
+      "children": {}
+    },
+    {
+      "name": "later gate early exit",
+      "workflow": {
+        "input": "models:Item",
+        "output": "models:Item",
+        "steps": [
+          {
+            "id": "first",
+            "activity": "echo",
+            "when": {
+              "path": "input.n",
+              "gt": 0
+            }
+          },
+          {
+            "id": "second",
+            "activity": "echo",
+            "when": {
+              "path": "first.n",
+              "lt": 5
+            }
+          }
+        ]
+      },
+      "input": {
+        "n": 4
+      },
+      "expected": {
+        "n": 5
+      },
+      "calls": [
+        4
+      ],
+      "children": {}
+    },
+    {
+      "name": "parallel skipped branch",
+      "workflow": {
+        "input": "models:Item",
+        "output": "models:Branches",
+        "steps": [
+          {
+            "id": "joined",
+            "parallel": {
+              "branches": [
+                {
+                  "id": "left",
+                  "steps": [
+                    {
+                      "id": "left_step",
+                      "activity": "echo"
+                    }
+                  ]
+                },
+                {
+                  "id": "right",
+                  "when": {
+                    "path": "input.n",
+                    "eq": 100
+                  },
+                  "steps": [
+                    {
+                      "id": "right_step",
+                      "activity": "echo"
+                    }
+                  ]
+                }
+              ],
+              "collect": {
+                "output": "models:Branches"
+              }
+            }
+          }
+        ]
+      },
+      "input": {
+        "n": 1
+      },
+      "expected": {
+        "left": {
+          "n": 2
+        },
+        "right": null
+      },
+      "calls": [
+        1
+      ],
+      "children": {}
+    },
+    {
+      "name": "ordered activity map",
+      "call_order": "unordered",
+      "workflow": {
+        "input": "models:Batch",
+        "output": "models:Batch",
+        "steps": [
+          {
+            "id": "mapped",
+            "map": {
+              "activity": "echo",
+              "over": "input.items",
+              "concurrency": 2,
+              "collect": {
+                "output": "models:Batch",
+                "field": "items"
+              }
+            }
+          }
+        ]
+      },
+      "input": {
+        "items": [
+          {
+            "n": 1
+          },
+          {
+            "n": 3
+          },
+          {
+            "n": 2
+          }
+        ]
+      },
+      "expected": {
+        "items": [
+          {
+            "n": 2
+          },
+          {
+            "n": 4
+          },
+          {
+            "n": 3
+          }
+        ]
+      },
+      "calls": [
+        1,
+        3,
+        2
+      ],
+      "children": {}
+    },
+    {
+      "name": "empty map",
+      "workflow": {
+        "input": "models:Batch",
+        "output": "models:Batch",
+        "steps": [
+          {
+            "id": "mapped",
+            "map": {
+              "activity": "echo",
+              "over": "input.items",
+              "concurrency": 2,
+              "collect": {
+                "output": "models:Batch",
+                "field": "items"
+              }
+            }
+          }
+        ]
+      },
+      "input": {
+        "items": []
+      },
+      "expected": {
+        "items": []
+      },
+      "calls": [],
+      "children": {}
+    },
+    {
+      "name": "nested workflow",
+      "workflow": {
+        "input": "models:Item",
+        "output": "models:Item",
+        "steps": [
+          {
+            "id": "child",
+            "workflow": "child"
+          }
+        ]
+      },
+      "input": {
+        "n": 1
+      },
+      "expected": {
+        "n": 2
+      },
+      "calls": [
+        1
+      ],
+      "children": {
+        "child": {
+          "input": "models:Item",
+          "output": "models:Item",
+          "steps": [
+            {
+              "id": "nested",
+              "workflow": "leaf"
+            }
+          ]
+        },
+        "leaf": {
+          "name": "Leaf",
+          "input": "models:Item",
+          "output": "models:Item",
+          "steps": [
+            {
+              "id": "first",
+              "activity": "echo"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "ordered workflow map",
+      "call_order": "unordered",
+      "workflow": {
+        "input": "models:Batch",
+        "output": "models:Batch",
+        "steps": [
+          {
+            "id": "mapped",
+            "map": {
+              "workflow": "child",
+              "over": "input.items",
+              "concurrency": 2,
+              "collect": {
+                "output": "models:Batch",
+                "field": "items"
+              }
+            }
+          }
+        ]
+      },
+      "input": {
+        "items": [
+          {
+            "n": 1
+          },
+          {
+            "n": 2
+          }
+        ]
+      },
+      "expected": {
+        "items": [
+          {
+            "n": 2
+          },
+          {
+            "n": 3
+          }
+        ]
+      },
+      "calls": [
+        1,
+        2
+      ],
+      "children": {
+        "child": {
+          "input": "models:Item",
+          "output": "models:Item",
+          "steps": [
+            {
+              "id": "nested",
+              "workflow": "leaf"
+            }
+          ]
+        },
+        "leaf": {
+          "name": "Leaf",
+          "input": "models:Item",
+          "output": "models:Item",
+          "steps": [
+            {
+              "id": "first",
+              "activity": "echo"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

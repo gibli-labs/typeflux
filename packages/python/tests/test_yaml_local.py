@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import copy
+import json
 import sys
 from contextlib import contextmanager
 from datetime import timedelta
+from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import pytest
@@ -477,3 +480,32 @@ async def test_local_cancellation_during_cache_preparation_releases_handle(fixtu
         await task
     assert provider.released == ["cache-1"]
     assert provider.calls == []
+
+
+@pytest.mark.asyncio
+async def test_shared_local_execution_fixtures(fixture):
+    provider, _ = fixture
+    path = (
+        Path(__file__).resolve().parents[3] / "contracts/local-runtime/golden/execution-cases.json"
+    )
+    fixtures = json.loads(path.read_text())
+    for case in fixtures["cases"]:
+        raw = copy.deepcopy(fixtures["base"])
+        raw["workflow"].update(case["workflow"])
+        children = {}
+        for child_id, workflow in case["children"].items():
+            child = copy.deepcopy(fixtures["base"])
+            child["name"] = child_id
+            child["workflow"] = {"name": child_id, **workflow}
+            children[child_id] = TypefluxYamlSpec.model_validate(child)
+        provider.calls.clear()
+        runtime = build_local_runtime(
+            TypefluxYamlSpec.model_validate(raw), resolve_workflow=children.get, workflow_id="root"
+        )
+        result = await runtime.execute_workflow(case["input"])
+        assert result.model_dump() == case["expected"], case["name"]
+        calls = [n for n, *_ in provider.calls]
+        if case.get("call_order") == "unordered":
+            assert sorted(calls) == sorted(case["calls"]), case["name"]
+        else:
+            assert calls == case["calls"], case["name"]

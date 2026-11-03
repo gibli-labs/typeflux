@@ -23,9 +23,10 @@ entities:
       - {relation: implements, target: capability.vercel-ai-gateway}
   - id: component.typescript-yaml-planning
     kind: component
-    description: Shared TypeScript YAML loading, activity definitions and workflow planning without Temporal.
+    description: Shared TypeScript YAML loading, planning, runtime services and non-durable local execution without Temporal.
     paths: [packages/typescript/yaml/**]
     links:
+      - {relation: implements, target: capability.local-yaml-execution}
       - {relation: implements, target: capability.yaml-planning}
       - {relation: implements, target: capability.local-runtime-boundary}
       - {relation: implements, target: capability.vercel-ai-gateway}

@@ -72,6 +72,70 @@
     "./engine": {
       "types": "./dist/engine.d.ts",
       "default": "./dist/engine.js"
+    },
+    "./environment-overlay": {
+      "types": "./dist/environment-overlay.d.ts",
+      "default": "./dist/environment-overlay.js"
+    },
+    "./environment-spec": {
+      "types": "./dist/environment-spec.d.ts",
+      "default": "./dist/environment-spec.js"
+    },
+    "./observability-composition": {
+      "types": "./dist/observability-composition.d.ts",
+      "default": "./dist/observability-composition.js"
+    },
+    "./policy-composition": {
+      "types": "./dist/policy-composition.d.ts",
+      "default": "./dist/policy-composition.js"
+    },
+    "./policy-enforcement": {
+      "types": "./dist/policy-enforcement.d.ts",
+      "default": "./dist/policy-enforcement.js"
+    },
+    "./policy": {
+      "types": "./dist/policy.d.ts",
+      "default": "./dist/policy.js"
+    },
+    "./profile": {
+      "types": "./dist/profile.d.ts",
+      "default": "./dist/profile.js"
+    },
+    "./project-enforcement": {
+      "types": "./dist/project-enforcement.d.ts",
+      "default": "./dist/project-enforcement.js"
+    },
+    "./project-resolve": {
+      "types": "./dist/project-resolve.d.ts",
+      "default": "./dist/project-resolve.js"
+    },
+    "./project-spec": {
+      "types": "./dist/project-spec.d.ts",
+      "default": "./dist/project-spec.js"
+    },
+    "./project-validation": {
+      "types": "./dist/project-validation.d.ts",
+      "default": "./dist/project-validation.js"
+    },
+    "./provider-from-spec": {
+      "types": "./dist/provider-from-spec.d.ts",
+      "default": "./dist/provider-from-spec.js"
+    },
+    "./registry-composition": {
+      "types": "./dist/registry-composition.d.ts",
+      "default": "./dist/registry-composition.js"
+    },
+    "./secret-references": {
+      "types": "./dist/secret-references.d.ts",
+      "default": "./dist/secret-references.js"
+    },
+    "./runtime-assembly": {
+      "types": "./dist/runtime-assembly.d.ts",
+      "default": "./dist/runtime-assembly.js"
+    },
+    "./subjects": {
+      "types": "./dist/subjects.d.ts",
+      "default": "./dist/subjects.js"
     }
   },
   "scripts": {

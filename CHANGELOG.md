@@ -8,11 +8,19 @@ heading as part of the release PR or tag preparation.
 
 ## Unreleased
 
+- Execute computational YAML locally through Python `build_local_runtime` and
+  TypeScript `buildLocalRuntime`, without Temporal. Both SDKs support typed
+  sequences, gates, parallel branches, ordered bounded maps and same-project
+  children using existing activity pipelines. TypeScript now shares policy,
+  provider, registry and artifact assembly with its Temporal integration; existing
+  Temporal APIs remain exported. Local execution has no durability, scheduler,
+  review or compensation. CLI/project adoption remains in progress (#89).
+
 - Add explicit `runtime.engine: local | temporal` selection and recursive local
   capability checks in both SDKs. Local specs can omit task queues and Temporal
   settings; existing Temporal entry points reject local selection before runtime
-  setup. Omitted engine behavior remains Temporal. This is a planning boundary;
-  local execution and CLI support are still pending. See [local runtime](docs/local-runtime.md).
+  setup. Omitted engine behavior remains Temporal. Local SDK execution is available;
+  CLI adoption remains in progress. See [local runtime](docs/local-runtime.md).
 
 - Allow workflow manifests without a Temporal task queue in both SDK builders
   and Python trace inspection. Omitted/null queue and run context is excluded
@@ -23,8 +31,7 @@ heading as part of the release PR or tag preparation.
   must install `typeflux[temporal]` (or combine it with provider extras); `api`
   and `live` continue to include it. Add shared Python YAML planning and the
   `@typeflux/yaml` package without a Temporal SDK dependency. Existing Temporal
-  entry points reuse the shared validators; local YAML execution is not yet
-  included. See [installation and planning](docs/yaml-planning.md).
+  entry points reuse the shared validators and activity services. See [installation and planning](docs/yaml-planning.md).
 
 - Migrate Langfuse to Python SDK 5 and scoped JavaScript SDK 6 with dedicated
   OpenTelemetry providers, explicit span completion and terminal shutdown.

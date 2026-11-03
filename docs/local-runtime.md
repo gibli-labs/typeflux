@@ -2,8 +2,8 @@
 
 Typeflux Local is in development ([#89](https://github.com/gibli-labs/typeflux/issues/89)).
 Both SDKs can now load local YAML and check its declared runtime capabilities without
-installing a Temporal SDK. **Python SDK local execution is available. TypeScript execution and the local CLI
-remain in development.** The existing worker, deployment and control-plane entry points remain
+installing a Temporal SDK. **Python and TypeScript SDK local execution are available. The local CLI
+and automatic project adoption remain in development.** The existing worker, deployment and control-plane entry points remain
 Temporal-only and reject local engine selection before constructing runtime services.
 
 ## Engine selection
@@ -89,6 +89,81 @@ nor imports user activity modules. Resolver and extension code retain the existi
 trusted-code boundary. Code activity descriptors and project policy enforcement
 must also be checked when the local runtime is assembled; a successful capability
 check alone cannot establish those guarantees.
+
+## TypeScript SDK execution
+
+Install `@typeflux/yaml` and `zod`; no `@temporalio/*` package or server is required.
+The historical core package name `@typeflux/temporal` does not imply a Temporal SDK dependency.
+Use the YAML above and supply its Zod schemas and an existing provider:
+
+```typescript
+import { readFileSync } from "node:fs";
+import { z } from "zod";
+import { FakeProvider } from "@typeflux/temporal/testing";
+import { buildLocalRuntime, loadYamlSpec } from "@typeflux/yaml";
+
+const runtime = await buildLocalRuntime(
+  loadYamlSpec(readFileSync("workflow.yaml", "utf8")),
+  {
+    schemas: {"schemas:Value": z.object({text: z.string()})},
+    provider: new FakeProvider([{text: "accepted"}]),
+  },
+);
+const result = await runtime.executeWorkflow({text: "hello"});
+console.log(result); // {text: "accepted"}
+```
+
+`buildLocalRuntime` snapshots the resolved specs, validates the full reachable graph
+and injected contracts, assembles shared services, and resolves all prompts before
+returning. Pass `subworkflows: {selfId, specFor(id)}` for same-project composition.
+The shared eight-case execution fixture covers sequence/gate behavior, parallel
+collection, ordered and empty maps, and nested workflow calls in both editions.
+Cross-engine and process-loss adoption journeys remain part of #89.
+
+Supply `provider` directly or `transports` for the existing provider adapters.
+`registry`, `registryTransport`, `observer`, `cacheStore`, `hooks`, `outputChecks`,
+`moderators`, `deps`, and `tenant` use the existing activity contracts. The root's
+provider, registry, observer and provider limits are shared across its child graph
+and concurrent calls to that runtime. Child prompts merge under the existing
+registry collision rules. When observability is configured, supply an observer
+explicitly; the caller owns its transport, redaction configuration and flush/shutdown.
+For example, `TraceWriter` retains its existing redaction and buffering behavior.
+The local builder does not auto-install provider SDKs or create backend clients.
+
+Use `extraActivities` for portable `defineActivity` / `defineCodeActivity` descriptors.
+A registered worker function or a descriptor carrying Temporal policies is rejected.
+Custom handlers, hooks, resolvers and transports are trusted application code; they
+must not depend on Temporal context when used locally. The builder cannot infer the
+behavior of an arbitrary function. Injected descriptors and collection schemas are
+checked even in branches that will be skipped. TypeScript schema edges use matching
+Zod JSON-schema shapes; optional nullable branch fields must accept skipped `null`
+values. Runtime parsing still enforces custom refinements and collection size limits.
+Declare `workflow.input` for composition and `collect.field` for an object map
+collection. Existing single-activity input inference and terminal output inference
+remain available when the corresponding workflow schema ref is omitted.
+
+Supply a composed `policy` from existing project admission. The SDK applies root
+and closure admission before services, then retains provider/model and moderation
+guards during execution. Resolving project policy/environment files and choosing the
+engine in the foreground CLI remain the next integration slice. Elevated risk tiers
+and review requirements continue to require Temporal.
+
+`executeWorkflow(input, {signal, subjectIds})` accepts an `AbortSignal` and the existing
+subject-identity override. Cancellation is cooperative: started work is drained,
+queued work stops after failure, and reference-style session caches are released in
+`finally`, including cancellation during cache preparation. A provider or custom
+handler that ignores cancellation can delay completion. A failed cache release is
+best effort and its provider TTL still applies. Activity errors carry workflow and
+step in `LocalWorkflowError`, retaining the original cause; cancellation uses
+`ActivityCancelledError`. The runner never retries an activity as a workflow step.
+
+Local attribution uses a typed metadata contributor through the ordinary activity
+observer. `typeflux.runtime.engine` is `local`; `typeflux.local` carries a correlation
+ID and the planned workflow manifest without Temporal queue/run IDs. These fields
+receive no special redaction exemption, so predicate literals remain redactable.
+The correlation ID is not a durable execution handle. A run that executes no activity
+does not create an activity observation. `runtime.plan` returns a detached inspection
+copy; editing it does not change the admitted program.
 
 ## Python SDK execution
 
