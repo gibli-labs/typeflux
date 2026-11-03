@@ -103,6 +103,53 @@ the PR. Batch corrections from reviews. Avoid repeated reviewer invocations on w
 in progress. Source changes invalidate earlier evidence even when filenames remain
 the same. Local journals and receipts are diagnostics, not trusted CI attestations.
 
+## Host interruptions during local verification
+
+Each development command samples wall and monotonic clocks once per second.
+Receipts include bounded `hostDiagnostics`: five-second sampling gaps or clock
+divergence are reported as a possible host interruption, with at most eight
+samples per command and a count of omitted samples. This is available wherever
+Python's clocks and threads are supported. Unavailable sampling is recorded with
+`available: false`; it does not prevent verification.
+The direct Temporal CLI version probe and server-readiness loop are outside these
+command observations; an absent gap record cannot diagnose an interruption there.
+
+A gap does not identify its cause. Sleep, CPU contention, debugger pauses and
+clock adjustments can look alike; no observed gap does not exclude suspension.
+The observer does not read application payloads, change timeout budgets, retry
+tests, or convert failed/skipped/missing/stale evidence into a pass. Command errors,
+native test identities, source digest and failed receipts remain authoritative.
+An interrupt writes a failed receipt before propagating the interruption.
+
+On macOS, explicitly prevent **idle** system sleep for one local invocation:
+
+```sh
+uv run --project packages/python python -m tools.development run default --keep-awake
+```
+
+This starts `/usr/bin/caffeinate -i -w` for the runner PID and stops that helper on
+normal exit, failure or interruption. It changes no persistent power settings and
+does not prevent lid-close or explicit system sleep. `localPowerControl` records
+whether the helper was requested and started; starting it is not proof that sleep
+was prevented. The option is rejected in CI. On other platforms, or if caffeinate
+cannot be launched, verification continues with an explicit unsupported/unavailable
+message. Use the host's existing power controls if needed; no helper is installed.
+
+Before rerunning a failed check, copy its `.project-graph/evidence/<check-id>/`
+directory, console `test-results/` (including retained-on-failure traces), and the
+terminal log into an ignored incident directory such as
+`.project-graph/diagnostics/incident-name/`. A rerun reuses the normal evidence and
+browser output paths. Preserve the original receipt's source digest, command
+outcome and failed identities; a later pass must not erase the earlier failure
+from the incident record.
+
+Compare the recorded gaps with browser trace event gaps and host logs. On macOS,
+`pmset -g log` can help correlate sleep/wake events with the invocation's local time
+window. Logs can contain private machine details; keep them local or redact them
+before sharing. Treat the cause as unknown unless supported by observations. Fix
+application/readiness regressions separately, and rerun unchanged inputs after
+addressing host conditions to obtain fresh evidence. Required CI remains full.
+
 ## CI acceptance and release
 
 Pull requests must target `main` to obtain accepted CI evidence. For dependent

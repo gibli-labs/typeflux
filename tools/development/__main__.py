@@ -16,6 +16,7 @@ from pathlib import Path
 from tools.project_graph.collection import collection_environment
 from tools.project_graph.repository import GraphError, Repository
 
+from .host import LocalPowerControlError, keep_awake, observe_host
 from .registry import CI_CHECKS, DEFAULT
 from .results import playwright, vitest
 
@@ -35,6 +36,7 @@ class Runner:
         self.root, self.output = root, output
         self.tests = []
         self.commands = []
+        self.host_diagnostics = []
         self.env = {
             **collection_environment(),
             "PYTHONPATH": str(root),
@@ -48,14 +50,30 @@ class Runner:
     def command(self, *args, cwd=".", env=None, timeout=600):
         self.commands.append({"cwd": cwd, "argv": list(args)})
         print(f"[{cwd}] {' '.join(args)}", flush=True)
-        with subprocess.Popen(
-            args, cwd=self.root / cwd, env={**self.env, **(env or {})}, start_new_session=True
-        ) as process:
-            try:
-                code = process.wait(timeout=timeout)
-            except BaseException:
-                stop(process)
-                raise
+        try:
+            with (
+                observe_host() as observations,
+                subprocess.Popen(
+                    args,
+                    cwd=self.root / cwd,
+                    env={**self.env, **(env or {})},
+                    start_new_session=True,
+                ) as process,
+            ):
+                try:
+                    code = process.wait(timeout=timeout)
+                except BaseException:
+                    stop(process)
+                    raise
+        finally:
+            diagnostic = {"commandIndex": len(self.commands) - 1, **observations.result()}
+            self.host_diagnostics.append(diagnostic)
+            if diagnostic["possibleHostInterruption"]:
+                print(
+                    f"Possible host interruption during command {len(self.commands)}: "
+                    f"{diagnostic['gapCount']} clock/sampling gaps. {diagnostic['uncertainty']}",
+                    file=sys.stderr,
+                )
         if code:
             raise GraphError(f"command failed ({code}): {' '.join(args)}")
 
@@ -276,7 +294,7 @@ class Runner:
                 stop(process)
 
 
-def run(root: Path, check: str, check_id: str | None = None) -> dict:
+def run(root: Path, check: str, check_id: str | None = None, *, power=None) -> dict:
     repo = Repository(root)
     check_id = check_id or (
         f"python-{platform.python_version_tuple()[0]}.{platform.python_version_tuple()[1]}"
@@ -291,6 +309,7 @@ def run(root: Path, check: str, check_id: str | None = None) -> dict:
     receipt.unlink(missing_ok=True)
     runner = Runner(root, output)
     status, error = "passed", None
+    interrupted = False
     started = time.monotonic()
     try:
         runner.execute(check)
@@ -310,6 +329,8 @@ def run(root: Path, check: str, check_id: str | None = None) -> dict:
             raise GraphError("test runner produced no test identities; evidence is incomplete")
         if Repository(root).tree_digest != repo.tree_digest:
             raise GraphError("verification changed source inputs; evidence is invalid")
+    except KeyboardInterrupt:
+        status, error, interrupted = "failed", "verification interrupted", True
     except (
         GraphError,
         ValueError,
@@ -332,6 +353,8 @@ def run(root: Path, check: str, check_id: str | None = None) -> dict:
         "runId": os.environ.get("GITHUB_RUN_ID"),
         "attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
         "commands": runner.commands,
+        "hostDiagnostics": runner.host_diagnostics,
+        "localPowerControl": power or {"requested": False, "status": "disabled"},
         "tests": runner.tests,
         "platform": platform.platform(),
         "python": platform.python_version(),
@@ -342,6 +365,8 @@ def run(root: Path, check: str, check_id: str | None = None) -> dict:
     print(f"{check_id}: {status} ({receipt})", flush=True)
     if error:
         print(error, file=sys.stderr)
+    if interrupted:
+        raise KeyboardInterrupt
     return record
 
 
@@ -359,6 +384,11 @@ def main(argv=None):
     execute = sub.add_parser("run")
     execute.add_argument("checks", nargs="+", choices=(*DEFAULT, "default"))
     execute.add_argument("--check-id")
+    execute.add_argument(
+        "--keep-awake",
+        action="store_true",
+        help="Local macOS only: prevent idle sleep for this invocation; no persistent settings",
+    )
     args = parser.parse_args(argv)
     if args.command == "sync":
         from .setup import sync
@@ -374,9 +404,13 @@ def main(argv=None):
     if args.check_id and len(selected) != 1:
         parser.error("--check-id requires one verifier")
     root = Path(__file__).resolve().parents[2]
-    for check in selected:
-        if run(root, check, args.check_id)["status"] != "passed":
-            return 1
+    try:
+        with keep_awake(args.keep_awake) as power:
+            for check in selected:
+                if run(root, check, args.check_id, power=power)["status"] != "passed":
+                    return 1
+    except LocalPowerControlError as error:
+        parser.error(str(error))
     return 0
 
 
