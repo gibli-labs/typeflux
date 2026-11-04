@@ -1,0 +1,26 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.development-process-cleanup
+    kind: capability
+    description: Reap owned verification commands through repeated interrupts and disappearing process groups while retaining original failure/interrupted outcomes, existing signal policy and grace deadlines.
+    editions: {python: shared, typescript: shared}
+    implementation: [tools/development/__main__.py]
+    documentation: [docs/development.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.development-cleanup-outcomes}
+  - id: invariant.development-cleanup-outcomes
+    kind: invariant
+    description: Additional cleanup interrupts escalate to owned-group forced termination and reaping, without replacing an active command error. A first interrupt during normal cleanup propagates after reaping. Disappearing groups are tolerated; unrelated process discovery, port killing, retries and passing-evidence overrides remain excluded. Forced exit cannot guarantee cleanup of independently detached Playwright servers or complete reports.
+  - id: check.development-process-cleanup
+    kind: check
+    description: Process-backed negative/positive controls cover repeated cleanup interrupts, initial/forced signal exit races, exact original exception identity and a repeated real SIGINT runner with failed source/native evidence and unrelated listener safety.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_development_process_cleanup.py, name: test_cleanup_finishes_after_additional_interrupt_and_preserves_original_error}
+      - {path: packages/python/tests/test_development_process_cleanup.py, name: test_cleanup_tolerates_group_exit_race_without_masking_original_error}
+      - {path: packages/python/tests/test_development_process_cleanup.py, name: test_new_interrupt_during_normal_cleanup_is_raised_after_reaping}
+      - {path: packages/python/tests/test_development_process_cleanup.py, name: test_repeated_real_sigint_retains_failed_receipt_and_stops_only_owned_command}
+    links:
+      - {relation: verifies, target: invariant.development-cleanup-outcomes}

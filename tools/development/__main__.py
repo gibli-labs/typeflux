@@ -22,18 +22,38 @@ from .results import playwright, vitest
 
 
 def stop(process, *, graceful_interrupt=False):
-    if process.poll() is None:
-        # Playwright owns detached webServer groups. Let its SIGINT handler
-        # tear those down and flush native reports before forcing an exit.
-        if graceful_interrupt:
-            process.send_signal(signal.SIGINT)
-        else:
-            os.killpg(process.pid, signal.SIGTERM)
+    original_error = sys.exception()
+    requested = signal.SIGINT if graceful_interrupt else signal.SIGTERM
+    delivered, interrupted = None, False
+    while True:
         try:
-            process.wait(timeout=10)
+            if process.poll() is not None:
+                break
+            if delivered != requested:
+                try:
+                    if graceful_interrupt and requested == signal.SIGINT:
+                        # Playwright owns detached webServer groups; let it flush
+                        # native reports and tear those down on the first interrupt.
+                        process.send_signal(requested)
+                    else:
+                        os.killpg(process.pid, requested)
+                except ProcessLookupError:
+                    # A disappearing owned group still needs child reaping.
+                    pass
+                delivered = requested
+            if requested == signal.SIGKILL:
+                process.wait()
+            else:
+                process.wait(timeout=10)
+            break
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
+            requested = signal.SIGKILL
+        except KeyboardInterrupt:
+            requested, interrupted = signal.SIGKILL, True
+    if interrupted and original_error is None:
+        # An interrupt first received during normal cleanup remains an interrupt,
+        # but cannot prevent owned-child reaping. Active failures keep precedence.
+        raise KeyboardInterrupt
 
 
 class Runner:
