@@ -21,9 +21,14 @@ from .registry import CI_CHECKS, DEFAULT
 from .results import playwright, vitest
 
 
-def stop(process):
+def stop(process, *, graceful_interrupt=False):
     if process.poll() is None:
-        os.killpg(process.pid, signal.SIGTERM)
+        # Playwright owns detached webServer groups. Let its SIGINT handler
+        # tear those down and flush native reports before forcing an exit.
+        if graceful_interrupt:
+            process.send_signal(signal.SIGINT)
+        else:
+            os.killpg(process.pid, signal.SIGTERM)
         try:
             process.wait(timeout=10)
         except subprocess.TimeoutExpired:
@@ -47,7 +52,7 @@ class Runner:
         # Live credentials are scrubbed; only the isolated Temporal check opts in.
         self.env.pop("TYPEFLUX_LIVE_TEMPORAL", None)
 
-    def command(self, *args, cwd=".", env=None, timeout=600):
+    def command(self, *args, cwd=".", env=None, timeout=600, graceful_interrupt=False):
         self.commands.append({"cwd": cwd, "argv": list(args)})
         print(f"[{cwd}] {' '.join(args)}", flush=True)
         try:
@@ -63,7 +68,7 @@ class Runner:
                 try:
                     code = process.wait(timeout=timeout)
                 except BaseException:
-                    stop(process)
+                    stop(process, graceful_interrupt=graceful_interrupt)
                     raise
         finally:
             diagnostic = {"commandIndex": len(self.commands) - 1, **observations.result()}
@@ -201,10 +206,11 @@ class Runner:
             path.unlink(missing_ok=True)
             try:
                 self.command(
-                    "npm",
-                    "run",
-                    "test:e2e",
+                    "node",
+                    "node_modules/@playwright/test/cli.js",
+                    "test",
                     cwd="clients/console",
+                    graceful_interrupt=True,
                     env={
                         "CI": "true",
                         "E2E_SERVER": "python-cp" if check.endswith("python") else "ts-cp",
