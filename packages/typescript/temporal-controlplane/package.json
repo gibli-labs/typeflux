@@ -25,7 +25,7 @@
     "generate:contract": "node ../../../tools/openapi-generator/generate.mjs controlplane"
   },
   "dependencies": {
-    "@temporalio/client": "^1.24.0",
+    "@temporalio/client": "^1.25.0",
     "@typeflux/temporal": "workspace:*",
     "@typeflux/temporal-yaml": "workspace:*",
     "yaml": "^2.9.1"
