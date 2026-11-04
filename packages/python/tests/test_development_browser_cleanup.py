@@ -24,7 +24,10 @@ from pathlib import Path
 with socket.socket() as server:
     server.bind(('127.0.0.1', 0))
     server.listen()
-    Path(sys.argv[1]).write_text(json.dumps({'pid': os.getpid(), 'port': server.getsockname()[1]}))
+    path = Path(sys.argv[1])
+    temporary = path.with_suffix('.tmp')
+    temporary.write_text(json.dumps({'pid': os.getpid(), 'port': server.getsockname()[1]}))
+    temporary.replace(path)
     while True:
         time.sleep(.05)
 """
@@ -182,3 +185,39 @@ def test_other_commands_keep_existing_termination_policy(monkeypatch):
     process.send_signal.assert_not_called()
     kill.assert_called_once_with(123, signal.SIGTERM)
     process.wait.assert_called_once_with(timeout=10)
+
+
+def test_browser_fixture_readiness_is_not_visible_until_complete(tmp_path):
+    ready = tmp_path / "ready.json"
+    opened = tmp_path / "opened"
+    release = tmp_path / "release"
+    # Hold the publisher after opening its output but before writing JSON. This
+    # exposes the same empty-file window seen in the Python 3.13 CI receipt.
+    pause_publish = """
+import sys, time
+from pathlib import Path
+original_open = Path.open
+def observed_open(path, *args, **kwargs):
+    stream = original_open(path, *args, **kwargs)
+    if path in (Path(sys.argv[1]), Path(sys.argv[1]).with_suffix('.tmp')):
+        Path(sys.argv[2]).touch()
+        while not Path(sys.argv[3]).exists():
+            time.sleep(.01)
+    return stream
+Path.open = observed_open
+"""
+    process = subprocess.Popen(
+        [sys.executable, "-c", pause_publish + SERVER, str(ready), str(opened), str(release)]
+    )
+    try:
+        until(opened.exists)
+        assert not ready.exists(), "readiness must not expose an empty or partial document"
+        release.touch()
+        until(ready.exists)
+        info = json.loads(ready.read_text())
+        assert info["pid"] == process.pid
+        assert not port_free(info["port"])
+    finally:
+        release.touch()
+        process.terminate()
+        process.wait(timeout=3)

@@ -49,6 +49,14 @@ timeout or normal SIGINT, it sends SIGINT to that owned CLI and allows up to the
 existing ten-second cleanup budget for Playwright to stop its detached fixture
 servers and finish native reports. The original timeout/interruption still fails;
 interruption returns 130 after saving the receipt and any reported test identities.
+An additional interrupt during the cleanup wait escalates to the owned command
+group's forced stop while reaping continues. A group disappearing between a
+liveness check and signal delivery is treated as already exited. Cleanup retains
+the original command failure or interruption; an interrupt first received during
+otherwise normal cleanup is propagated after reaping. No unrelated process search
+or port-based termination is used.
+This does not mask signals: an interrupt outside the protected wait/signal work,
+including during exception handling itself, can still interrupt cleanup.
 If the CLI does not exit, the runner force-stops its command group. An uncatchable
 kill or stalled teardown cannot guarantee detached-server cleanup or a complete
 native report. Keep the failed evidence and verify ownership before manually
