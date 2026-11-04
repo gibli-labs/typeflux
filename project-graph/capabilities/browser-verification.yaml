@@ -23,12 +23,13 @@ entities:
     description: Browser verification invokes Playwright directly and lets its SIGINT lifecycle clean owned detached webServer groups within the existing bounded shutdown budget. Failures, timeouts, interruption status, native reports and source identity remain truthful; unrelated processes are never killed by port and existing servers are never reused. Forced exit cannot guarantee detached cleanup or complete reports.
   - id: check.browser-runner-cleanup
     kind: check
-    description: Process-backed detached fixture lifecycle checks cover success, failure, interrupt and timeout, retained native identities/source receipts and unrelated listener safety; separate checks retain bounded forced fallback and ordinary command termination policy.
+    description: Process-backed detached fixture lifecycle checks cover success, failure, interrupt and timeout, retained native identities/source receipts and unrelated listener safety; readiness is published only as complete JSON. Separate checks retain bounded forced fallback and ordinary command termination policy.
     environment: python-non-live
     ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
     tests:
       - {path: packages/python/tests/test_development_browser_cleanup.py, name: test_browser_lifecycle_cleans_detached_owned_servers_and_retains_evidence}
       - {path: packages/python/tests/test_development_browser_cleanup.py, name: test_browser_graceful_cleanup_has_bounded_forced_fallback}
       - {path: packages/python/tests/test_development_browser_cleanup.py, name: test_other_commands_keep_existing_termination_policy}
+      - {path: packages/python/tests/test_development_browser_cleanup.py, name: test_browser_fixture_readiness_is_not_visible_until_complete}
     links:
       - {relation: verifies, target: invariant.browser-fixture-cleanup}
