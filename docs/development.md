@@ -44,6 +44,16 @@ without credentials. Both browser editions assert background API responses and
 wait for pending reads; deliberate outage and invalid-fixture responses are scoped
 explicitly in `clients/console/e2e/fixtures.ts` and the relevant specs. The bundle
 matrix also checks every fixture workflow/environment under both project IDs.
+The development runner invokes the installed Playwright CLI directly. On a command
+timeout or normal SIGINT, it sends SIGINT to that owned CLI and allows up to the
+existing ten-second cleanup budget for Playwright to stop its detached fixture
+servers and finish native reports. The original timeout/interruption still fails;
+interruption returns 130 after saving the receipt and any reported test identities.
+If the CLI does not exit, the runner force-stops its command group. An uncatchable
+kill or stalled teardown cannot guarantee detached-server cleanup or a complete
+native report. Keep the failed evidence and verify ownership before manually
+stopping leftover processes; the runner never kills by port or reuses an existing
+server. Subsequent checks still refuse occupied fixture ports.
 The overview (including project switches), drift, governance and security smoke
 checks wait up to 15 seconds for named successful GET responses and pending API
 reads before asserting content. Their real fixture

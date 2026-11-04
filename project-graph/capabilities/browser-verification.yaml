@@ -9,10 +9,26 @@ entities:
       - clients/console/e2e/fixtures.ts
       - clients/console/e2e/data-reads.ts
       - clients/console/e2e/delayed-data.ts
+      - tools/development/__main__.py
     documentation: [docs/development.md]
     examples: []
     links:
       - {relation: requires, target: invariant.browser-data-readiness}
+      - {relation: requires, target: invariant.browser-fixture-cleanup}
   - id: invariant.browser-data-readiness
     kind: invariant
     description: Required data GETs must complete successfully within a finite budget before content checks; missing data, pending requests and unexpected API failures cannot be accepted as readiness, including failures followed by success.
+  - id: invariant.browser-fixture-cleanup
+    kind: invariant
+    description: Browser verification invokes Playwright directly and lets its SIGINT lifecycle clean owned detached webServer groups within the existing bounded shutdown budget. Failures, timeouts, interruption status, native reports and source identity remain truthful; unrelated processes are never killed by port and existing servers are never reused. Forced exit cannot guarantee detached cleanup or complete reports.
+  - id: check.browser-runner-cleanup
+    kind: check
+    description: Process-backed detached fixture lifecycle checks cover success, failure, interrupt and timeout, retained native identities/source receipts and unrelated listener safety; separate checks retain bounded forced fallback and ordinary command termination policy.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_development_browser_cleanup.py, name: test_browser_lifecycle_cleans_detached_owned_servers_and_retains_evidence}
+      - {path: packages/python/tests/test_development_browser_cleanup.py, name: test_browser_graceful_cleanup_has_bounded_forced_fallback}
+      - {path: packages/python/tests/test_development_browser_cleanup.py, name: test_other_commands_keep_existing_termination_policy}
+    links:
+      - {relation: verifies, target: invariant.browser-fixture-cleanup}
