@@ -1,8 +1,9 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   verifyPlanMergedToDefaultBranch,
@@ -73,6 +74,32 @@ function writeProject(files: Record<string, string>): string {
   }
   return dir;
 }
+
+// Synchronous fixture scope: Git configuration, routing and templates must not
+// escape the test-owned repositories. Keep Git's native tracing available.
+function withIsolatedGitEnvironment<T>(action: () => T): T {
+  const inherited = Object.entries(process.env).filter(([key]) => key.startsWith("GIT_"));
+  const configDir = writeProject({ "empty.gitconfig": "" });
+  const templateDir = join(configDir, "template");
+  mkdirSync(templateDir);
+  try {
+    for (const [key] of inherited) {
+      if (!key.startsWith("GIT_TRACE")) delete process.env[key];
+    }
+    process.env.GIT_CONFIG_GLOBAL = join(configDir, "empty.gitconfig");
+    process.env.GIT_CONFIG_SYSTEM = join(configDir, "empty.gitconfig");
+    process.env.GIT_CONFIG_NOSYSTEM = "1";
+    process.env.GIT_TEMPLATE_DIR = templateDir;
+    process.env.GIT_TERMINAL_PROMPT = "0";
+    return action();
+  } finally {
+    for (const key of Object.keys(process.env)) {
+      if (key.startsWith("GIT_")) delete process.env[key];
+    }
+    for (const [key, value] of inherited) process.env[key] = value;
+  }
+}
+
 
 function planResolver(project: TypefluxProjectSpec, sources: ProjectBundleSources): DeploymentPlanResolver {
   return (workflowId, environmentId) => {
@@ -478,12 +505,12 @@ describe("plan integrity + strict shape at load (review items 1/2/5)", () => {
 });
 
 describe("verifyPlanMergedToDefaultBranch (#790)", () => {
-  it("passes a merged byte-identical plan; refuses tampered, unmerged, and non-repo plans", () => {
-    const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
+  it("passes a merged byte-identical plan; refuses tampered, unmerged, and non-repo plans", () => withIsolatedGitEnvironment(() => {
     const { mkdtempSync, mkdirSync, writeFileSync } = require("node:fs") as typeof import("node:fs");
     const { join } = require("node:path") as typeof import("node:path");
     const { tmpdir } = require("node:os") as typeof import("node:os");
     const base = mkdtempSync(join(tmpdir(), "tf-790-"));
+    createdDirs.push(base);
     const env = {
       ...process.env,
       GIT_AUTHOR_NAME: "T",
@@ -530,5 +557,51 @@ describe("verifyPlanMergedToDefaultBranch (#790)", () => {
     mkdirSync(nogit);
     writeFileSync(join(nogit, "p.yaml"), "plan: x\n");
     expect(verifyPlanMergedToDefaultBranch(join(nogit, "p.yaml"), nogit)).toContain("not inside a git checkout");
-  });
+  }));
+});
+
+
+describe("Git fixture environment isolation", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  function verifyIsolation(throwAfterCommit: boolean): void {
+    const poison = writeProject({
+      "global.gitconfig": "[commit]\n gpgSign = true\n",
+      "template/hooks/pre-commit": '#!/bin/sh\nprintf escaped > "$TYPEFLUX_TEST_HOOK_MARKER"\nexit 42\n',
+    });
+    const marker = join(poison, "escaped");
+    chmodSync(join(poison, "template/hooks/pre-commit"), 0o755);
+    vi.stubEnv("GIT_CONFIG_GLOBAL", join(poison, "global.gitconfig"));
+    vi.stubEnv("GIT_TEMPLATE_DIR", join(poison, "template"));
+    vi.stubEnv("GIT_CONFIG_COUNT", "1");
+    vi.stubEnv("GIT_CONFIG_KEY_0", "core.hooksPath");
+    vi.stubEnv("GIT_CONFIG_VALUE_0", join(poison, "template/hooks"));
+    vi.stubEnv("GIT_DIR", join(poison, "unowned.git"));
+    vi.stubEnv("TYPEFLUX_TEST_HOOK_MARKER", marker);
+    const before = Object.entries(process.env).filter(([key]) => key.startsWith("GIT_"));
+    const failure = new Error("controlled fixture failure");
+    const action = () => withIsolatedGitEnvironment(() => {
+      const repo = writeProject({ "plan.yaml": "plan: controlled\n" });
+      const git = (...args: string[]) => execFileSync("git", ["-C", repo, ...args], { stdio: "pipe" });
+      git("init", "-b", "main");
+      git("add", "plan.yaml");
+      git("-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "fixture");
+      expect(git("rev-parse", "--show-toplevel").toString().trim()).toBe(realpathSync(repo));
+      expect(git("show", "HEAD:plan.yaml").toString()).toBe("plan: controlled\n");
+      if (throwAfterCommit) throw failure;
+    });
+    if (throwAfterCommit) {
+      let caught: unknown;
+      try { action(); } catch (error) { caught = error; }
+      expect(caught).toBe(failure);
+    } else action();
+    const after = Object.entries(process.env).filter(([key]) => key.startsWith("GIT_"));
+    // A failure prints no inherited values, which may contain private config.
+    expect(after.length === before.length && before.every(([key, value]) => process.env[key] === value)).toBe(true);
+    expect(existsSync(marker)).toBe(false);
+    expect(existsSync(join(poison, "unowned.git"))).toBe(false);
+  }
+
+  it("isolates real Git fixture commands from inherited config and routing", () => verifyIsolation(false));
+  it("restores inherited Git controls after a fixture failure", () => verifyIsolation(true));
 });

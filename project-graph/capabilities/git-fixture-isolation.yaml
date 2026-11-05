@@ -1,0 +1,25 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.git-fixture-isolation
+    kind: capability
+    description: Keep the real Git-backed deployment-plan test independent of external config, routing, signing and templates while restoring caller state and cleaning only test-owned repositories.
+    editions: {python: shared, typescript: supported}
+    implementation: [packages/typescript/temporal-yaml/test/deployment-plans.test.ts]
+    documentation: [docs/development.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.git-fixture-boundary}
+  - id: invariant.git-fixture-boundary
+    kind: invariant
+    description: Synchronous fixtures preserve native Git tracing, isolate other inherited Git controls, restore exact caller Git environment on success/failure and retain real merged/tampered/unmerged/symlink/outside-repository assertions and existing owned cleanup. Production validation, five-second timeout and retry policy remain unchanged; a controlled reproduction or later pass does not recover the original timeout cause.
+  - id: check.git-fixture-isolation
+    kind: check
+    description: Actual local Git commands commit under poisoned inherited config, templates and routing without running the poison hook or touching its target; original error identity and caller Git environment survive failure. The existing merged-plan case uses real repositories and every acceptance/rejection path.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/temporal-yaml/test/deployment-plans.test.ts, name: 'passes a merged byte-identical plan; refuses tampered, unmerged, and non-repo plans'}
+      - {path: packages/typescript/temporal-yaml/test/deployment-plans.test.ts, name: isolates real Git fixture commands from inherited config and routing}
+      - {path: packages/typescript/temporal-yaml/test/deployment-plans.test.ts, name: restores inherited Git controls after a fixture failure}
+    links:
+      - {relation: verifies, target: invariant.git-fixture-boundary}
