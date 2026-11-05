@@ -41,7 +41,8 @@ docs/                 Documentation
 The Python walkthrough below uses `packages/python/` as its working directory;
 its `examples/...` paths are relative to that directory. Repository development
 setup/checks run from the root as described in [development.md](docs/development.md).
-The local quickstarts specify their own application-directory commands.
+The local quickstarts specify their own application-directory commands. For slow
+console fixture API reads, see the bounded [API fan-out diagnostic](docs/development.md#investigating-local-api-fan-out).
 
 ## Quickstart
 

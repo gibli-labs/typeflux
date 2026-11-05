@@ -83,6 +83,75 @@ Controlled default/project-scoped regressions require one request to show the
 503 error and verify that a deliberate reload can render recovered execution data.
 They retain the API-health observer and do not stub the original cold-load listing.
 
+## Investigating local API fan-out
+
+Use the read-only browser fixture diagnostic when investigating Python bundle or
+validation latency. It starts an owned loopback API on an ephemeral port, reuses
+the existing resolver, reads both fixture project IDs, then stops that server.
+It is not part of CI acceptance and does not exercise the console proxy, browser
+or deliberate six-second fixture delays. From the repository root after setup:
+
+```sh
+PYTHONPATH="$PWD/packages/python:$PWD" uv run --project packages/python python \
+  -m tools.development.api_fanout_probe --workload overview --concurrency 16 \
+  --output /tmp/typeflux-api-overview.json
+```
+
+`overview` selects every workflow in the local environment; `matrix` selects every
+workflow/environment combination. Both include project validation and both project
+IDs. Four inventory reads determine the complete workload (currently 30 or 60 reads
+per round); the two preplanned rounds share one API process. Cold/warm labels
+identify order, not independent samples or guaranteed cache states. There are no
+automatic retries. Invalid payloads, HTTP errors, timeouts or changed source inputs
+fail the run even if later reads succeed. A false validation result is retained
+separately from whether the API successfully delivered a well-shaped report.
+
+The output binds source/graph inputs and dependency versions to each round, with
+HTTP elapsed time, client queue delay and resolver wall/thread CPU time. Bootstrap
+failures produce a minimal failed report with a fixed reason code; missing source
+or timing fields remain incomplete evidence. Exit zero
+requires every read to complete and finish within 15 seconds of its round's start,
+including queue delay; this diagnostic threshold is not a browser-readiness proof.
+HTTP inactivity timeouts remain 15 seconds and streamed bodies also have a total
+read budget. Caps are 128 reads per round, 8 MiB per response, 256 resolver samples
+and 256 collected profile function labels; omitted counts are explicit. Response
+bodies, credentials, exception text and request arguments are not saved. Only fixed
+operation labels and SDK profile function identities appear in the report.
+
+Use `--concurrency 1 --profile` for standard cProfile summaries in resolver threads.
+Concurrent profiling is rejected before starting the API: CPython 3.12 profiler
+instances compete for its monitoring slot. Concurrent runs still collect wall and
+thread CPU observations without profiling. Profiling adds overhead; cumulative
+frame times nest and must not be added together. The top retained frames may be
+incomplete when the collection cap is reached; omission counts and
+`profileCollectionComplete` make that explicit. Do not infer hottest paths from a
+truncated collection. Wall time minus thread CPU time
+includes waiting and scheduling and cannot alone attribute a cause.
+
+The diagnostic uses synthetic unreachable Temporal values and scrubs inherited
+provider credentials. Run it against this fresh fixture checkout, without private
+environment files. It performs no workflow execution, provider calls, runtime
+metadata contribution or execution-manifest change. Keep original failed browser
+receipts and traces separately; later passing diagnostics do not diagnose them.
+
+For a resource comparison, `tools/development/api_fanout.Dockerfile` builds a local
+dependency image using the committed Python lockfile and digest-pinned base/uv
+images. It is not a worker/release image. Build with an explicit context containing
+only that Dockerfile and tracked `packages/python/{pyproject.toml,uv.lock,README.md,
+LICENSE,src}` files. Use the same built image ID for every comparison; retain it,
+the Dockerfile hash, dependency versions, workload, exact Docker command, CPU/memory
+limits, exit/OOM status and output JSON. Do not overlap with another default profile.
+Bind the candidate source and its Git common directory read-only at their existing
+absolute paths so Git worktree links and provenance reads behave normally. Set
+`PYTHONPATH` to the candidate's `packages/python/src`, `packages/python` and root,
+and scope Git's `safe.directory` setting to that checkout through container-only
+environment variables. Run with `--network none`, a PID cap, dropped capabilities,
+`no-new-privileges`, an owned label/name/CID and a dedicated writable results mount.
+Compare `--cpus 4` versus `--cpus 1` with `--memory 2g --memory-swap 2g`; bound each
+container to 180 seconds. Retain failures, verify the exact CID's ownership label
+before timeout cleanup, and remove only containers created for the comparison.
+Local Docker observations do not certify cloud or deployed recovery; see #87.
+
 ## Implement and verify
 
 1. Read `AGENTS.md`, the issue and relevant source. Retrieve graph context for a
