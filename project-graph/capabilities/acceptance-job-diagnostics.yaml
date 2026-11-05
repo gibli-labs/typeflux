@@ -1,0 +1,31 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.acceptance-job-diagnostics
+    kind: capability
+    description: Retain bounded exact-run job metadata observations and actionable trusted-job rejection summaries without changing acceptance or retry policy.
+    editions: {python: shared, typescript: shared}
+    implementation: [tools/development/acceptance.py, .github/workflows/ci-acceptance.yml]
+    documentation: [docs/development.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.acceptance-job-observations}
+      - {relation: requires, target: invariant.dependent-pr-evidence}
+  - id: invariant.acceptance-job-observations
+    kind: invariant
+    description: Before job validation can reject metadata, save uniquely named bounded expected, missing, non-passing and observed job identities/statuses for the exact run/attempt/source; reevaluation preserves previous observations and never infers a cause, retries work, overrides failure or relaxes mandatory source/job/test obligations.
+  - id: check.acceptance-job-observations
+    kind: check
+    description: Simulated GitHub transport exercises the evaluator and check publication for missing, failed and incomplete metadata, retained failure/success reevaluations, diagnostic bounds and independent aggregate rejection. Existing exact-source and native journey tests remain mandatory.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_development_acceptance.py, name: test_required_job_rejection_records_observed_metadata}
+      - {path: packages/python/tests/test_development_acceptance.py, name: test_reevaluation_retains_original_job_failure}
+      - {path: packages/python/tests/test_development_acceptance.py, name: test_job_observations_are_bounded_and_do_not_change_rejection}
+      - {path: packages/python/tests/test_development_acceptance.py, name: test_job_diagnostics_do_not_override_other_acceptance_obligations}
+      - {path: packages/python/tests/test_development_acceptance.py, name: test_workflow_preserves_diagnostics_across_acceptance_attempts}
+      - {path: packages/python/tests/test_development_acceptance.py, name: test_malformed_job_name_is_retained_without_granting_acceptance}
+      - {path: packages/python/tests/test_development_acceptance.py, name: test_anomalous_duplicate_jobs_cannot_overflow_published_failure}
+      - {path: packages/python/tests/test_development_acceptance.py, name: test_malformed_extra_job_does_not_relax_original_fail_closed_gate}
+    links:
+      - {relation: verifies, target: invariant.acceptance-job-observations}

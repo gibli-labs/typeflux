@@ -38,6 +38,14 @@ jobs:
           RUN_ID: ${{ github.event.workflow_run.id }}
           ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         run: uv run --project packages/python python -m tools.development.acceptance --run-id "$RUN_ID" --attempt "$ATTEMPT" --publish
+      - name: Retain job observations for this acceptance attempt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ci-job-observations-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .project-graph/accepted/job-observations/
+          include-hidden-files: true
+          if-no-files-found: warn
       - name: Upload accepted evidence and human view
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
