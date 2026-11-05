@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { observeApiHealth } from "./api-health";
+import { driftReads, matrixReads } from "./data-reads";
 
 const data = { path: "/api/readiness-data", query: { environment_id: "local" } };
 const dataUrl = `${data.path}?environment_id=local`;
@@ -75,4 +76,27 @@ test("permanently pending API reads fail within the readiness budget with their 
     await request;
     health.dispose();
   }
+});
+
+
+test("drift readiness rejects bundle-only data and an allowed deployment outage", async ({ page }) => {
+  const health = await probe(page);
+  let status = 503;
+  try {
+    await page.route(/\/api\/v1\/workflows\/[^/]+\/bundle\?/, (route) => route.fulfill({ json: {} }));
+    for (const read of matrixReads) {
+      await fetchData(page, `${read.path}?${new URLSearchParams(read.query)}`);
+    }
+    // The exact read set used by the smoke must require deployments too.
+    await expect(health.waitForData(driftReads, 150)).rejects.toThrow(/deployments/);
+    health.allow({ method: "GET", path: /^\/api\/v1\/deployments$/, status: 503, reason: "controlled deployment outage" });
+    await page.route("**/api/v1/deployments", (route) => route.fulfill({ status, json: {} }));
+    await fetchData(page, "/api/v1/deployments");
+    await health.settle();
+    await expect(health.waitForData(driftReads, 150)).rejects.toThrow(/deployments/);
+    status = 200;
+    await fetchData(page, "/api/v1/deployments");
+    await health.waitForData(driftReads);
+    await health.settle();
+  } finally { health.dispose(); }
 });

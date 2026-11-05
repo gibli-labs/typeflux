@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test, type ApiHealth } from "./fixtures";
 import { delayFixtureData } from "./delayed-data";
-import { bundleReads, matrixReads, governanceReads } from "./data-reads";
+import { bundleReads, matrixReads, governanceReads, driftReads } from "./data-reads";
 
 import { EXPECT, LANE, rx } from "./expectations";
 
@@ -244,11 +244,13 @@ test("the drift page renders the N-way environment matrix with diff links (#611)
   expect(delivered(), "controlled slow fixture responses were exercised").toBeGreaterThan(0);
 });
 
-test("the drift page aggregates plan, environment, and prompt drift (#583)", async ({ page }) => {
+test("the drift page aggregates plan, environment, and prompt drift (#583)", async ({ page, apiHealth }) => {
+  const delivered = await delayFixtureData(page, /\/api\/v1\/deployments(\?|$)/);
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
 
   await page.goto(`/#/drift?env=${EXPECT.environment}`);
+  await apiHealth.waitForData(driftReads);
   await expect(page.getByRole("heading", { name: "Plan drift" })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Environment drift/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Prompt drift" })).toBeVisible();
@@ -280,6 +282,7 @@ test("the drift page aggregates plan, environment, and prompt drift (#583)", asy
   ).toBeVisible({ timeout: 15_000 });
 
   expect(errors, "no uncaught page errors").toEqual([]);
+  expect(delivered(), "controlled slow deployment response was exercised").toBeGreaterThan(0);
 });
 
 test("the drift page's Temporal-tier drain + pin-skew classes check on demand and degrade honestly (#577)", async ({ page, apiHealth }) => {

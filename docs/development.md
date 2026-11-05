@@ -64,12 +64,17 @@ stopping leftover processes; the runner never kills by port or reuses an existin
 server. Subsequent checks still refuse occupied fixture ports.
 The overview (including project switches), drift, governance and security smoke
 checks wait up to 15 seconds for named successful GET responses and pending API
-reads before asserting content. Their real fixture
-responses include a controlled six-second delay to guard against headings being
-mistaken for data readiness. Content assertions retain the default five-second
-budget; retries remain disabled. Failure probes cover missing data, unexpected
+reads before asserting content. The drift aggregate names deployments as well as
+both environment bundle reads; a six-second delay specifically holds its real
+deployments response. Other real fixture responses also include controlled
+six-second delays to guard against headings being mistaken for data readiness.
+The plan-row assertion retains its default five-second content budget; existing
+content/probe budgets and disabled retries remain unchanged. Failure probes cover missing data, unexpected
 errors retained after a later success, allowed outages and permanently pending
-requests. Allowlisted error responses never count as successful data.
+requests. Allowlisted error responses never count as successful data. A drift-specific probe
+requires deployments even after bundles succeed, rejects an allowed deployment
+outage, and requires a deliberate successful response before readiness. These
+checks do not diagnose backend/host latency or extend the 15-second readiness bound.
 
 The run-URL smoke still uses real execution enumeration against the unreachable
 fixture Temporal service. Single-workflow lists follow the same no-client-retry

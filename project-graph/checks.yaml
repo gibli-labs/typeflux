@@ -102,12 +102,13 @@ entities:
 
   - id: check.browser-data-readiness
     kind: check
-    description: Completed successful fixture data precedes overview/project-switch/drift/governance/security content assertions under controlled six-second delays; missing, failed and permanently pending data remain bounded failures.
+    description: Completed successful fixture data, including deployments and bundles for the drift aggregate, precedes overview/project-switch/drift/governance/security content assertions under controlled six-second delays; missing, failed and permanently pending data remain bounded failures.
     environment: chromium-python-cp-and-ts-cp
     ci: [browser-python, browser-typescript]
     tests:
       - {path: clients/console/e2e/smoke.spec.ts, name: overview renders bundles and the project switch rescopes requests}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the drift page renders the N-way environment matrix with diff links (#611)'}
+      - {path: clients/console/e2e/smoke.spec.ts, name: 'the drift page aggregates plan, environment, and prompt drift (#583)'}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the governance page shows coverage, gaps, and structured policies (#587)'}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the governance persona view leads with coverage, policy hashes, and the enforcement feed (#721/#723)'}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the security-posture persona view shows runtime controls and policy-enforced controls (#721)'}
@@ -115,5 +116,6 @@ entities:
       - {path: clients/console/e2e/readiness.spec.ts, name: data readiness rejects unexpected API errors even after a successful retry}
       - {path: clients/console/e2e/readiness.spec.ts, name: allowed unavailable responses settle but cannot satisfy successful data readiness}
       - {path: clients/console/e2e/readiness.spec.ts, name: permanently pending API reads fail within the readiness budget with their URL}
+      - {path: clients/console/e2e/readiness.spec.ts, name: drift readiness rejects bundle-only data and an allowed deployment outage}
     links:
       - {relation: verifies, target: invariant.browser-data-readiness}

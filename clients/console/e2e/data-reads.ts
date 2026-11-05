@@ -14,3 +14,4 @@ export const bundleReads = (project?: string): DataRead[] => {
 };
 export const matrixReads = bundleReads();
 export const governanceReads: DataRead[] = [...matrixReads, { path: "/api/v1/policies/base" }];
+export const driftReads: DataRead[] = [...matrixReads, { path: "/api/v1/deployments" }];
