@@ -76,6 +76,34 @@ requires deployments even after bundles succeed, rejects an allowed deployment
 outage, and requires a deliberate successful response before readiness. These
 checks do not diagnose backend/host latency or extend the 15-second readiness bound.
 
+The shared HTTP conformance runner also owns its managed fixture servers. It
+preflights every selected profile port before any launch/case, then checks again
+immediately before each spawn. An occupied port fails with exit 2 and its existing
+listener remains running. A bounded TCP connect-and-close probe sends no HTTP
+request; a timeout or other uncertain connection failure refuses the port too.
+The check is not an atomic port handoff: use isolated fixture
+ports and avoid concurrent runs on the same ports. Explicit `--base-url` mode still
+tests an existing server whose lifetime belongs to its caller.
+
+Managed SIGINT/SIGTERM exits use `128 + signal` after owned cleanup. Signal handling
+defers interruption inside child creation/ownership assignment and teardown
+sections. A brief interruptible boundary remains before a Python guard becomes
+active; delivery there can still prevent cleanup. TERM is sent to the owned server group, with
+five seconds of grace; a remaining group receives KILL, with bounded direct-child
+reaping and group-exit observation (one second each). This fits within the
+development runner's existing ten-second cleanup budget. Launcher exit alone does
+not establish descendant exit. An active original error/interruption keeps
+precedence if cleanup also raises; a fixed cleanup-incomplete message remains
+visible. A kill of the controller, unavailable OS scheduling or an uninterruptible
+process still cannot guarantee teardown. Retain failed evidence and verify exact
+process ownership before manual cleanup; never terminate a listener just by port.
+Process-backed checks cover ordinary failure, startup/teardown signal windows,
+resistant descendants, existing listeners and an interrupted source-bound receipt.
+Container execution needs a reaping init (for example Docker `--init`); the CLI
+does not act as PID 1 or reap adopted orphan descendants. Python CI uses Ubuntu VM
+jobs, and its native results must still establish these cases actually passed.
+These controlled checks do not replace either actual HTTP conformance edition.
+
 The run-URL smoke still uses real execution enumeration against the unreachable
 fixture Temporal service. Single-workflow lists follow the same no-client-retry
 policy as the matrix, so a bounded unavailable read is not automatically repeated.
