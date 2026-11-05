@@ -189,6 +189,30 @@ reexecute it. Protected automation paths and review remain part of the trust mod
 Keep existing test IDs while retiring their declarations, then remove the old tests
 in a subsequent change; a PR cannot erase its own base obligations.
 
+When the validator reaches job validation, it retains a unique JSON file under
+`.project-graph/accepted/job-observations/` for that evaluation, including run ID,
+attempt, source revisions, expected/missing/non-passing trusted job names and the
+observed job identities, statuses and conclusions. Required jobs are listed first;
+at most 100 jobs and 128 characters per observed text field are retained, with
+omitted-job and truncated-field counts. These limits affect diagnostics only.
+The trusted-job failure summary also includes missing/non-passing names and their
+retained statuses. The summary JSON is capped at 16,000 characters, with a
+separate omitted-entry count (or a truncation notice for an oversized trusted
+registry); the observation file retains its own bounded detail. No step logs or freeform payloads are copied into this record.
+
+The acceptance workflow uploads these files even on failure in a separate
+`ci-job-observations-<CI-run>-<CI-attempt>-<acceptance-run>-<acceptance-attempt>`
+artifact; its name keeps trusted-workflow reevaluations distinct. A reevaluation writes
+a new observation without replacing earlier files in the same output directory.
+Retain the original workflow attempt's logs, check result and artifact before
+reevaluating; diagnostic artifacts have distinct names across attempts, and artifact
+retention still applies. For local investigations, copy the output directory before
+rerunning: the current `ci-receipt.json` and explorer still use their normal paths.
+An observation records only the metadata seen at that evaluation. A later success
+does not explain an earlier rejection, prove eventual consistency or replace its
+failure evidence. Observations do not retry jobs, grant acceptance, relax required
+checks or authorize a release.
+
 Main protection requires `CI acceptance`, Dependency Review, DCO, and the Python,
 TypeScript and Actions CodeQL checks from GitHub Actions. The settings checker
 preserves unrelated protection settings:

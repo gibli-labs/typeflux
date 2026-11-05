@@ -10,6 +10,7 @@ import re
 import subprocess
 import tempfile
 import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
 
 from tools.project_graph.ci import aggregate
@@ -20,6 +21,9 @@ from tools.project_graph.repository import GraphError, Repository, git
 from .results import journey_evidence
 
 MAX_ARTIFACT_BYTES = 32 * 1024 * 1024
+MAX_OBSERVED_JOBS = 100
+MAX_OBSERVED_TEXT = 128
+MAX_JOB_SUMMARY_CHARS = 16_000
 
 
 def api(path, payload=None):
@@ -79,6 +83,97 @@ def validate_receipts(receipts, required, repo, run_id, attempt):
             or not isinstance(record.get("tests"), list)
         ):
             raise GraphError(f"failed, stale, or mismatched evidence for {identifier}")
+
+
+def record_jobs(jobs, required, repository, run_id, attempt, head, tested, output):
+    """Retain bounded observations, not acceptance authority or a retry decision."""
+    expected = {check["name"] for check in required.values()}
+    names = {job.get("name") for job in jobs if isinstance(job.get("name"), str)}
+    passed = {
+        job["name"]
+        for job in jobs
+        if isinstance(job.get("name"), str)
+        and job.get("status") == "completed"
+        and job.get("conclusion") == "success"
+    }
+
+    # Prioritize required jobs before unrelated entries when the response is large.
+    def is_required(job):
+        return isinstance(job.get("name"), str) and job["name"] in expected
+
+    ordered = [j for j in jobs if is_required(j)] + [j for j in jobs if not is_required(j)]
+    observed, truncated = [], 0
+    for job in ordered[:MAX_OBSERVED_JOBS]:
+        fields = {}
+        for key in ("id", "name", "status", "conclusion", "run_id", "run_attempt", "head_sha"):
+            value = job.get(key)
+            if isinstance(value, str):
+                truncated += len(value) > MAX_OBSERVED_TEXT
+                value = value[:MAX_OBSERVED_TEXT]
+            elif value is not None and type(value) is not int:
+                value = "<invalid type>"
+            elif type(value) is int and not 0 <= value < 10**20:
+                value = "<out of range>"
+            fields[key] = value
+        observed.append(fields)
+    record = {
+        "kind": "trusted-ci-job-observation",
+        "observedAt": datetime.now(UTC).isoformat(),
+        "repository": repository,
+        "runId": run_id,
+        "attempt": attempt,
+        "headRevision": head,
+        "testedRevision": tested,
+        "expected": sorted(expected),
+        "missing": sorted(expected - names),
+        "notPassed": sorted(expected - passed),
+        "observed": observed,
+        "totalJobs": len(jobs),
+        "omittedJobs": max(0, len(jobs) - MAX_OBSERVED_JOBS),
+        "truncatedFields": truncated,
+        "limits": "Job metadata only; not acceptance, independent execution or evidence of a cause.",
+    }
+    directory = output / "job-observations"
+    directory.mkdir(parents=True, exist_ok=True)
+    # Exclusive, unique names preserve earlier observations during reevaluation.
+    with tempfile.NamedTemporaryFile(
+        mode="w", dir=directory, prefix=f"{run_id}-{attempt}-", suffix=".json", delete=False
+    ) as handle:
+        json.dump(record, handle, indent=2)
+        handle.write("\n")
+        path = Path(handle.name)
+    print(f"CI job observation saved: {path}")
+    return record
+
+
+def job_failure_summary(observation):
+    """Fit anomalous metadata within the check-run API budget; full data stays on disk."""
+    details = {
+        key: observation[key] for key in ("runId", "attempt", "expected", "missing", "notPassed")
+    }
+    details.update(
+        observed=[
+            job for job in observation["observed"] if job["name"] in observation["notPassed"]
+        ],
+        summaryOmittedJobs=0,
+        observationOmittedJobs=observation["omittedJobs"],
+        observationTruncatedFields=observation["truncatedFields"],
+    )
+    while len(json.dumps(details)) > MAX_JOB_SUMMARY_CHARS and details["observed"]:
+        details["observed"].pop()
+        details["summaryOmittedJobs"] += 1
+    summary = json.dumps(details)
+    if len(summary) > MAX_JOB_SUMMARY_CHARS:
+        # A future oversized trusted registry must not break check publication either.
+        summary = json.dumps(
+            {
+                "runId": observation["runId"],
+                "attempt": observation["attempt"],
+                "summaryTruncated": True,
+                "details": "See retained job-observations artifact.",
+            }
+        )
+    return summary
 
 
 def pull_request_for_run(repository, run):
@@ -151,6 +246,7 @@ def evaluate(repository: str, run_id: int, attempt: int, output: Path):
         repo, base = Repository(root, tested), Repository(root, base_sha)
         validate_receipts(receipts, required, repo, run_id, attempt)
         jobs = pages(f"{prefix}/actions/runs/{run_id}/attempts/{attempt}/jobs", "jobs")
+        observation = record_jobs(jobs, required, repository, run_id, attempt, head, tested, output)
         result = aggregate(
             base,
             repo,
@@ -161,14 +257,20 @@ def evaluate(repository: str, run_id: int, attempt: int, output: Path):
             expected_head=head,
             tested_revision=tested,
         )
+        # Retain the original raw-metadata gate, independently of diagnostic projection.
+        try:
+            passed_names = {
+                job["name"]
+                for job in jobs
+                if job.get("status") == "completed" and job.get("conclusion") == "success"
+            }
+        except (KeyError, TypeError) as exc:
+            raise GraphError("invalid job metadata: " + job_failure_summary(observation)) from exc
         # Trusted registry obligations also apply if candidate policy deletes IDs.
-        passed_names = {
-            j["name"]
-            for j in jobs
-            if j.get("status") == "completed" and j.get("conclusion") == "success"
-        }
-        if not {c["name"] for c in required.values()} <= passed_names:
-            raise GraphError("trusted required jobs did not all pass")
+        if not {check["name"] for check in required.values()} <= passed_names:
+            raise GraphError(
+                "trusted required jobs did not all pass: " + job_failure_summary(observation)
+            )
         graph = compile_graph(repo)
         result["journeyEvidence"] = journey_evidence(graph, receipts)
         result["passed"] = result["passed"] and all(
