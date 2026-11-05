@@ -1,12 +1,12 @@
 """Proves child-workflow composition (#396).
 
-The end-to-end tests run a real parent->child->AIActivity through a time-skipping
-``WorkflowEnvironment`` (skipping when the Temporal test server is unavailable, as
-``tests/test_yaml.py`` does). The structural test always runs.
+The end-to-end tests run a real parent->child->AIActivity on the required isolated
+Temporal lane. Connection and execution failures fail; the structural test always runs.
 """
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
@@ -31,22 +31,14 @@ def _verdict(claim_id: str, *, substantiated: bool = True) -> Verdict:
 
 @asynccontextmanager
 async def _running_worker(responses: list[Verdict]):
-    """A time-skipping WorkflowEnvironment + Worker running the parent/child
-    workflows and the FakeProvider-backed assess activity. Skips if the Temporal
-    test server cannot start."""
-    try:
-        from temporalio.contrib.pydantic import pydantic_data_converter
-        from temporalio.testing import WorkflowEnvironment
-        from temporalio.worker import Worker
-    except ModuleNotFoundError as exc:  # pragma: no cover - temporalio not installed.
-        pytest.skip(f"temporalio not installed: {exc}")
+    """Use the pinned server owned by the maintained isolated Temporal lane."""
+    from temporalio.client import Client
+    from temporalio.contrib.pydantic import pydantic_data_converter
+    from temporalio.worker import Worker
 
     from typeflux.execution.worker import build_temporal_activity
 
-    try:
-        env = await WorkflowEnvironment.start_time_skipping(data_converter=pydantic_data_converter)
-    except Exception as exc:  # pragma: no cover - server binary unavailable (e.g. CI).
-        pytest.skip(f"Temporal test server unavailable: {exc}")
+    client = await Client.connect("127.0.0.1:7233", data_converter=pydantic_data_converter)
 
     assess_fn = build_temporal_activity(
         assess_claim_activity,
@@ -54,16 +46,19 @@ async def _running_worker(responses: list[Verdict]):
         provider=FakeProvider(list(responses)),
     )
     task_queue = f"cwc-{uuid4().hex}"
-    async with env:
-        async with Worker(
-            env.client,
-            task_queue=task_queue,
-            workflows=[ReviewWorkflow, AssessClaimWorkflow],
-            activities=[assess_fn],
-        ):
-            yield env.client, task_queue
+    async with Worker(
+        client,
+        task_queue=task_queue,
+        workflows=[ReviewWorkflow, AssessClaimWorkflow],
+        activities=[assess_fn],
+    ):
+        yield client, task_queue
 
 
+@pytest.mark.live
+@pytest.mark.skipif(
+    os.environ.get("TYPEFLUX_LIVE_TEMPORAL") != "1", reason="isolated Temporal lane required"
+)
 @pytest.mark.asyncio
 async def test_parent_composes_child_via_execute_child_workflow() -> None:
     claim = Claim(claim_id="CLM-1", text="cuts risk by 30%")
@@ -79,6 +74,10 @@ async def test_parent_composes_child_via_execute_child_workflow() -> None:
     assert result == [_verdict("CLM-1")]
 
 
+@pytest.mark.live
+@pytest.mark.skipif(
+    os.environ.get("TYPEFLUX_LIVE_TEMPORAL") != "1", reason="isolated Temporal lane required"
+)
 @pytest.mark.asyncio
 async def test_parent_fans_out_a_child_per_claim() -> None:
     claims = [Claim(claim_id="A", text="claim a"), Claim(claim_id="B", text="claim b")]

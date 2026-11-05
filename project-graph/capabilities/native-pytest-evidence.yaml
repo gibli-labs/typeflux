@@ -1,0 +1,36 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.native-pytest-evidence
+    kind: capability
+    description: Preserve bounded safe per-test skip classifications and require sandboxed YAML and child-composition execution on the existing owned pinned Temporal lane.
+    editions: {python: supported, typescript: shared}
+    implementation: [tools/development/pytest_results.py, tools/development/__main__.py]
+    documentation: [docs/development.md, packages/python/examples/child_workflow_composition/README.md]
+    examples: [packages/python/examples/child_workflow_composition/tests/test_composition.py]
+    links:
+      - {relation: requires, target: invariant.native-pytest-outcomes}
+  - id: invariant.native-pytest-outcomes
+    kind: invariant
+    description: Only exact reviewed reasons become fixed codes; arbitrary text is omitted, phase and count are bounded, and failed status dominates later skips. Required execution cannot pass by skip, missing evidence or a fallback test server; original unexplained historical skips remain distinct from later outcomes.
+  - id: check.native-pytest-diagnostics
+    kind: check
+    description: Actual pytest subprocess setup/call/teardown/xfail outcomes survive source-bound failed receipts without secret or oversized reason payloads; classified skips cannot pass a journey. Controlled transport failures cannot skip the required Temporal executions; repeated malformed reports retain bounds and original failed status.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_development_pytest_evidence.py, name: test_native_skip_diagnostics_survive_failed_receipt_without_reason_payloads}
+      - {path: packages/python/tests/test_development_pytest_evidence.py, name: test_required_temporal_connection_errors_fail_instead_of_skip}
+      - {path: packages/python/tests/test_development_pytest_evidence.py, name: test_skip_diagnostics_are_bounded_and_cannot_overwrite_failure}
+    links:
+      - {relation: verifies, target: invariant.native-pytest-outcomes}
+  - id: check.required-python-temporal-execution
+    kind: check
+    description: Existing sandboxed generated YAML workflow and parent-child single/fan-out executions retain their assertions and run on the required owned Temporal server with fake providers; no time-skipping download or broad exception-to-skip path.
+    environment: local-temporal
+    ci: [temporal]
+    tests:
+      - {path: packages/python/tests/test_yaml.py, name: test_sandboxed_yaml_runtime_worker_executes_generated_workflow_end_to_end}
+      - {path: packages/python/examples/child_workflow_composition/tests/test_composition.py, name: test_parent_composes_child_via_execute_child_workflow}
+      - {path: packages/python/examples/child_workflow_composition/tests/test_composition.py, name: test_parent_fans_out_a_child_per_claim}
+    links:
+      - {relation: verifies, target: invariant.native-pytest-outcomes}

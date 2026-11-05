@@ -329,6 +329,9 @@ class Runner:
                 self.pytest(
                     "tests/test_live_ts_binding.py",
                     "tests/test_live_local_runtime_parity.py",
+                    "tests/test_yaml.py::test_sandboxed_yaml_runtime_worker_executes_generated_workflow_end_to_end",
+                    "examples/child_workflow_composition/tests/test_composition.py::test_parent_composes_child_via_execute_child_workflow",
+                    "examples/child_workflow_composition/tests/test_composition.py::test_parent_fans_out_a_child_per_claim",
                     label="temporal-python",
                     env=env,
                 )
