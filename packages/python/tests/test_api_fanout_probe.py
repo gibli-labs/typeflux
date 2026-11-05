@@ -221,3 +221,46 @@ def test_api_probe_cli_keeps_fixed_codes_without_exception_payloads(
     output = tmp_path / "diagnostic.json"
     assert probe.main(["--root", str(ROOT), "--output", str(output)]) == 1
     assert json.loads(output.read_text()) == {"readStatus": "failed", "reasonCode": expected}
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (httpx.ReadTimeout("secret-token alice@example.com"), "fixture-inventory-timeout"),
+        (httpx.ConnectError("secret-token alice@example.com"), "fixture-inventory-transport-error"),
+    ],
+)
+def test_api_probe_inventory_http_failures_write_safe_failed_report(
+    fixture_api, error, expected, tmp_path, monkeypatch
+):
+    from contextlib import contextmanager
+    from urllib.parse import urlsplit
+
+    attempts, addresses = [], []
+    original_serve = probe.serve
+
+    @contextmanager
+    def server(app):
+        with original_serve(app) as address:
+            addresses.append(address)
+            yield address
+
+    def unavailable(client, path, params=None):
+        attempts.append(path)
+        raise error
+
+    monkeypatch.setattr(probe, "serve", server)
+    monkeypatch.setattr(probe, "read", unavailable)
+    monkeypatch.setattr(probe.os, "environ", dict(probe.os.environ))
+    output = tmp_path / "diagnostic.json"
+    assert probe.main(["--root", str(ROOT), "--output", str(output)]) == 1
+    assert json.loads(output.read_text()) == {"readStatus": "failed", "reasonCode": expected}
+    assert attempts == ["/api/v1/projects/examples/workflows"]
+    assert fixture_api["calls"] == []
+    assert len(addresses) == 1
+    import socket
+
+    with socket.socket() as listener:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", urlsplit(addresses[0]).port))
+        listener.listen()

@@ -35,6 +35,8 @@ REASON_CODES = frozenset(
         "oversized-response",
         "request-budget-exceeded",
         "fixture-inventory-unavailable",
+        "fixture-inventory-timeout",
+        "fixture-inventory-transport-error",
         "fixture-inventory-invalid",
         "local-fixture-environment-missing",
         "workload-limit-exceeded",
@@ -190,7 +192,12 @@ def workload(client, mode):
         prefix = f"/api/v1/projects/{project}"
         inventories = []
         for suffix, key in (("workflows", "workflows"), ("environments", "environments")):
-            status, body = read(client, f"{prefix}/{suffix}")
+            try:
+                status, body = read(client, f"{prefix}/{suffix}")
+            except httpx.TimeoutException:
+                raise ProbeError("fixture-inventory-timeout") from None
+            except httpx.HTTPError:
+                raise ProbeError("fixture-inventory-transport-error") from None
             if status != 200:
                 raise ProbeError("fixture-inventory-unavailable")
             ids = [item["id"] for item in json.loads(body)[key]]

@@ -30,5 +30,6 @@ entities:
       - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_retains_fixed_read_failure_codes}
       - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_classifies_payload_identity_mismatch}
       - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_cli_keeps_fixed_codes_without_exception_payloads}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_inventory_http_failures_write_safe_failed_report}
     links:
       - {relation: verifies, target: invariant.api-diagnostic-completeness}

@@ -107,7 +107,9 @@ fail the run even if later reads succeed. A false validation result is retained
 separately from whether the API successfully delivered a well-shaped report.
 
 The output binds source/graph inputs and dependency versions to each round, with
-HTTP elapsed time, client queue delay and resolver wall/thread CPU time. Exit zero
+HTTP elapsed time, client queue delay and resolver wall/thread CPU time. Bootstrap
+failures produce a minimal failed report with a fixed reason code; missing source
+or timing fields remain incomplete evidence. Exit zero
 requires every read to complete and finish within 15 seconds of its round's start,
 including queue delay; this diagnostic threshold is not a browser-readiness proof.
 HTTP inactivity timeouts remain 15 seconds and streamed bodies also have a total
