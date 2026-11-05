@@ -2,7 +2,7 @@ apiVersion: typeflux.dev/graph/v1alpha1
 entities:
   - id: capability.native-pytest-evidence
     kind: capability
-    description: Preserve bounded safe per-test skip classifications and require sandboxed YAML and child-composition execution on the existing owned pinned Temporal lane.
+    description: Preserve bounded safe per-test skip classifications and require sandboxed YAML, child-composition and YAML subworkflow execution on the existing owned pinned Temporal lane.
     editions: {python: supported, typescript: shared}
     implementation: [tools/development/pytest_results.py, tools/development/__main__.py]
     documentation: [docs/development.md, packages/python/examples/child_workflow_composition/README.md]
@@ -21,16 +21,22 @@ entities:
       - {path: packages/python/tests/test_development_pytest_evidence.py, name: test_native_skip_diagnostics_survive_failed_receipt_without_reason_payloads}
       - {path: packages/python/tests/test_development_pytest_evidence.py, name: test_required_temporal_connection_errors_fail_instead_of_skip}
       - {path: packages/python/tests/test_development_pytest_evidence.py, name: test_skip_diagnostics_are_bounded_and_cannot_overwrite_failure}
+      - {path: packages/python/tests/test_development_subworkflow_harness.py, name: test_required_subworkflow_setup_error_cannot_skip_or_use_another_server}
+      - {path: packages/python/tests/test_development_subworkflow_harness.py, name: test_required_search_attribute_registration_accepts_only_success_or_already_exists}
+      - {path: packages/python/tests/test_development_subworkflow_harness.py, name: test_required_search_attribute_registration_preserves_real_errors}
+      - {path: packages/python/tests/test_development_subworkflow_harness.py, name: test_required_search_attribute_registration_keeps_existing_deadline}
     links:
       - {relation: verifies, target: invariant.native-pytest-outcomes}
   - id: check.required-python-temporal-execution
     kind: check
-    description: Existing sandboxed generated YAML workflow and parent-child single/fan-out executions retain their assertions and run on the required owned Temporal server with fake providers; no time-skipping download or broad exception-to-skip path.
+    description: Existing sandboxed generated YAML workflow, parent-child single/fan-out, YAML child IDs/memo/map and occupied-child collision executions retain their assertions and run on the required owned Temporal server with fake providers; no time-skipping download or broad exception-to-skip path.
     environment: local-temporal
     ci: [temporal]
     tests:
       - {path: packages/python/tests/test_yaml.py, name: test_sandboxed_yaml_runtime_worker_executes_generated_workflow_end_to_end}
       - {path: packages/python/examples/child_workflow_composition/tests/test_composition.py, name: test_parent_composes_child_via_execute_child_workflow}
       - {path: packages/python/examples/child_workflow_composition/tests/test_composition.py, name: test_parent_fans_out_a_child_per_claim}
+      - {path: packages/python/tests/test_yaml_subworkflows.py, name: test_parent_runs_child_plain_and_map_with_ids_and_memo}
+      - {path: packages/python/tests/test_yaml_subworkflows.py, name: test_still_running_child_id_collision_fails_the_parent_loudly}
     links:
       - {relation: verifies, target: invariant.native-pytest-outcomes}

@@ -121,9 +121,13 @@ repeats it and executes from the beginning. Their append-only test logs observe
 external effects; they are not runtime checkpoints or a persistence service.
 Neither lane proves behavior in a deployed environment.
 
-The isolated Temporal lane also runs the existing Python sandboxed YAML workflow
-and both child-composition executions against its owned, pinned server with fake
-providers. Their test identities and workflow assertions remain unchanged; they
+The isolated Temporal lane also runs the existing Python sandboxed YAML workflow,
+both child-composition executions, and YAML subworkflow IDs/memo/map and occupied-child
+collision proofs against its owned, pinned server with fake providers. Search-attribute
+registration must succeed or report the typed already-exists RPC status; unsupported,
+permission and backend errors fail without an alternate-server fallback. The existing
+15-second registration and 60-second workflow-result deadlines remain unchanged, as
+does cleanup of test-owned workflow IDs. Their test identities and workflow assertions remain unchanged; they
 are selected explicitly there and marked `live` so the ordinary Python matrix
 only runs their non-live structural/unit checks. They do not download an SDK
 time-skipping server or convert connection/import/execution failures into skips.
@@ -147,8 +151,8 @@ and a classified skip still cannot satisfy a required passing test.
 The historical Temporal skips tracked in [#145](https://github.com/gibli-labs/typeflux/issues/145)
 have no retained reason; later passing executions cannot recover that information.
 Keep those original reports separate from new evidence. Other explicitly opt-in
-live tests may still use their own test-server fallback; this does not certify them
-or extend the required isolated lane to every live test.
+live tests remain separate coverage obligations; these required proofs do not certify
+every live test.
 
 Finish local validation before committing with sign-off, pushing once, and opening
 the PR. Batch corrections from reviews. Avoid repeated reviewer invocations on work
