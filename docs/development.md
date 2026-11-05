@@ -121,6 +121,35 @@ repeats it and executes from the beginning. Their append-only test logs observe
 external effects; they are not runtime checkpoints or a persistence service.
 Neither lane proves behavior in a deployed environment.
 
+The isolated Temporal lane also runs the existing Python sandboxed YAML workflow
+and both child-composition executions against its owned, pinned server with fake
+providers. Their test identities and workflow assertions remain unchanged; they
+are selected explicitly there and marked `live` so the ordinary Python matrix
+only runs their non-live structural/unit checks. They do not download an SDK
+time-skipping server or convert connection/import/execution failures into skips.
+Run the maintained `temporal` verifier to execute them; simply setting
+`TYPEFLUX_LIVE_TEMPORAL=1` does not establish server ownership or a passing result.
+
+Native pytest results and their source-bound receipts retain `skipDiagnostics`
+for skipped setup/call/teardown reports, including skips after a failed call.
+Each entry contains a fixed phase, `reasonCode` and `detailsOmitted` flag. Exact
+reviewed prerequisite reasons identify `node-resolver-prerequisite`,
+`isolated-temporal-lane-required`, `git-prerequisite` or
+`temporal-sdk-prerequisite`; expected failures use `expected-failure`. Everything
+else is `unclassified`, with details omitted. No arbitrary reason, exception text,
+source snippet or fixture input is copied into these diagnostics. At most three
+entries are retained per collected test, with `skipDiagnosticsOmitted` counting
+additional reports. Collection-time skips that produce no collected test identity
+are outside this per-test record. Codes describe reported prerequisites, not a
+diagnosis of infrastructure or product health. Failed status takes precedence,
+and a classified skip still cannot satisfy a required passing test.
+
+The historical Temporal skips tracked in [#145](https://github.com/gibli-labs/typeflux/issues/145)
+have no retained reason; later passing executions cannot recover that information.
+Keep those original reports separate from new evidence. Other explicitly opt-in
+live tests may still use their own test-server fallback; this does not certify them
+or extend the required isolated lane to every live test.
+
 Finish local validation before committing with sign-off, pushing once, and opening
 the PR. Batch corrections from reviews. Avoid repeated reviewer invocations on work
 in progress. Source changes invalidate earlier evidence even when filenames remain

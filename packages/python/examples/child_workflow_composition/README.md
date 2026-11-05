@@ -39,11 +39,21 @@ ReviewWorkflow (parent)
 | `schemas.py` | `Claim` / `Verdict` (shared, dependency-light) |
 | `activity.py` | `assess_claim_activity` (`AIActivity`) + its inline prompt |
 | `workflow.py` | `ReviewWorkflow` (parent) + `AssessClaimWorkflow` (child), import-light |
-| `tests/test_composition.py` | end-to-end via time-skipping `WorkflowEnvironment` (skips if the test server is unavailable) + a structural test |
+| `tests/test_composition.py` | required isolated Temporal end-to-end executions + a non-live structural test |
 
 ## Running the proof
 
-`tests/test_composition.py` runs the parent→child→activity end-to-end on a
-time-skipping `WorkflowEnvironment` with a `FakeProvider`-backed activity — no live
-Temporal server or model. It `pytest.skip`s when the Temporal test-server binary is
-unavailable (e.g. a restricted CI image), matching `tests/test_yaml.py`.
+`tests/test_composition.py` runs the parent→child→activity end-to-end against the
+owned, pinned Temporal dev server in the repository’s required isolated lane,
+using a `FakeProvider`-backed activity and no model credentials. From the repository
+root, follow the [development setup](../../../../docs/development.md), then run:
+
+```sh
+uv run --project packages/python python -m tools.development run temporal
+```
+
+The verifier refuses an already occupied port, starts its own server and runs both
+composition executions alongside the other required Temporal proofs. Connection,
+import and execution failures fail verification; there is no SDK test-server
+download or fallback-to-skip. Ordinary non-live Python runs retain the structural
+activity-name test. These checks prove local execution, not deployed recovery.

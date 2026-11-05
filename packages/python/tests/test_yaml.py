@@ -5990,6 +5990,10 @@ async def test_build_runtime_configures_yaml_sandbox_runner(
     workflow_runner.prepare_workflow(definition)
 
 
+@pytest.mark.live
+@pytest.mark.skipif(
+    os.environ.get("TYPEFLUX_LIVE_TEMPORAL") != "1", reason="isolated Temporal lane required"
+)
 @pytest.mark.asyncio
 async def test_sandboxed_yaml_runtime_worker_executes_generated_workflow_end_to_end(
     tmp_path: Path,
@@ -6003,8 +6007,8 @@ async def test_sandboxed_yaml_runtime_worker_executes_generated_workflow_end_to_
     monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
 
     from temporalio import workflow
+    from temporalio.client import Client
     from temporalio.contrib.pydantic import pydantic_data_converter
-    from temporalio.testing import WorkflowEnvironment
     from yaml_demo_project.schemas import InputModel, OutputModel
 
     task_queue = f"demo-task-queue-{uuid4().hex}"
@@ -6031,31 +6035,27 @@ async def test_sandboxed_yaml_runtime_worker_executes_generated_workflow_end_to_
         )
     )
 
-    try:
-        env = await WorkflowEnvironment.start_time_skipping(data_converter=pydantic_data_converter)
-    except Exception as exc:
-        pytest.skip(f"Temporal test server unavailable: {exc}")
+    # The maintained Temporal lane owns this pinned local server; failures are errors.
+    client = await Client.connect("127.0.0.1:7233", data_converter=pydantic_data_converter)
 
-    async with env:
+    async def fake_connect(spec, *, plugin):
+        assert plugin is None
+        return client
 
-        async def fake_connect(spec, *, plugin):
-            assert plugin is None
-            return env.client
+    monkeypatch.setattr("typeflux.yaml.runtime._connect_client", fake_connect)
+    runtime = await build_runtime(spec)
 
-        monkeypatch.setattr("typeflux.yaml.runtime._connect_client", fake_connect)
-        runtime = await build_runtime(spec)
+    workflow_runner = runtime.worker.worker_kwargs["workflow_runner"]
+    definition = workflow._Definition.must_from_class(runtime.workflow_class)
+    assert definition.sandboxed is True
+    workflow_runner.prepare_workflow(definition)
 
-        workflow_runner = runtime.worker.worker_kwargs["workflow_runner"]
-        definition = workflow._Definition.must_from_class(runtime.workflow_class)
-        assert definition.sandboxed is True
-        workflow_runner.prepare_workflow(definition)
-
-        async with runtime.worker.build_worker():
-            result = await runtime.execute_workflow(
-                InputModel(value="start"),
-                id=f"yaml-sandbox-e2e-{uuid4().hex}",
-                result_type=OutputModel,
-            )
+    async with runtime.worker.build_worker():
+        result = await runtime.execute_workflow(
+            InputModel(value="start"),
+            id=f"yaml-sandbox-e2e-{uuid4().hex}",
+            result_type=OutputModel,
+        )
 
     assert result == OutputModel(value="start:middle:output")
     assert runtime.provider.calls == [
