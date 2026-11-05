@@ -329,6 +329,8 @@ class Runner:
                 self.pytest(
                     "tests/test_live_ts_binding.py",
                     "tests/test_live_local_runtime_parity.py",
+                    "tests/test_yaml_subworkflows.py::test_parent_runs_child_plain_and_map_with_ids_and_memo",
+                    "tests/test_yaml_subworkflows.py::test_still_running_child_id_collision_fails_the_parent_loudly",
                     "tests/test_yaml.py::test_sandboxed_yaml_runtime_worker_executes_generated_workflow_end_to_end",
                     "examples/child_workflow_composition/tests/test_composition.py::test_parent_composes_child_via_execute_child_workflow",
                     "examples/child_workflow_composition/tests/test_composition.py::test_parent_fans_out_a_child_per_claim",

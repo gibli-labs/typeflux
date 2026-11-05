@@ -4,11 +4,10 @@ sibling PROJECT workflow as a Temporal CHILD workflow.
 Covers project resolution (records carry the child's registered type/digest/IO types),
 call-spec building, the parent-digest FOLD (moves on a child-graph edit, stable
 otherwise), the acyclic reference constraint, the ``_call_payload`` digest arms, the
-topology projection's ``workflow`` node, and — through a time-skipping
-``WorkflowEnvironment`` — real parent->child plain-step AND map-over-subworkflow
-execution with the normative child ids + parent-link memo. The structural tests always
-run; the execution test skips when the Temporal test server is unavailable (as
-test_yaml.py does).
+topology projection's ``workflow`` node, and real parent->child plain-step and
+map execution with normative child IDs, parent-link memo and occupied-ID rejection.
+Structural tests run non-live; both execution proofs run on the required isolated,
+pinned Temporal server. Setup and execution failures fail instead of skipping.
 """
 
 from __future__ import annotations
@@ -22,6 +21,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from temporalio import workflow as _temporal_workflow
 
 from typeflux.project import load_project_spec
 from typeflux.project.bundle import resolve_workflow_bundle
@@ -39,21 +39,17 @@ from typeflux.yaml.workflow import (
 
 PROJECT = "subworkflow_project"
 
-try:
-    from temporalio import workflow as _temporal_workflow
 
-    @_temporal_workflow.defn(name="SubworkflowIdBlocker", sandboxed=False)
-    class _SubworkflowIdBlocker:
-        """A never-completing workflow occupying a deterministic child id (the
-        ALLOW_DUPLICATE still-running collision live test). Module-level because
-        temporalio rejects local @workflow.run classes; unsandboxed because a test
-        module is not sandbox-importable."""
+@_temporal_workflow.defn(name="SubworkflowIdBlocker", sandboxed=False)
+class _SubworkflowIdBlocker:
+    """A never-completing workflow occupying a deterministic child id (the
+    ALLOW_DUPLICATE still-running collision live test). Module-level because
+    temporalio rejects local @workflow.run classes; unsandboxed because a test
+    module is not sandbox-importable."""
 
-        @_temporal_workflow.run
-        async def run(self) -> None:
-            await _temporal_workflow.wait_condition(lambda: False)
-except ModuleNotFoundError:  # pragma: no cover - temporalio is a hard test dep.
-    _SubworkflowIdBlocker = None  # type: ignore[assignment]
+    @_temporal_workflow.run
+    async def run(self) -> None:
+        await _temporal_workflow.wait_condition(lambda: False)
 
 
 def _write(path: Path, content: str) -> None:
@@ -79,38 +75,18 @@ _LIVE_WORKFLOW_TIMEOUT_SECONDS = 60.0
 #: this harness exists to eliminate.
 _SEARCH_ATTRIBUTE_RPC_TIMEOUT_SECONDS = 15.0
 
-#: Registration outcomes that are fine to proceed past: the attribute already
-#: exists (idempotent rerun), or the server does not implement the operator op
-#: (the time-skipping test-server fallback tolerates unregistered attributes,
-#: so registration is unnecessary there in the first place).
-_REGISTRATION_BENIGN_MARKERS = ("already", "unimplemented", "not implemented", "unsupported")
-
 
 async def _ensure_workflow_search_attribute_registered(client: Any) -> None:
-    """Register the ``TypefluxWorkflow`` keyword search attribute the parent stamps
-    onto its child (idempotent).
+    """The pinned server must register the keyword or report it already exists.
 
-    On a REAL Temporal dev server an unregistered custom attribute makes the
-    child-start — and therefore the parent's workflow task — fail with
-    ``BadSearchAttributes``; that is a task failure, so the SDK retries it
-    FOREVER and ``execute_workflow`` never returns (the historical hang). The
-    time-skipping test server tolerated the unregistered attribute, which is why
-    this was long latent.
-
-    Failure handling mirrors ``_ensure_subject_attribute_registered`` in
-    ``test_live_subject_index.py`` and goes one step further: already-exists and
-    unimplemented/unsupported outcomes proceed silently (registration is either
-    done or unnecessary), any OTHER error fails fast with the real RPC error —
-    swallowing it would leave the 60s workflow timeout to misdiagnose a
-    permission or namespace problem as "attribute not registered". The RPC
-    itself is bounded so a stalled operator service cannot hang the test here.
+    An unregistered attribute makes child-start workflow tasks retry indefinitely.
+    Unsupported, permission and backend errors must fail this required proof;
+    arbitrary diagnostic message substrings cannot establish registration success.
     """
+    from temporalio.api.enums.v1 import IndexedValueType
+    from temporalio.api.operatorservice.v1 import AddSearchAttributesRequest
+    from temporalio.service import RPCError, RPCStatusCode
 
-    try:
-        from temporalio.api.enums.v1 import IndexedValueType
-        from temporalio.api.operatorservice.v1 import AddSearchAttributesRequest
-    except ModuleNotFoundError:  # pragma: no cover - temporalio is a hard test dep.
-        return
     request = AddSearchAttributesRequest(
         namespace=client.namespace,
         search_attributes={_WORKFLOW_SEARCH_ATTRIBUTE: IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD},
@@ -120,23 +96,9 @@ async def _ensure_workflow_search_attribute_registered(client: Any) -> None:
             client.operator_service.add_search_attributes(request),
             timeout=_SEARCH_ATTRIBUTE_RPC_TIMEOUT_SECONDS,
         )
-    except TimeoutError:
-        pytest.fail(
-            f"AddSearchAttributes RPC (registering {_WORKFLOW_SEARCH_ATTRIBUTE!r} on "
-            f"namespace {client.namespace!r}) did not respond within "
-            f"{_SEARCH_ATTRIBUTE_RPC_TIMEOUT_SECONDS:.0f}s — the operator-service "
-            "endpoint of the Temporal server appears stalled."
-        )
-    except Exception as exc:  # noqa: BLE001 - benign outcomes proceed, real failures fail fast
-        message = str(exc).lower()
-        if any(marker in message for marker in _REGISTRATION_BENIGN_MARKERS):
-            return
-        pytest.fail(
-            f"AddSearchAttributes RPC (registering {_WORKFLOW_SEARCH_ATTRIBUTE!r} on "
-            f"namespace {client.namespace!r}) failed: {exc!r}. Without this attribute "
-            "the parent's child-start retries forever, so failing here with the real "
-            "error beats a later timeout misdiagnosed as 'attribute not registered'."
-        )
+    except RPCError as exc:
+        if exc.status != RPCStatusCode.ALREADY_EXISTS:
+            raise
 
 
 async def _execute_workflow_bounded(
@@ -169,16 +131,10 @@ async def _execute_workflow_bounded(
 
 
 async def _best_effort_delete_executions(client: Any, workflow_ids: list[str]) -> None:
-    """Shared-dev-server hygiene: delete the executions this test started so
-    reruns stay clean. Best-effort — a closed execution may already be gone, and
-    the time-skipping server may not implement ``DeleteWorkflowExecution``.
-    """
+    """Best-effort cleanup of only test-owned executions on the isolated server."""
+    from temporalio.api.common.v1 import WorkflowExecution as WorkflowExecutionProto
+    from temporalio.api.workflowservice.v1 import DeleteWorkflowExecutionRequest
 
-    try:
-        from temporalio.api.common.v1 import WorkflowExecution as WorkflowExecutionProto
-        from temporalio.api.workflowservice.v1 import DeleteWorkflowExecutionRequest
-    except ModuleNotFoundError:  # pragma: no cover - temporalio is a hard test dep.
-        return
     for workflow_id in workflow_ids:
         try:
             await client.workflow_service.delete_workflow_execution(
@@ -633,20 +589,19 @@ def test_bundle_topology_projects_workflow_nodes(tmp_path, monkeypatch) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Live child execution (time-skipping) — parent->child plain + map
+# Required isolated child execution — parent->child plain + map
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.live
+@pytest.mark.skipif(
+    os.environ.get("TYPEFLUX_LIVE_TEMPORAL") != "1", reason="isolated Temporal lane required"
+)
 @pytest.mark.asyncio
 async def test_parent_runs_child_plain_and_map_with_ids_and_memo(tmp_path, monkeypatch) -> None:
-    try:
-        from temporalio.client import Client
-        from temporalio.contrib.pydantic import pydantic_data_converter
-        from temporalio.testing import WorkflowEnvironment
-        from temporalio.worker import Worker
-    except ModuleNotFoundError as exc:  # pragma: no cover - temporalio always present.
-        pytest.skip(f"temporalio not installed: {exc}")
+    from temporalio.client import Client
+    from temporalio.contrib.pydantic import pydantic_data_converter
+    from temporalio.worker import Worker
 
     from typeflux.execution.worker import build_temporal_activity
     from typeflux.testing import FakeProvider
@@ -678,74 +633,59 @@ async def test_parent_runs_child_plain_and_map_with_ids_and_memo(tmp_path, monke
         plain_sub.activities["assess"], registry=registry, provider=provider
     )
 
-    # Prefer a reachable local dev server (`temporal server start-dev`) — no test-server
-    # binary download — and fall back to the time-skipping test server otherwise.
-    address = os.environ.get("TYPEFLUX_LIVE_TEMPORAL_ADDRESS", "localhost:7233")
-    try:
-        client = await Client.connect(address, data_converter=pydantic_data_converter)
-        env = WorkflowEnvironment.from_client(client)
-    except Exception:
-        try:
-            env = await WorkflowEnvironment.start_time_skipping(
-                data_converter=pydantic_data_converter
-            )
-        except Exception as exc:  # pragma: no cover - server binary unavailable.
-            pytest.skip(f"Temporal test server unavailable: {exc}")
+    client = await Client.connect("127.0.0.1:7233", data_converter=pydantic_data_converter)
 
     task_queue = f"sw-{uuid4().hex}"
     started_ids: list[str] = []
-    async with env:
-        # Register the child's search attribute BEFORE any workflow runs — an
-        # unregistered attribute makes the parent's task retry forever (see helper).
-        await _ensure_workflow_search_attribute_registered(env.client)
-        async with Worker(
-            env.client,
-            task_queue=task_queue,
-            workflows=[plain_cls, batch_cls, child_cls],
-            activities=[assess_fn],
-            workflow_runner=create_yaml_workflow_runner(),
-        ):
-            try:
-                # Plain: parent -> one child on the running value.
-                plain_id = f"review-{uuid4().hex}"
-                started_ids += [plain_id, f"{plain_id}.assess_one"]
-                result = await _execute_workflow_bounded(
-                    env.client,
-                    plain_cls.run,
-                    Claim(claim_id="CLM-1", text="cuts risk 30%"),
-                    what="parent -> child plain execution",
-                    id=plain_id,
-                    task_queue=task_queue,
-                    result_type=Verdict,
-                )
-                assert isinstance(result, Verdict)
-                # Deterministic child id `{parent}.{step_id}` + parent-link memo.
-                child_desc = await env.client.get_workflow_handle(
-                    f"{plain_id}.assess_one"
-                ).describe()
-                child_memo = await child_desc.memo()
-                assert child_memo["typeflux_parent_workflow_id"] == plain_id
-                assert child_memo["typeflux_workflow"] == "AssessClaimWorkflow"
-                assert child_desc.workflow_type == child_type
+    # Register the child's search attribute BEFORE any workflow runs — an
+    # unregistered attribute makes the parent's task retry forever (see helper).
+    await _ensure_workflow_search_attribute_registered(client)
+    async with Worker(
+        client,
+        task_queue=task_queue,
+        workflows=[plain_cls, batch_cls, child_cls],
+        activities=[assess_fn],
+        workflow_runner=create_yaml_workflow_runner(),
+    ):
+        try:
+            # Plain: parent -> one child on the running value.
+            plain_id = f"review-{uuid4().hex}"
+            started_ids += [plain_id, f"{plain_id}.assess_one"]
+            result = await _execute_workflow_bounded(
+                client,
+                plain_cls.run,
+                Claim(claim_id="CLM-1", text="cuts risk 30%"),
+                what="parent -> child plain execution",
+                id=plain_id,
+                task_queue=task_queue,
+                result_type=Verdict,
+            )
+            assert isinstance(result, Verdict)
+            # Deterministic child id `{parent}.{step_id}` + parent-link memo.
+            child_desc = await client.get_workflow_handle(f"{plain_id}.assess_one").describe()
+            child_memo = await child_desc.memo()
+            assert child_memo["typeflux_parent_workflow_id"] == plain_id
+            assert child_memo["typeflux_workflow"] == "AssessClaimWorkflow"
+            assert child_desc.workflow_type == child_type
 
-                # Map: parent -> a child per item, ids `{parent}.{step}-{index}`.
-                batch_id = f"review-batch-{uuid4().hex}"
-                started_ids += [batch_id, f"{batch_id}.fan-0", f"{batch_id}.fan-1"]
-                batch_result = await _execute_workflow_bounded(
-                    env.client,
-                    batch_cls.run,
-                    Batch(claims=[Claim(claim_id="A", text="a"), Claim(claim_id="B", text="b")]),
-                    what="parent -> map-over-child execution",
-                    id=batch_id,
-                    task_queue=task_queue,
-                    result_type=VerdictBatch,
-                )
-                assert len(batch_result.verdicts) == 2
-                child0 = await env.client.get_workflow_handle(f"{batch_id}.fan-0").describe()
-                memo0 = await child0.memo()
-                assert memo0["typeflux_parent_workflow_id"] == batch_id
-            finally:
-                await _best_effort_delete_executions(env.client, started_ids)
+            # Map: parent -> a child per item, ids `{parent}.{step}-{index}`.
+            batch_id = f"review-batch-{uuid4().hex}"
+            started_ids += [batch_id, f"{batch_id}.fan-0", f"{batch_id}.fan-1"]
+            batch_result = await _execute_workflow_bounded(
+                client,
+                batch_cls.run,
+                Batch(claims=[Claim(claim_id="A", text="a"), Claim(claim_id="B", text="b")]),
+                what="parent -> map-over-child execution",
+                id=batch_id,
+                task_queue=task_queue,
+                result_type=VerdictBatch,
+            )
+            assert len(batch_result.verdicts) == 2
+            child0 = await client.get_workflow_handle(f"{batch_id}.fan-0").describe()
+            memo0 = await child0.memo()
+            assert memo0["typeflux_parent_workflow_id"] == batch_id
+        finally:
+            await _best_effort_delete_executions(client, started_ids)
 
 
 # ---------------------------------------------------------------------------
@@ -1558,6 +1498,9 @@ async def test_correlation_children_empty_without_children_scan_when_no_refs(
 
 
 @pytest.mark.live
+@pytest.mark.skipif(
+    os.environ.get("TYPEFLUX_LIVE_TEMPORAL") != "1", reason="isolated Temporal lane required"
+)
 @pytest.mark.asyncio
 async def test_still_running_child_id_collision_fails_the_parent_loudly(
     tmp_path, monkeypatch
@@ -1565,13 +1508,9 @@ async def test_still_running_child_id_collision_fails_the_parent_loudly(
     # ALLOW_DUPLICATE permits reuse of a CLOSED workflow id; a STILL-RUNNING
     # execution occupying the deterministic child id must reject the child start
     # and fail the parent — never adopt the stranger as its child.
-    try:
-        from temporalio.client import Client, WorkflowFailureError
-        from temporalio.contrib.pydantic import pydantic_data_converter
-        from temporalio.testing import WorkflowEnvironment
-        from temporalio.worker import Worker
-    except ModuleNotFoundError as exc:  # pragma: no cover - temporalio always present.
-        pytest.skip(f"temporalio not installed: {exc}")
+    from temporalio.client import Client, WorkflowFailureError
+    from temporalio.contrib.pydantic import pydantic_data_converter
+    from temporalio.worker import Worker
 
     from typeflux.execution.worker import build_temporal_activity
     from typeflux.testing import FakeProvider
@@ -1597,66 +1536,53 @@ async def test_still_running_child_id_collision_fails_the_parent_loudly(
 
     _Blocker = _SubworkflowIdBlocker  # module-level: temporalio rejects local classes
 
-    address = os.environ.get("TYPEFLUX_LIVE_TEMPORAL_ADDRESS", "localhost:7233")
-    try:
-        client = await Client.connect(address, data_converter=pydantic_data_converter)
-        env = WorkflowEnvironment.from_client(client)
-    except Exception:
-        try:
-            env = await WorkflowEnvironment.start_time_skipping(
-                data_converter=pydantic_data_converter
-            )
-        except Exception as exc:  # pragma: no cover - server binary unavailable.
-            pytest.skip(f"Temporal test server unavailable: {exc}")
+    client = await Client.connect("127.0.0.1:7233", data_converter=pydantic_data_converter)
 
     task_queue = f"sw-collide-{uuid4().hex}"
-    async with env:
-        # Same latent hang as the plain/map live test: this parent also stamps
-        # TypefluxWorkflow onto its child, so the attribute must be registered or
-        # the parent's workflow task retries forever instead of failing loudly.
-        await _ensure_workflow_search_attribute_registered(env.client)
-        async with Worker(
-            env.client,
+    # Same latent hang as the plain/map live test: this parent also stamps
+    # TypefluxWorkflow onto its child, so the attribute must be registered or
+    # the parent's workflow task retries forever instead of failing loudly.
+    await _ensure_workflow_search_attribute_registered(client)
+    async with Worker(
+        client,
+        task_queue=task_queue,
+        workflows=[plain_cls, child_cls, _Blocker],
+        activities=[assess_fn],
+        workflow_runner=create_yaml_workflow_runner(),
+    ):
+        parent_id = f"review-collide-{uuid4().hex}"
+        blocker = await client.start_workflow(
+            _Blocker.run,
+            id=f"{parent_id}.assess_one",
             task_queue=task_queue,
-            workflows=[plain_cls, child_cls, _Blocker],
-            activities=[assess_fn],
-            workflow_runner=create_yaml_workflow_runner(),
-        ):
-            parent_id = f"review-collide-{uuid4().hex}"
-            blocker = await env.client.start_workflow(
-                _Blocker.run,
-                id=f"{parent_id}.assess_one",
-                task_queue=task_queue,
-            )
-            try:
-                with pytest.raises(WorkflowFailureError) as excinfo:
-                    # Bounded: the collision must surface as a TERMINAL parent
-                    # failure, not a retry-forever task failure that hangs.
-                    await _execute_workflow_bounded(
-                        env.client,
-                        plain_cls.run,
-                        Claim(claim_id="CLM-1", text="occupied"),
-                        what="parent whose child id is occupied",
-                        id=parent_id,
-                        task_queue=task_queue,
-                        result_type=Verdict,
-                    )
-                # The failure chain names the child-start rejection.
-                chain: list[str] = []
-                error: BaseException | None = excinfo.value
-                while error is not None:
-                    chain.append(f"{type(error).__name__}: {error}")
-                    error = error.__cause__
-                assert any("already started" in item.lower() for item in chain), chain
-                # The blocker was never adopted: it is still RUNNING as its own top-level
-                # execution (TERMINATE parent-close never reached it).
-                description = await blocker.describe()
-                assert description.status.name == "RUNNING"
-            finally:
-                await blocker.terminate("test cleanup")
-                await _best_effort_delete_executions(
-                    env.client, [parent_id, f"{parent_id}.assess_one"]
+        )
+        try:
+            with pytest.raises(WorkflowFailureError) as excinfo:
+                # Bounded: the collision must surface as a TERMINAL parent
+                # failure, not a retry-forever task failure that hangs.
+                await _execute_workflow_bounded(
+                    client,
+                    plain_cls.run,
+                    Claim(claim_id="CLM-1", text="occupied"),
+                    what="parent whose child id is occupied",
+                    id=parent_id,
+                    task_queue=task_queue,
+                    result_type=Verdict,
                 )
+            # The failure chain names the child-start rejection.
+            chain: list[str] = []
+            error: BaseException | None = excinfo.value
+            while error is not None:
+                chain.append(f"{type(error).__name__}: {error}")
+                error = error.__cause__
+            assert any("already started" in item.lower() for item in chain), chain
+            # The blocker was never adopted: it is still RUNNING as its own top-level
+            # execution (TERMINATE parent-close never reached it).
+            description = await blocker.describe()
+            assert description.status.name == "RUNNING"
+        finally:
+            await blocker.terminate("test cleanup")
+            await _best_effort_delete_executions(client, [parent_id, f"{parent_id}.assess_one"])
 
 
 # ---------------------------------------------------------------------------
