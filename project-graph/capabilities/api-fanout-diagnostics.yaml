@@ -1,0 +1,34 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.api-fanout-diagnostics
+    kind: capability
+    description: Reproduce Python browser-fixture bundle/validation fan-out through the existing resolver with bounded local timing and optional sequential profiling; diagnostic observations do not establish CI acceptance, historical cause or deployed recovery.
+    editions: {python: supported, typescript: unsupported}
+    implementation:
+      - tools/development/api_fanout_probe.py
+      - tools/development/api_fanout.Dockerfile
+    documentation: [README.md, docs/development.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.api-diagnostic-completeness}
+  - id: invariant.api-diagnostic-completeness
+    kind: invariant
+    description: Read both fixture project IDs and every selected workflow/environment without retries or dropped reads; retain failure across rounds and distinguish data delivery from validation success and the queue-inclusive 15-second readiness bound. Keep exact source/environment identity and bounded operational summaries without response payloads. Profiling must not serialize concurrent resolver work.
+  - id: check.api-fanout-diagnostics
+    kind: check
+    description: Real owned loopback API checks cover sequential/concurrent complete reads, failed-then-successful rounds, invalid payloads and omitted private fields; controls cover resolver error identity/sample caps, total read budget, fail-closed workload caps and rejection of concurrent cProfile.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_observes_every_read_and_keeps_validation_distinct}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_retains_original_failed_round_after_later_success}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_timing_keeps_original_error_and_bounded_observations}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_read_budget_is_total_and_does_not_retry}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_workload_limit_fails_instead_of_dropping_reads}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_rejects_concurrent_profiling_before_starting_api}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_rejects_success_status_with_invalid_bundle_shape}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_retains_fixed_read_failure_codes}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_classifies_payload_identity_mismatch}
+      - {path: packages/python/tests/test_api_fanout_probe.py, name: test_api_probe_cli_keeps_fixed_codes_without_exception_payloads}
+    links:
+      - {relation: verifies, target: invariant.api-diagnostic-completeness}
