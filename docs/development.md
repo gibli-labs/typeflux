@@ -128,14 +128,31 @@ the same. Local journals and receipts are diagnostics, not trusted CI attestatio
 
 ## Host interruptions during local verification
 
-Each development command samples wall and monotonic clocks once per second.
+Each development command and the isolated Temporal preflight/startup phases sample
+wall and monotonic clocks once per second using the same observer.
 Receipts include bounded `hostDiagnostics`: five-second sampling gaps or clock
 divergence are reported as a possible host interruption, with at most eight
-samples per command and a count of omitted samples. This is available wherever
+samples per observation and a count of omitted samples. This is available wherever
 Python's clocks and threads are supported. Unavailable sampling is recorded with
 `available: false`; it does not prevent verification.
-The direct Temporal CLI version probe and server-readiness loop are outside these
-command observations; an absent gap record cannot diagnose an interruption there.
+Command records retain their zero-based `commandIndex`. Fixed operation records
+named `temporal-preflight` cover the occupied-port check and CLI version probe;
+`temporal-startup` covers server launch and readiness. They do not invent command
+indexes or include application payloads. Startup observation ends before the native
+test commands, which keep their own command observations. Failure and interruption
+still retain observations in the exact-source receipt.
+
+Temporal version stdout/stderr is retained separately in `temporal-version.log`
+and `temporal-version.stderr.log`, including failed/interrupted version-command
+output, and server output remains in `temporal.log` under
+the Temporal evidence directory. Preflight clears these three current log paths
+before checking the port, so an early refusal cannot leave a prior invocation's
+logs presented as current output. Copy the previous evidence directory before
+rerunning, as described below. The CLI 1.7.0 requirement, refusal to reuse an
+occupied port, 45-second monotonic readiness deadline, polling and owned-server
+cleanup remain unchanged. This adds no version-probe or whole-startup timeout;
+the existing readiness deadline starts after launch. Startup cleanup after a failed
+readiness operation is outside its observation; gaps there remain unknown.
 
 A gap does not identify its cause. Sleep, CPU contention, debugger pauses and
 clock adjustments can look alike; no observed gap does not exclude suspension.

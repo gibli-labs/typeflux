@@ -2,7 +2,7 @@ apiVersion: typeflux.dev/graph/v1alpha1
 entities:
   - id: capability.development-host-observation
     kind: capability
-    description: Observe bounded command clock gaps as uncertain local host diagnostics and optionally prevent macOS idle sleep for one development invocation without changing check outcomes, readiness or timeout budgets.
+    description: Observe bounded command and isolated Temporal preflight/startup clock gaps as uncertain local host diagnostics and optionally prevent macOS idle sleep for one development invocation without changing check outcomes, readiness or timeout budgets.
     editions: {python: shared, typescript: shared}
     implementation: [tools/development/host.py, tools/development/__main__.py]
     documentation: [docs/development.md]
@@ -18,7 +18,7 @@ entities:
     description: Keep-awake is opt-in, local and process-scoped; reject CI power control, gracefully report unsupported/unavailable helpers and clean up on success/failure/interruption without persistent settings or changed verification outcomes.
   - id: check.development-host-observation
     kind: check
-    description: Deterministic gap/stall/clock-adjustment tests, bounded samples, unavailable observer, actual failing command with source-bound native evidence, unchanged timeout, interrupt receipt and keep-awake lifecycle/platform/CI behavior.
+    description: Deterministic gap/stall/clock-adjustment tests, bounded samples, unavailable observer, actual failing command with source-bound native evidence, controlled Temporal preflight/startup gaps and failure/log/deadline/ownership checks, unchanged command timeout, interrupt receipt and keep-awake lifecycle/platform/CI behavior. Controlled gaps do not establish actual suspension or deployed recovery.
     environment: python-non-live
     ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
     tests:
@@ -37,6 +37,10 @@ entities:
       - {path: packages/python/tests/test_development_host.py, name: test_keep_awake_refuses_ci_without_starting_process}
       - {path: packages/python/tests/test_development_host.py, name: test_cli_keeps_awake_for_selected_checks_and_cleans_up_after_failure}
       - {path: packages/python/tests/test_development_host.py, name: test_cli_rejects_ci_keep_awake_before_executing_checks}
+      - {path: packages/python/tests/test_development_temporal_startup.py, name: test_temporal_startup_gaps_are_retained_without_changing_success}
+      - {path: packages/python/tests/test_development_temporal_startup.py, name: test_temporal_startup_diagnostics_preserve_failures_deadline_and_ownership}
+      - {path: packages/python/tests/test_development_temporal_startup.py, name: test_temporal_startup_unavailable_observer_does_not_block_validation}
+      - {path: packages/python/tests/test_development_temporal_startup.py, name: test_temporal_preflight_failure_cannot_retain_stale_startup_logs}
     links:
       - {relation: verifies, target: invariant.host-diagnostics-uncertain}
       - {relation: verifies, target: invariant.local-keep-awake}
