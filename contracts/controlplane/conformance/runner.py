@@ -20,7 +20,8 @@ reason that must point at a live issue. ``--record --edition X`` records respons
 ONLY into cases that already opt in with an ``editions.X`` entry. Without
 ``--edition`` the base goldens apply unchanged.
 
-Exit codes: 0 all cases pass, 1 any failure, 2 usage/spawn error.
+Exit codes: 0 all cases pass, 1 any failure, 2 usage/spawn error,
+128 + signal for managed SIGINT/SIGTERM interruption after owned cleanup.
 """
 
 from __future__ import annotations
@@ -30,12 +31,14 @@ import json
 import os
 import re
 import signal
+import socket
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +46,8 @@ HERE = Path(__file__).resolve().parent
 MASK = "<normalized>"
 READY_TIMEOUT_SECONDS = 60.0
 DIFF_LIMIT = 25
+SHUTDOWN_GRACE_SECONDS = 5.0
+FORCED_REAP_SECONDS = 1.0
 
 
 def _load(path: Path) -> Any:
@@ -56,9 +61,7 @@ def _pointer_escape(key: str) -> str:
 def _mask_keys(value: Any, keys: frozenset[str]) -> Any:
     """Replace the value of every field named in ``keys``, wherever it appears."""
     if isinstance(value, dict):
-        return {
-            k: MASK if k in keys else _mask_keys(v, keys) for k, v in value.items()
-        }
+        return {k: MASK if k in keys else _mask_keys(v, keys) for k, v in value.items()}
     if isinstance(value, list):
         return [_mask_keys(item, keys) for item in value]
     return value
@@ -116,7 +119,9 @@ def diff(expected: Any, actual: Any, path: str = "") -> list[str]:
             return [f"{where}: value differs (golden={expected!r}, actual={actual!r})"]
         return []
     if type(expected) is not type(actual):
-        return [f"{where}: type differs (golden={type(expected).__name__}, actual={type(actual).__name__})"]
+        return [
+            f"{where}: type differs (golden={type(expected).__name__}, actual={type(actual).__name__})"
+        ]
     if isinstance(expected, dict):
         lines: list[str] = []
         for key in sorted(expected.keys() | actual.keys()):
@@ -183,9 +188,7 @@ def wait_ready(base_url: str, server: subprocess.Popen[bytes] | None = None) -> 
     deadline = time.monotonic() + READY_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
         if server is not None and server.poll() is not None:
-            raise TimeoutError(
-                f"server exited with code {server.returncode} before becoming ready"
-            )
+            raise TimeoutError(f"server exited with code {server.returncode} before becoming ready")
         try:
             with urllib.request.urlopen(base_url.rstrip("/") + "/api/v1/meta", timeout=2):
                 return
@@ -204,20 +207,110 @@ def _spawn(command: str) -> subprocess.Popen[bytes]:
     return subprocess.Popen(command, shell=True, start_new_session=True)
 
 
+class _ManagedSignal(BaseException):
+    def __init__(self, signum):
+        self.signum = signum
+
+
+class _ManagedSignals:
+    def __init__(self):
+        self.pending = None
+        self.deferrals = 0
+        self.previous = {}
+
+    def __enter__(self):
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            self.previous[signum] = signal.signal(signum, self.receive)
+        return self
+
+    def __exit__(self, *error):
+        for signum, handler in self.previous.items():
+            signal.signal(signum, handler)
+
+    def receive(self, signum, frame):
+        if self.pending is None:
+            self.pending = signum
+        if not self.deferrals:
+            raise _ManagedSignal(self.pending)
+
+    @contextmanager
+    def defer(self):
+        # Recording rather than blocking OS signals avoids passing a blocked
+        # signal mask to the spawned server. Ownership is assigned before the
+        # pending interrupt is raised, and cleanup cannot be interrupted halfway.
+        self.deferrals += 1
+        try:
+            yield
+        finally:
+            self.deferrals -= 1
+            if not self.deferrals and self.pending is not None and sys.exception() is None:
+                raise _ManagedSignal(self.pending)
+
+
+def _require_free_ports(ports):
+    # Check the entire selected set before any profile can run cases. Repeat
+    # immediately before each spawn; this is a preflight, not an atomic handoff
+    # against another process racing to bind after the sockets are released.
+    with ExitStack() as stack:
+        for port in ports:
+            if not 1 <= port <= 65535:
+                raise ValueError("fixture port outside the TCP range")
+            # A wildcard listener can coexist with a more-specific reusable
+            # bind on BSD. Probe first, without sending an HTTP request; only
+            # explicit refusal establishes that no listener answered. A timeout
+            # (including a full backlog) is occupied/unknown, never readiness.
+            try:
+                with socket.create_connection(("127.0.0.1", port), timeout=0.25):
+                    pass
+            except ConnectionRefusedError:
+                pass
+            except OSError:
+                raise ValueError("fixture port is not confirmed free") from None
+            else:
+                raise ValueError("fixture port already has a listener")
+            listener = stack.enter_context(socket.socket())
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", port))
+            listener.listen()
+
+
+def _group_alive(pgid) -> bool | None:
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        # Darwin can temporarily report EPERM while a killed group disappears.
+        # Unknown is distinct from exited; observe again within the same bound.
+        return None
+    return True
+
+
 def _teardown(server: subprocess.Popen[bytes]) -> None:
-    # PermissionError: macOS reports EPERM for a process group that already
-    # died (e.g. the launcher failed at startup) — nothing left to signal.
     try:
         os.killpg(server.pid, signal.SIGTERM)
     except (ProcessLookupError, PermissionError):
         pass
+    deadline = time.monotonic() + SHUTDOWN_GRACE_SECONDS
+    while time.monotonic() < deadline:
+        # Reap the launcher, but do not mistake its exit for descendant cleanup.
+        if server.poll() is not None and _group_alive(server.pid) is False:
+            return
+        time.sleep(0.01)
     try:
-        server.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        try:
-            os.killpg(server.pid, signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
-            pass
+        os.killpg(server.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+    server.wait(timeout=FORCED_REAP_SECONDS)
+    deadline = time.monotonic() + FORCED_REAP_SECONDS
+    state = _group_alive(server.pid)
+    while state is not False:
+        if time.monotonic() >= deadline:
+            if state is None:
+                raise RuntimeError("owned conformance group exit could not be verified")
+            raise RuntimeError("owned conformance server group did not exit")
+        time.sleep(0.01)
+        state = _group_alive(server.pid)
 
 
 def _run_cases(
@@ -228,7 +321,7 @@ def _run_cases(
     global_keys: frozenset[str],
     record: bool,
     edition: str | None,
-) -> tuple[int, int]:
+) -> tuple[int, int, int]:
     """Returns (failures, skips, recorded)."""
     failures = 0
     skips = 0
@@ -282,7 +375,7 @@ def _run_cases(
     return failures, skips, recorded
 
 
-def main(argv: list[str] | None = None) -> int:
+def _main(argv: list[str] | None, termination: _ManagedSignals) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", help="Base URL of a running control-plane server.")
     parser.add_argument(
@@ -293,7 +386,9 @@ def main(argv: list[str] | None = None) -> int:
             "runner spawns one server per profile group."
         ),
     )
-    parser.add_argument("--port", type=int, default=8411, help="Port for --server-cmd (default 8411).")
+    parser.add_argument(
+        "--port", type=int, default=8411, help="Port for --server-cmd (default 8411)."
+    )
     parser.add_argument("--fixtures", default=str(HERE / "fixtures"), help="Fixture directory.")
     parser.add_argument("--only", action="append", default=[], help="Run only the named case(s).")
     parser.add_argument("--record", action="store_true", help="Re-record goldens from the server.")
@@ -345,7 +440,9 @@ def main(argv: list[str] | None = None) -> int:
         for edition_name, variant in case.get("editions", {}).items():
             problem: str | None = None
             if edition_name not in known_editions:
-                problem = f"unknown edition {edition_name!r} (suite editions: {sorted(known_editions)})"
+                problem = (
+                    f"unknown edition {edition_name!r} (suite editions: {sorted(known_editions)})"
+                )
             elif "skip" in variant:
                 if not re.search(r"#\d+", str(variant["skip"])):
                     problem = "an edition skip must point at a live issue (e.g. '… #568')"
@@ -364,7 +461,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.base_url:
         profile = args.profile or "open"
         if profile not in known_profiles:
-            parser.error(f"unknown --profile {profile!r} (suite profiles: {sorted(known_profiles)})")
+            parser.error(
+                f"unknown --profile {profile!r} (suite profiles: {sorted(known_profiles)})"
+            )
         selected = groups.get(profile, [])
         if not selected:
             print(f"error: no selected case runs under profile {profile!r}", file=sys.stderr)
@@ -412,16 +511,31 @@ def main(argv: list[str] | None = None) -> int:
                 "multiple profile groups need one port each; --server-cmd "
                 "must contain a {port} placeholder"
             )
+        try:
+            _require_free_ports([args.port + offset for offset in range(len(groups))])
+        except (OSError, ValueError):
+            print(
+                "error: fixture port unavailable; refused managed-server startup", file=sys.stderr
+            )
+            return 2
         for offset, profile in enumerate(sorted(groups)):
             port = args.port + offset
             base_url = f"http://127.0.0.1:{port}"
             selected = groups[profile]
             print(f"— profile {profile!r} ({len(selected)} case(s)) on port {port}")
-            command = args.server_cmd.replace("{profile}", profile).replace(
-                "{port}", str(port)
-            )
-            server = _spawn(command)
+            command = args.server_cmd.replace("{profile}", profile).replace("{port}", str(port))
+            server = None
             try:
+                try:
+                    _require_free_ports([port])
+                except (OSError, ValueError):
+                    print(
+                        "error: fixture port unavailable; refused managed-server startup",
+                        file=sys.stderr,
+                    )
+                    return 2
+                with termination.defer():
+                    server = _spawn(command)
                 try:
                     wait_ready(base_url, server)
                 except TimeoutError as error:
@@ -440,7 +554,20 @@ def main(argv: list[str] | None = None) -> int:
                 total_skips += skips
                 total_recorded += recorded
             finally:
-                _teardown(server)
+                if server is not None:
+                    with termination.defer():
+                        original_error = sys.exception()
+                        try:
+                            _teardown(server)
+                        except Exception:
+                            if original_error is None:
+                                raise
+                            # Retain the original interruption/active failure and
+                            # make a separate cleanup failure visible as well.
+                            print(
+                                "error: owned conformance server cleanup incomplete",
+                                file=sys.stderr,
+                            )
 
     if args.record:
         # Count actual WRITES — an edition record run leaves non-opted-in cases untouched,
@@ -448,11 +575,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"recorded {total_recorded} of {total_cases} case(s)")
         return 0
     passed = total_cases - total_failures - total_skips
-    skipped_note = (
-        f" ({total_skips} skipped for edition {args.edition!r})" if total_skips else ""
-    )
+    skipped_note = f" ({total_skips} skipped for edition {args.edition!r})" if total_skips else ""
     print(f"{passed}/{total_cases - total_skips} conformance case(s) pass{skipped_note}")
     return 1 if total_failures else 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    with _ManagedSignals() as termination:
+        try:
+            return _main(argv, termination)
+        except _ManagedSignal as interrupted:
+            return 128 + interrupted.signum
 
 
 if __name__ == "__main__":

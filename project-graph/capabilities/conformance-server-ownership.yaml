@@ -1,0 +1,35 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.conformance-server-ownership
+    kind: capability
+    description: Own and bound the shared HTTP conformance CLI's managed server lifecycle, reject occupied profile ports and retain failure or interruption; intentional external-server mode remains caller-owned.
+    editions: {python: supported, typescript: shared}
+    implementation: [contracts/controlplane/conformance/runner.py]
+    documentation: [docs/development.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.conformance-server-lifecycle}
+  - id: invariant.conformance-server-lifecycle
+    kind: invariant
+    description: Managed mode preflights all selected ports and each spawn using bare TCP probes without HTTP requests or terminating existing listeners; timeouts fail closed and preflight is not an atomic handoff. Cooperative SIGINT/SIGTERM guards protect owned registration and cleanup while brief guard-entry boundaries remain interruptible. Bound graceful and forced teardown, reap the launcher, check remaining descendants and preserve original failure/signal status with explicit cleanup errors. Uncatchable kill or stalled OS scheduling cannot guarantee cleanup; container execution requires a reaping init. No port-based termination or implicit external-server reuse.
+  - id: check.conformance-server-ownership
+    kind: check
+    description: Real owned/decoy listener cases cover ordinary success/failure, SIGINT/SIGTERM during work/startup/teardown, a TERM-resistant descendant, cleanup-error precedence, all-profile port rejection and retained failed source-bound development receipt; explicit external-server mode and restored signal handlers remain intact.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_managed_mode_rejects_decoy_without_requests_or_spawn}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_explicit_external_mode_remains_available}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_signal_cleans_detached_server}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_managed_success_and_failure_reap_owned_group}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_signals_in_ownership_windows_cannot_strand_server}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_forces_term_resistant_descendant_after_launcher_exit}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_cleanup_error_does_not_replace_original_signal}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_restores_callers_signal_handlers}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_development_interrupt_retains_failed_receipt_and_reaps_conformance_child}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_checks_every_profile_port_before_any_spawn}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_group_permission_uncertainty_cannot_count_as_exit}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_signal_at_cleanup_entry_still_reaps_owned_server}
+      - {path: packages/python/tests/test_conformance_server_ownership.py, name: test_conformance_uncertain_tcp_probe_refuses_startup}
+    links:
+      - {relation: verifies, target: invariant.conformance-server-lifecycle}
