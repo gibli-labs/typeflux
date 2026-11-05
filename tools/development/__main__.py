@@ -11,6 +11,7 @@ import socket
 import subprocess
 import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 from tools.project_graph.collection import collection_environment
@@ -72,33 +73,45 @@ class Runner:
         # Live credentials are scrubbed; only the isolated Temporal check opts in.
         self.env.pop("TYPEFLUX_LIVE_TEMPORAL", None)
 
+    @contextmanager
+    def _observe(self, **scope):
+        observations = None
+        try:
+            with observe_host() as observations:
+                yield
+        finally:
+            if observations is not None:
+                diagnostic = {**scope, **observations.result()}
+                self.host_diagnostics.append(diagnostic)
+                if diagnostic["possibleHostInterruption"]:
+                    label = (
+                        f"command {scope['commandIndex'] + 1}"
+                        if "commandIndex" in scope
+                        else scope["operation"]
+                    )
+                    print(
+                        f"Possible host interruption during {label}: "
+                        f"{diagnostic['gapCount']} clock/sampling gaps. {diagnostic['uncertainty']}",
+                        file=sys.stderr,
+                    )
+
     def command(self, *args, cwd=".", env=None, timeout=600, graceful_interrupt=False):
         self.commands.append({"cwd": cwd, "argv": list(args)})
         print(f"[{cwd}] {' '.join(args)}", flush=True)
-        try:
-            with (
-                observe_host() as observations,
-                subprocess.Popen(
-                    args,
-                    cwd=self.root / cwd,
-                    env={**self.env, **(env or {})},
-                    start_new_session=True,
-                ) as process,
-            ):
-                try:
-                    code = process.wait(timeout=timeout)
-                except BaseException:
-                    stop(process, graceful_interrupt=graceful_interrupt)
-                    raise
-        finally:
-            diagnostic = {"commandIndex": len(self.commands) - 1, **observations.result()}
-            self.host_diagnostics.append(diagnostic)
-            if diagnostic["possibleHostInterruption"]:
-                print(
-                    f"Possible host interruption during command {len(self.commands)}: "
-                    f"{diagnostic['gapCount']} clock/sampling gaps. {diagnostic['uncertainty']}",
-                    file=sys.stderr,
-                )
+        with (
+            self._observe(commandIndex=len(self.commands) - 1),
+            subprocess.Popen(
+                args,
+                cwd=self.root / cwd,
+                env={**self.env, **(env or {})},
+                start_new_session=True,
+            ) as process,
+        ):
+            try:
+                code = process.wait(timeout=timeout)
+            except BaseException:
+                stop(process, graceful_interrupt=graceful_interrupt)
+                raise
         if code:
             raise GraphError(f"command failed ({code}): {' '.join(args)}")
 
@@ -261,44 +274,57 @@ class Runner:
 
     def temporal(self):
         # Never attach tests to an existing developer/production server.
-        with socket.socket() as probe:
-            if probe.connect_ex(("127.0.0.1", 7233)) == 0:
-                raise GraphError(
-                    "port 7233 is occupied; stop that server before isolated validation"
+        with self._observe(operation="temporal-preflight"):
+            for name in ("temporal-version.log", "temporal-version.stderr.log", "temporal.log"):
+                (self.output / name).unlink(missing_ok=True)
+            with socket.socket() as probe:
+                if probe.connect_ex(("127.0.0.1", 7233)) == 0:
+                    raise GraphError(
+                        "port 7233 is occupied; stop that server before isolated validation"
+                    )
+            version_log = self.output / "temporal-version.log"
+            with (
+                version_log.open("w") as stdout,
+                (self.output / "temporal-version.stderr.log").open("w") as stderr,
+            ):
+                subprocess.check_call(
+                    [str(self.root / ".project-graph/bin/temporal"), "--version"],
+                    stdout=stdout,
+                    stderr=stderr,
                 )
-        version = subprocess.check_output(
-            [str(self.root / ".project-graph/bin/temporal"), "--version"], text=True
-        )
-        if not version.startswith("temporal version 1.7.0 "):
-            raise GraphError("local Temporal verification requires CLI 1.7.0")
+            version = version_log.read_text()
+            if not version.startswith("temporal version 1.7.0 "):
+                raise GraphError("local Temporal verification requires CLI 1.7.0")
         with (self.output / "temporal.log").open("w") as log:
-            process = subprocess.Popen(
-                [
-                    str(self.root / ".project-graph/bin/temporal"),
-                    "server",
-                    "start-dev",
-                    "--ip",
-                    "127.0.0.1",
-                    "--port",
-                    "7233",
-                    "--headless",
-                ],
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                env=self.env,
-                start_new_session=True,
-            )
+            process = None
             try:
-                deadline = time.monotonic() + 45
-                while True:
-                    with socket.socket() as probe:
-                        if probe.connect_ex(("127.0.0.1", 7233)) == 0:
-                            break
-                    if process.poll() is not None or time.monotonic() > deadline:
-                        raise GraphError(
-                            "isolated Temporal server failed to start; inspect temporal.log"
-                        )
-                    time.sleep(0.25)
+                with self._observe(operation="temporal-startup"):
+                    process = subprocess.Popen(
+                        [
+                            str(self.root / ".project-graph/bin/temporal"),
+                            "server",
+                            "start-dev",
+                            "--ip",
+                            "127.0.0.1",
+                            "--port",
+                            "7233",
+                            "--headless",
+                        ],
+                        stdout=log,
+                        stderr=subprocess.STDOUT,
+                        env=self.env,
+                        start_new_session=True,
+                    )
+                    deadline = time.monotonic() + 45
+                    while True:
+                        with socket.socket() as probe:
+                            if probe.connect_ex(("127.0.0.1", 7233)) == 0:
+                                break
+                        if process.poll() is not None or time.monotonic() > deadline:
+                            raise GraphError(
+                                "isolated Temporal server failed to start; inspect temporal.log"
+                            )
+                        time.sleep(0.25)
                 env = {"TYPEFLUX_LIVE_TEMPORAL": "1"}
                 self.pytest(
                     "tests/test_live_ts_binding.py",
@@ -317,7 +343,8 @@ class Runner:
                     env=env,
                 )
             finally:
-                stop(process)
+                if process is not None:
+                    stop(process)
 
 
 def run(root: Path, check: str, check_id: str | None = None, *, power=None) -> dict:
