@@ -1,0 +1,33 @@
+name: Artifact retention investigation
+
+on:
+  push:
+    branches: [codex/issue-139-artifact-probe]
+
+permissions: {}
+
+jobs:
+  probe:
+    name: Observe same-name upload across attempts
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Write fixed investigation data
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          Path("observation.json").write_text(json.dumps({
+              "kind": "artifact-retention-investigation",
+              "runId": os.environ["GITHUB_RUN_ID"],
+              "attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+          }) + "\n")
+          PY
+      - name: Upload with unchanged name and no overwrite
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: artifact-retention-probe-${{ github.run_id }}
+          path: observation.json
+          overwrite: false
+          if-no-files-found: error
