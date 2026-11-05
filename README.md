@@ -108,7 +108,10 @@ uv run --project packages/python python -m tools.development sync all
 ```
 
 See [Dependency Management](docs/dependencies.md) for the full extras matrix
-and release validation commands.
+and the [development loop](docs/development.md) for verification and release gates.
+To reevaluate accepted CI while retaining an earlier result, dispatch a fresh
+acceptance run on main as documented there. Releases require the latest matching
+successful evaluation and exact source evidence.
 
 ### Temporal and live-provider walkthrough
 

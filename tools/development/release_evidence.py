@@ -9,6 +9,7 @@ import os
 import subprocess
 import zipfile
 from pathlib import Path
+from urllib.parse import urlencode
 
 from tools.project_graph.repository import GraphError, Repository
 
@@ -39,21 +40,54 @@ def fetch(repo: Repository, repository: str):
     if not runs:
         raise GraphError("no main CI run for this source revision")
     run = max(runs, key=lambda r: r["id"])
-    if run["conclusion"] != "success":
+    if (
+        run["conclusion"] != "success"
+        or run["status"] != "completed"
+        or run["path"] != ".github/workflows/ci.yml"
+        or run["event"] != "push"
+        or run["head_sha"] != repo.revision
+    ):
         raise GraphError("latest main CI run is not successful")
-    name = f"accepted-ci-{run['id']}-{run['run_attempt']}"
-    artifacts = pages(f"{prefix}/actions/artifacts?name={name}", "artifacts")
-    artifacts = [a for a in artifacts if not a["expired"]]
+    title = f"CI acceptance {run['id']} attempt {run['run_attempt']}"
+    query = urlencode({"branch": "main", "created": f">={run['created_at']}"})
+    evaluations = pages(
+        f"{prefix}/actions/workflows/ci-acceptance.yml/runs?{query}", "workflow_runs"
+    )
+    evaluations = [
+        r for r in evaluations if r["display_title"] == title and r["head_branch"] == "main"
+    ]
+    if not evaluations:
+        raise GraphError("no trusted acceptance evaluation for the latest CI run")
+    # Select the evaluation before looking for artifacts. Missing/failed new
+    # evaluations must never fall back to an older passing receipt.
+    latest = max(evaluations, key=lambda r: r["id"])
+    gate = api(f"{prefix}/actions/runs/{latest['id']}")
+    if (
+        gate["path"] != ".github/workflows/ci-acceptance.yml"
+        or gate["event"] not in {"workflow_run", "workflow_dispatch"}
+        or gate["head_branch"] != "main"
+        or gate["display_title"] != title
+        or gate["status"] != "completed"
+        or gate["conclusion"] != "success"
+        or gate["run_attempt"] != 1
+    ):
+        raise GraphError("release evidence was not produced by successful trusted acceptance")
+    # head_branch alone cannot distinguish a branch from a same-named tag.
+    # Bind evaluator source to the explicit trusted branch's commit history.
+    main_sha = api(f"{prefix}/git/ref/heads/main")["object"]["sha"]
+    comparison = api(f"{prefix}/compare/{gate['head_sha']}...{main_sha}")
+    if comparison["status"] not in {"identical", "ahead"}:
+        raise GraphError("trusted acceptance source is not in main branch history")
+    name = f"accepted-ci-{run['id']}-{run['run_attempt']}-{gate['id']}-{gate['run_attempt']}"
+    artifacts = pages(f"{prefix}/actions/runs/{gate['id']}/artifacts", "artifacts")
+    artifacts = [
+        a
+        for a in artifacts
+        if a["name"] == name and not a["expired"] and a["workflow_run"]["id"] == gate["id"]
+    ]
     if len(artifacts) != 1 or artifacts[0]["size_in_bytes"] > MAX_ARTIFACT_BYTES:
         raise GraphError("accepted CI artifact is missing, duplicated, expired or too large")
     artifact = artifacts[0]
-    gate = api(f"{prefix}/actions/runs/{artifact['workflow_run']['id']}")
-    if (
-        gate["path"] != ".github/workflows/ci-acceptance.yml"
-        or gate["event"] != "workflow_run"
-        or gate["conclusion"] != "success"
-    ):
-        raise GraphError("release evidence was not produced by successful trusted acceptance")
     archive = subprocess.check_output(
         ["gh", "api", f"{prefix}/actions/artifacts/{artifact['id']}/zip"]
     )

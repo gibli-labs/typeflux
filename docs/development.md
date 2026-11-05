@@ -183,7 +183,9 @@ PRs are not an accepted merge path, even if their ordinary CI jobs pass.
 
 The `CI` workflow runs on PR merge snapshots and main commits. It uploads evidence
 for every required check and both browser traces on failures. A separate
-`workflow_run` workflow loads the acceptance implementation from the default branch.
+`workflow_run` workflow loads the acceptance implementation from main. Maintainers
+can also dispatch a fresh evaluation on main for an existing CI run/attempt; both
+paths check out only main and use the same validator.
 It reads GitHub run/job metadata and bounded JSON inside artifacts; candidate Git
 objects are inspected without checking out or executing candidate source.
 
@@ -207,12 +209,35 @@ registry); the observation file retains its own bounded detail. No step logs or 
 
 The acceptance workflow uploads these files even on failure in a separate
 `ci-job-observations-<CI-run>-<CI-attempt>-<acceptance-run>-<acceptance-attempt>`
-artifact; its name keeps trusted-workflow reevaluations distinct. A reevaluation writes
-a new observation without replacing earlier files in the same output directory.
-Retain the original workflow attempt's logs, check result and artifact before
-reevaluating; diagnostic artifacts have distinct names across attempts, and artifact
-retention still applies. For local investigations, copy the output directory before
-rerunning: the current `ci-receipt.json` and explorer still use their normal paths.
+artifact. Accepted evidence and the explorer use
+`accepted-ci-<CI-run>-<CI-attempt>-<acceptance-run>-<acceptance-attempt>`.
+Neither upload overwrites earlier artifacts. To preserve a rejected evaluation,
+create a **fresh acceptance run**, rather than using GitHub's **Re-run jobs**:
+
+```sh
+# Use the original CI run ID and its current attempt, as positive decimal integers.
+gh workflow run ci-acceptance.yml --repo gibli-labs/typeflux --ref main \
+  -f run_id=CI_RUN_ID -f attempt=CI_ATTEMPT
+```
+
+The command reevaluates existing CI evidence; it does not rerun tests, retry
+automatically, publish a release or deploy. Dispatches on other refs are skipped.
+Same-run acceptance reruns are rejected before validation, and their evidence is
+ineligible for release; recover with a fresh dispatch. This cannot prevent GitHub
+from removing artifacts when an external rerun is requested, so archive first.
+The original workflow/check/logs and diagnostic artifacts remain separate from the
+fresh run, subject to normal GitHub retention and external deletion. Archive the
+original evidence before any operation that might remove it. For local
+investigations, copy the output directory before reevaluation: unique observation
+files are retained locally, but `ci-receipt.json` and the explorer reuse their paths.
+
+The [#139 probe](https://github.com/gibli-labs/typeflux/issues/139#issuecomment-6664464521)
+did not reproduce a same-name upload conflict: both attempts succeeded with
+`overwrite: false`. After a rerun of the same workflow run, however, both fixed-name
+and attempt-specific original artifact IDs returned 404. A separate fresh run left
+the previous run's artifact accessible. Unique names alone therefore did not prove
+retention across GitHub reruns; this is observed API behavior, not a diagnosis of
+GitHub's storage implementation.
 An observation records only the metadata seen at that evaluation. A later success
 does not explain an earlier rejection, prove eventual consistency or replace its
 failure evidence. Observations do not retry jobs, grant acceptance, relax required
@@ -234,8 +259,22 @@ configure an unavailable check and strand that PR. Subsequent policy changes fol
 the same checked, deliberate retirement procedure.
 
 Every release first downloads accepted **main** CI evidence for its exact source
-revision. Its artifact receipt attaches that verification to artifact byte hashes.
-Expired/missing evidence requires fresh full CI on that main revision; PR merge
+revision. It selects the latest main CI run and its current attempt, then the latest
+matching main acceptance evaluation by the title `CI acceptance <CI-run> attempt <CI-attempt>`.
+The history query starts at the native CI run's creation time; skipped non-main
+dispatches are excluded. Artifact discovery is scoped to the selected workflow run,
+so unrelated uploads under the same name cannot block its owned evidence.
+That evaluation must be completed and successful, come from the trusted main
+acceptance workflow's first attempt, and own exactly one bounded unexpired artifact with the full
+run/attempt name. A failed, queued, incomplete or missing latest evaluation never
+falls back to an older success. The receipt still binds the original CI run/attempt,
+exact source revision/tree and passing journeys. Evaluator source must be identical
+to or an ancestor of the explicit `refs/heads/main` commit, resolved through the Git
+reference API and compared by SHA; a same-named tag cannot supply unreviewed source.
+Its artifact receipt attaches that
+verification to artifact byte hashes. Legacy canonical artifact names are not a
+fallback; dispatch a fresh evaluation on main if only those exist. If the underlying
+native CI evidence is expired/missing, run fresh full CI on that main revision; PR merge
 receipts cannot stand in for squash-merged source. Registry publication remains
 behind `npm`, `pypi` or `testpypi` environments. Target-environment smoke, observation,
 recovery and worker-drain evidence remains separate; no automatic deployment is added.

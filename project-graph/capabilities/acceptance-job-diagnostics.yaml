@@ -12,7 +12,7 @@ entities:
       - {relation: requires, target: invariant.dependent-pr-evidence}
   - id: invariant.acceptance-job-observations
     kind: invariant
-    description: Before job validation can reject metadata, save uniquely named bounded expected, missing, non-passing and observed job identities/statuses for the exact run/attempt/source; reevaluation preserves previous observations and never infers a cause, retries work, overrides failure or relaxes mandatory source/job/test obligations.
+    description: Before job validation can reject metadata, save uniquely named bounded expected, missing, non-passing and observed job identities/statuses for the exact run/attempt/source; local unique files and fresh hosted evaluation runs preserve observations subject to retention, while GitHub reruns do not guarantee artifact retention. Observations never infer a cause, retry work, override failure or relax mandatory source/job/test obligations.
   - id: check.acceptance-job-observations
     kind: check
     description: Simulated GitHub transport exercises the evaluator and check publication for missing, failed and incomplete metadata, retained failure/success reevaluations, diagnostic bounds and independent aggregate rejection. Existing exact-source and native journey tests remain mandatory.

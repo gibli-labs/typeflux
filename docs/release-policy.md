@@ -166,6 +166,14 @@ and attach it to artifact byte hashes. A PR merge snapshot cannot substitute for
 squash-merged main revision. MCP uses the protected `npm` environment, like the
 client and SDK train. See [development loop](development.md).
 
+The latest matching trusted acceptance evaluation must succeed and own its unique,
+unexpired evidence artifact; release selection never falls back past a later failed
+or incomplete evaluation. Reevaluation uses a fresh acceptance workflow dispatch on
+main to retain previous results, rather than GitHub's rerun operation. Both native
+CI and acceptance run/attempt identities remain bound to the selected evidence.
+Acceptance reruns are ineligible; evaluator source must belong to the explicit
+main branch's history, preventing same-named tags from supplying untrusted source.
+
 Version bumps are release preparation, not a requirement for every MCP source or
 test change. The unpublished-drift sentinel still makes pending release work visible.
 The in-repository console consumes the candidate client; public package installation

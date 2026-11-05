@@ -1,0 +1,39 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.accepted-evidence-retention
+    kind: capability
+    description: Reevaluate existing CI evidence in fresh trusted main workflow runs and select the latest matching evaluation for release without overwriting earlier results or falling back past failure.
+    editions: {python: shared, typescript: shared}
+    implementation: [.github/workflows/ci-acceptance.yml, tools/development/release_evidence.py]
+    documentation: [docs/development.md, docs/release-policy.md, README.md]
+    examples: []
+    links:
+      - {relation: requires, target: invariant.accepted-evidence-retention}
+      - {relation: requires, target: invariant.dependent-pr-evidence}
+      - {relation: requires, target: invariant.acceptance-job-observations}
+  - id: invariant.accepted-evidence-retention
+    kind: invariant
+    description: Fresh main acceptance runs retain distinct artifacts subject to GitHub retention; same-run reruns do not guarantee preservation and are rejected. Releases require the latest matching completed successful first-attempt evaluation sourced from explicit main branch history, unique owned bounded unexpired evidence, exact main CI run/attempt/revision/tree and passing journeys; no legacy or older-success fallback, deletion, overwrite or automatic retry.
+  - id: check.accepted-evidence-retention
+    kind: check
+    description: Simulated release transport preserves rejected and passing evaluations, rejects failed/incomplete/untrusted latest runs and invalid artifacts/receipts; workflow and executed identifier-guard checks bind fresh dispatches and automatic evaluation identities. Live API retention observations are documented separately and are not simulated-test guarantees.
+    environment: python-non-live
+    ci: [python-3.11, python-3.12, python-3.13, python-3.14, python-3.15]
+    tests:
+      - {path: packages/python/tests/test_release_evidence.py, name: test_fresh_evaluation_retains_rejection_and_selects_latest_success}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_latest_untrusted_or_unsuccessful_evaluation_blocks_older_success}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_non_main_dispatch_is_not_an_evaluation_of_main_evidence}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_foreign_same_name_artifact_cannot_block_owned_evidence}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_evaluator_source_must_belong_to_explicit_main_branch_history}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_release_consumes_actual_aggregate_receipt_identity}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_workflow_rerun_is_rejected_before_validator}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_latest_evaluation_requires_unique_owned_current_artifact}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_selected_receipt_still_requires_exact_native_run_source_and_journeys}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_evaluation_title_does_not_cross_native_attempt_or_accept_legacy_fallback}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_native_ci_must_still_be_successful_main_push_for_exact_source}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_automatic_and_dispatched_evaluations_share_identity_and_retain_distinct_artifacts}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_dispatch_identifiers_are_validated_before_execution}
+      - {path: packages/python/tests/test_release_evidence.py, name: test_selected_archive_remains_bounded_and_receipt_unique}
+      - {path: packages/python/tests/test_graph_integration.py, name: test_workflow_aggregate_covers_jobs_and_keeps_credentials_out_of_validator}
+    links:
+      - {relation: verifies, target: invariant.accepted-evidence-retention}

@@ -1,9 +1,20 @@
 name: CI acceptance
+run-name: CI acceptance ${{ github.event.workflow_run.id || inputs.run_id }} attempt ${{ github.event.workflow_run.run_attempt || inputs.attempt }}
 
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Original CI workflow run ID to reevaluate in a fresh acceptance run
+        required: true
+        type: string
+      attempt:
+        description: Original CI workflow run attempt
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -12,20 +23,27 @@ permissions:
   checks: write
 
 concurrency:
-  group: ci-acceptance-${{ github.event.workflow_run.head_sha }}
+  group: ci-acceptance-${{ github.event.workflow_run.id || inputs.run_id }}
   cancel-in-progress: false
 
 jobs:
   accept:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     name: Validate CI evidence
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+      ATTEMPT: ${{ github.event.workflow_run.run_attempt || inputs.attempt }}
     steps:
+      - name: Require a fresh run and canonical positive CI identifiers
+        run: '[[ "$GITHUB_RUN_ATTEMPT" == 1 && "$RUN_ID" =~ ^[1-9][0-9]*$ && "$ATTEMPT" =~ ^[1-9][0-9]*$ ]]'
       # workflow_run loads this workflow from the default branch. Only trusted
       # source is checked out/executed; candidate Git objects and ZIP/JSON are data.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+          ref: main
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: '0.13.5'
@@ -35,14 +53,12 @@ jobs:
       - name: Accept exact-run evidence
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
-          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         run: uv run --project packages/python python -m tools.development.acceptance --run-id "$RUN_ID" --attempt "$ATTEMPT" --publish
       - name: Retain job observations for this acceptance attempt
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: ci-job-observations-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ci-job-observations-${{ github.event.workflow_run.id || inputs.run_id }}-${{ github.event.workflow_run.run_attempt || inputs.attempt }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: .project-graph/accepted/job-observations/
           include-hidden-files: true
           if-no-files-found: warn
@@ -50,7 +66,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: accepted-ci-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          name: accepted-ci-${{ github.event.workflow_run.id || inputs.run_id }}-${{ github.event.workflow_run.run_attempt || inputs.attempt }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: .project-graph/accepted/
           include-hidden-files: true
           if-no-files-found: warn
+          overwrite: false

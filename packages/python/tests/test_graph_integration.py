@@ -361,7 +361,8 @@ def test_workflow_aggregate_covers_jobs_and_keeps_credentials_out_of_validator()
     assert gate["on"]["workflow_run"]["workflows"] == ["CI"]
     steps = gate["jobs"]["accept"]["steps"]
     checkout = next(s for s in steps if s.get("uses", "").startswith("actions/checkout@"))
-    assert "ref" not in checkout["with"]  # default-branch source only
+    assert checkout["with"]["ref"] == "main"  # trusted source for both trigger paths
+    assert "github.ref == 'refs/heads/main'" in gate["jobs"]["accept"]["if"]
     assert checkout["with"]["persist-credentials"] == "false"
     assert not any("pull_request_target" in key for key in gate["on"])
     for step in steps:
