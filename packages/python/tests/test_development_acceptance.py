@@ -214,8 +214,8 @@ def test_workflow_preserves_diagnostics_across_acceptance_attempts():
     assert diagnostic["with"].get("overwrite", "false") == "false"
     name = diagnostic["with"]["name"]
     values = {
-        "github.event.workflow_run.id": "17",
-        "github.event.workflow_run.run_attempt": "2",
+        "github.event.workflow_run.id || inputs.run_id": "17",
+        "github.event.workflow_run.run_attempt || inputs.attempt": "2",
         "github.run_id": "50",
     }
 
@@ -229,7 +229,7 @@ def test_workflow_preserves_diagnostics_across_acceptance_attempts():
     assert expand(1) == "ci-job-observations-17-2-50-1"
     assert expand(2) == "ci-job-observations-17-2-50-2"
     checkout = next(step for step in steps if step.get("uses", "").startswith("actions/checkout@"))
-    assert "ref" not in checkout["with"]
+    assert checkout["with"]["ref"] == "main"
 
 
 @pytest.mark.parametrize("name", [None, [], 3])
