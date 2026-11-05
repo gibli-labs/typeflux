@@ -159,6 +159,24 @@ the PR. Batch corrections from reviews. Avoid repeated reviewer invocations on w
 in progress. Source changes invalidate earlier evidence even when filenames remain
 the same. Local journals and receipts are diagnostics, not trusted CI attestations.
 
+The TypeScript deployment-plan Git fixture uses real local repositories under an
+isolated synchronous Git environment. It ignores inherited Git configuration,
+routing, signing and template controls, uses empty owned config/template files,
+and keeps native Git tracing available. The caller's Git environment is restored
+on success or failure; all fixture repositories join the file's existing owned
+cleanup. The production merged-plan verifier still uses its caller's Git context.
+Regression checks use actual commits with poisoned inherited config/routing and
+verify restoration after a deliberately raised failure. The original merged,
+tampered, unmerged, symlink and outside-repository assertions remain in one case.
+The existing five-second test budget and disabled retries are unchanged.
+
+The [#131 investigation](https://github.com/gibli-labs/typeflux/issues/131) reproduced
+a timeout with a controlled external hook: two three-second hook executions made
+the unchanged case fail after roughly 6.78 seconds, versus a 336 ms isolated
+baseline. This establishes a fixture-isolation defect, not the cause of the
+historical timeout. Native timings, source identities and original/later outcomes
+remain separate; host or suite scheduling is not diagnosed by a later pass.
+
 ## Host interruptions during local verification
 
 Each development command and the isolated Temporal preflight/startup phases sample
