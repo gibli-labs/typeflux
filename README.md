@@ -123,6 +123,9 @@ uv run --project packages/python python -m tools.development sync all
 
 See [Dependency Management](docs/dependencies.md) for the full extras matrix
 and the [development loop](docs/development.md) for verification and release gates.
+The [matched graph pilot](docs/graph-development-study.md) documents the bounded
+development evaluation and its results. The pilot did not establish an adoption
+signal; required checks and autonomy stay unchanged.
 To reevaluate accepted CI while retaining an earlier result, dispatch a fresh
 acceptance run on main as documented there. Releases require the latest matching
 successful evaluation and exact source evidence.

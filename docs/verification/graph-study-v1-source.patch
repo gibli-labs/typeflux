@@ -1,0 +1,295 @@
+--- a/packages/python/tests/test_study86_analysis.py
++++ b/packages/python/tests/test_study86_analysis.py
+@@ -17,7 +17,6 @@
+             {
+                 "tasks": [{"id": "fixture", "editable": [], "heldout": []}],
+                 "arms": ["search", "graph", "assembly"],
+-                "repeats": 2,
+                 "costBasis": "estimate only",
+                 "declaredPolicyGuardsPassed": True,
+             }
+@@ -28,7 +27,7 @@
+     )
+     result = summarize(tmp_path, directory)
+     assert not result["complete"] and not result["positiveAssemblyPilotSignal"]
+-    assert result["unreachedPrimaryCells"] == 5
++    assert result["unreachedPrimaryCells"] == 71
+     assert result["arms"]["search"]["acceptanceOnObservedSlots"] is None
+     assert result["reportedInvocationCount"] == 0
+     assert "no autonomy expansion" in result["ciDecision"]
+@@ -38,7 +37,7 @@
+     directory = study["directory"]
+     directory.mkdir()
+     (directory / "protocol.json").write_text(
+-        json.dumps({"tasks": [], "arms": [], "repeats": 2, "costBasis": "estimate"})
++        json.dumps({"tasks": [], "arms": [], "costBasis": "estimate"})
+     )
+     trial = directory / "trials" / "one"
+     trial.mkdir(parents=True)
+--- a/packages/python/tests/test_study86_billing.py
++++ b/packages/python/tests/test_study86_billing.py
+@@ -88,7 +88,7 @@
+     command, options = calls[0]
+     assert command[command.index("--tools") + 1] == ""
+     assert options["env"]["CLAUDE_CODE_MAX_RETRIES"] == "0"
+-    assert options["env"]["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "8192"
++    assert options["env"]["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] == "2048"
+     assert list(Path(options["cwd"]).iterdir()) == []
+ 
+ 
+--- a/tools/development/study86/analysis.py
++++ b/tools/development/study86/analysis.py
+@@ -28,7 +28,6 @@
+ 
+ def summarize(root: Path, directory: Path) -> dict:
+     plan = read(directory / "protocol.json")
+-    requested = len(plan["tasks"]) * len(plan["arms"]) * plan["repeats"]
+     ledger = Ledger(root, "issue-86")
+     paid = effects(ledger)
+     pending = [key for key, item in paid.items() if item["state"] == "pending"]
+@@ -52,9 +51,9 @@
+         "protocolSha256": sha(directory / "protocol.json"),
+         "authority": "descriptive localized patch pilot; not human PR acceptance",
+         "recoverableInfrastructureEvents": infrastructure,
+-        "requestedPrimaryCells": requested,
++        "requestedPrimaryCells": 72,
+         "observedPrimaryOutcomes": len(main),
+-        "unreachedPrimaryCells": requested - len(main),
++        "unreachedPrimaryCells": 72 - len(main),
+         "pendingPaidOutcomes": pending,
+         "reportedEstimateUSDAllStudyInvocations": total_cost(ledger),
+         "reportedInvocationCount": len([v for v in paid.values() if v["state"] == "confirmed"]),
+@@ -88,8 +87,7 @@
+             "accepted": len(accepted),
+             "acceptanceOnObservedSlots": len(accepted) / len(selected) if selected else None,
+             "repeatAccepted": [
+-                sum(r["passed"] for r in selected if r["repeat"] == n)
+-                for n in range(plan["repeats"])
++                sum(r["passed"] for r in selected if r["repeat"] == n) for n in range(2)
+             ],
+             "reportedEstimateUSD": sum(costs),
+             "estimatePerAcceptedPatch": sum(costs) / len(accepted) if accepted else None,
+@@ -174,7 +172,7 @@
+             "leaveOneFamilyOutRange": [min(ranges), max(ranges)] if ranges else None,
+         }
+     summary["complete"] = (
+-        len(main) == requested
++        len(main) == 72
+         and not pending
+         and all(
+             (directory / "trials" / f"graph-ci-ids-{arm}-r0-{probe}" / "result.json").exists()
+@@ -193,7 +191,7 @@
+                 if key[1] == n
+             )
+             > 0
+-            for n in range(plan["repeats"])
++            for n in range(2)
+         ):
+             wins.append(group)
+     baseline_cost = summary["arms"]["search"]["estimatePerAcceptedPatch"]
+--- a/tools/development/study86/billing.py
++++ b/tools/development/study86/billing.py
+@@ -18,9 +18,8 @@
+ 
+ MODEL = "claude-fable-5"
+ STOP_NEW_CALLS_USD = 40.0  # Reserve $10 below the user's $50 ceiling for overruns.
+-PER_CALL_ESTIMATE_USD = 2.0  # Allows one bounded completion; shared $40 stop still applies.
+-PER_CALL_ALLOWANCE_USD = 3.0  # At least the observed 1.45x CLI-budget overrun.
+-MAX_OUTPUT_TOKENS = 8192
++PER_CALL_ESTIMATE_USD = 1.0  # Allows one bounded completion; shared $40 stop still applies.
++MAX_OUTPUT_TOKENS = 2048
+ 
+ 
+ class UnknownPaidOutcome(RuntimeError):
+@@ -209,11 +208,7 @@
+         for item in prior.values():
+             if item["state"] == "confirmed":
+                 verify_usage_canary({"modelUsage": item["models"]})
+-        allowance = max(
+-            PER_CALL_ALLOWANCE_USD,
+-            max((item.get("costUSD", 0) for item in prior.values()), default=0),
+-        )
+-        if total_cost(ledger) + allowance > STOP_NEW_CALLS_USD:
++        if total_cost(ledger) + PER_CALL_ESTIMATE_USD > STOP_NEW_CALLS_USD:
+             raise RuntimeError("study stop threshold reached; reserve remains below $50")
+         if stdout.exists() or stderr.exists() or exit_path.exists():
+             raise UnknownPaidOutcome("unrecorded request artifacts exist; reconcile first")
+@@ -283,10 +278,6 @@
+             "costBasis": "Claude CLI estimate; provider invoice unavailable",
+             "models": result["modelUsage"],
+             "reportedError": result.get("is_error"),
+-            "reportedCliTurns": result.get("num_turns"),
+-            "observedOutputExceedsRequestedPerResponse": any(
+-                v.get("outputTokens", 0) > MAX_OUTPUT_TOKENS for v in result["modelUsage"].values()
+-            ),
+         },
+         repo,
+     )
+--- a/tools/development/study86/context.py
++++ b/tools/development/study86/context.py
+@@ -14,7 +14,7 @@
+ from tools.project_graph.queries import context
+ from tools.project_graph.repository import Repository
+ 
+-CONTEXT_CHARACTERS = 32_000
++CONTEXT_CHARACTERS = 48_000
+ 
+ 
+ def excerpt(text: str, terms: list[str], limit: int) -> str:
+--- a/tools/development/study86/experiment.py
++++ b/tools/development/study86/experiment.py
+@@ -14,7 +14,6 @@
+ from .billing import (
+     MAX_OUTPUT_TOKENS,
+     MODEL,
+-    PER_CALL_ALLOWANCE_USD,
+     PER_CALL_ESTIMATE_USD,
+     STOP_NEW_CALLS_USD,
+     cli_command,
+@@ -233,19 +232,15 @@
+             "user": "10001:10001",
+             "source": "read-only",
+         },
+-        "maxPrimaryInvocations": len(tasks) * 3 * 2,
+-        "resourcePilotAmendment": read(root / "tools/development/study86/amendment.json"),
++        "maxPrimaryInvocations": 72,
+         "extraInvocations": "At most 12 documentation grades, 6 grader calibration controls, 6 graph robustness probes; all share one estimate ledger.",
+         "requestedCaps": {
+             "contextCharacters": CONTEXT_CHARACTERS,
+             "outputTokens": MAX_OUTPUT_TOKENS,
+             "effort": "low",
+             "tools": [],
+-            "requestedNetworkRetries": 0,
+-            "automaticPaidTrialRepairs": 0,
+-            "cliContinuation": "not independently counted; aggregate output above requested per-response cap is recorded",
+-            "perInvocationCliBudgetUSD": PER_CALL_ESTIMATE_USD,
+-            "newCallAllowanceFloorUSD": PER_CALL_ALLOWANCE_USD,
++            "automaticApiRetries": 0,
++            "perInvocationEstimateUSD": PER_CALL_ESTIMATE_USD,
+             "stopNewCallsUSD": STOP_NEW_CALLS_USD,
+             "authorizedCeilingUSD": 50,
+         },
+@@ -270,7 +265,7 @@
+             "own-patch successive quality",
+         ],
+         "limitations": [
+-            "9 slots, 7 historical + 2 successors after a retained resource pilot; smaller than proposed 30–50 independent tasks under $50",
++            "12 slots, 10 historical + 2 successors; smaller than proposed 30–50 independent tasks under $50",
+             "Python/TypeScript engine pair and shared development-tool tasks are correlated",
+             "component filenames are retrospectively localized; solution code and held-outs are withheld from primary context",
+             "current frozen third-party dependencies, historical SDK source rebuilt per candidate",
+@@ -405,11 +400,6 @@
+         "reportedModelDurationMilliseconds": response.get("duration_ms"),
+         "reportedApiDurationMilliseconds": response.get("duration_api_ms"),
+         "modelReportedError": response.get("is_error"),
+-        "reportedCliTurns": response.get("num_turns"),
+-        "observedOutputExceedsRequestedPerResponse": response.get("modelUsage", {})
+-        .get(MODEL, {})
+-        .get("outputTokens", 0)
+-        > MAX_OUTPUT_TOKENS,
+         "clientExitCode": response.get("studyCliExitCode"),
+     }
+     if MODEL not in response.get("modelUsage", {}):
+--- a/tools/development/study86/tasks.json
++++ b/tools/development/study86/tasks.json
+@@ -35,6 +35,50 @@
+     }
+   },
+   {
++    "id": "provider-defaults",
++    "kind": "typescript",
++    "startingRevision": "58329375cab9dfb0d7e9ca80e48ddbb934c2d7f7",
++    "referenceRevision": "593e52359e86902f0401c38b4124c7a6e3bbe460",
++    "brief": "Fix model identity across provider adapters and core execution. Omitted model selectors must use each provider's documented configured default and report the actual provider/model in events and results. Preserve explicit caller choices; never invent a fallback identity or use a probe call. Use typed contribution behavior already present where applicable.",
++    "editable": [
++      "packages/typescript/temporal/src/execute.ts",
++      "packages/typescript/temporal/src/openai-provider.ts",
++      "packages/typescript/temporal/src/anthropic-provider.ts",
++      "packages/typescript/temporal/src/gemini-provider.ts"
++    ],
++    "search": "default_model defaultModel model_name modelName model provider identity",
++    "heldout": [
++      "packages/typescript/temporal/test/provider-defaults.test.ts"
++    ],
++    "expectedChecks": {
++      "historical-typescript-dependency-build": 0,
++      "temporal": 14
++    }
++  },
++  {
++    "id": "neutral-manifest",
++    "kind": "both",
++    "startingRevision": "593e52359e86902f0401c38b4124c7a6e3bbe460",
++    "referenceRevision": "56fce3861fa230eaf41e34979edfcd9db92956a7",
++    "brief": "Allow a workflow execution manifest to omit a Temporal task queue for a non-Temporal runtime. Python and TypeScript must preserve omitted/null behavior and explicit queue values through their manifest APIs. Observability must not index or invent an absent queue. Keep other manifest contracts unchanged.",
++    "editable": [
++      "packages/python/src/typeflux/manifests/workflow.py",
++      "packages/python/src/typeflux/observability/inspect.py",
++      "packages/typescript/temporal/src/manifest.ts"
++    ],
++    "search": "task_queue manifest workflow_execution",
++    "heldout": [
++      "packages/python/tests/test_manifest.py",
++      "packages/python/tests/test_observability.py",
++      "packages/typescript/temporal/test/manifest.test.ts"
++    ],
++    "expectedChecks": {
++      "python": 153,
++      "historical-typescript-dependency-build": 0,
++      "temporal": 6
++    }
++  },
++  {
+     "id": "graph-ci-ids",
+     "kind": "python",
+     "startingRevision": "793bd4b370570fcfb454049d282c3ad55579df2e",
+@@ -68,6 +112,24 @@
+     ],
+     "expectedChecks": {
+       "python": 12
++    }
++  },
++  {
++    "id": "interrupt-cleanup",
++    "kind": "python",
++    "startingRevision": "b657347e5eb176b00dc184523b23c13fb9a6c12d",
++    "referenceRevision": "4b77323d81a239febd8b000b2dbf0e40bc04c1ab",
++    "brief": "Finish cleanup of an owned process group through repeated SIGINT. Stop/reap owned descendants including signal-resistant children and retain interrupted status/evidence. Do not touch unrelated listeners or processes and do not turn an interruption into success. Preserve normal error behavior.",
++    "editable": [
++      "tools/development/__main__.py"
++    ],
++    "search": "owned group KeyboardInterrupt SIGINT cleanup",
++    "heldout": [
++      "packages/python/tests/test_development_process_cleanup.py",
++      "packages/python/tests/test_development_browser_cleanup.py"
++    ],
++    "expectedChecks": {
++      "python": 21
+     }
+   },
+   {
+--- a/tools/development/study86/amendment.json
++++ /dev/null
+@@ -1,22 +0,0 @@
+-{
+-  "previousProtocolSha256": "04acb382b05fe90b87fff508dce42dfde2057e689c86eb63a4f35c80c6ba5d18",
+-  "previousPublicEvidence": "docs/verification/graph-study-resource-pilot-2026-11-06.json",
+-  "previousStudyEstimateUSD": 2.35516,
+-  "previousPrimaryOutcomes": 1,
+-  "previousCandidateHeldoutExecutions": 0,
+-  "reason": "Initial CLI call reached its $1 budget, reported $1.4499 and 6144 output tokens despite requested2048, and returned no patch. Requested output is per response, not a proven invocation-wide cap. Stop preserved before candidate validation; all costs retained.",
+-  "changes": "Uniformly request8192 per-response output tokens and32000 primary context characters; CLI dollar budget2, new-call allowance at least3 (>=1.45x observed overrun), automatically raised to any larger recorded invocation estimate.9slots/54primarycells. Failed ci-diagnostics task is retained; exclude provider-defaults/neutral-manifest/interrupt-cleanup after the resource pilot using preflight scope/cost. No candidate held-out performance had been observed. Six grader calibrations rerun for the new configuration.",
+-  "excludedTaskIds": [
+-    "provider-defaults",
+-    "neutral-manifest",
+-    "interrupt-cleanup"
+-  ],
+-  "costPolicy": "Same cumulative ledger,$40 stop including next-call allowance,$50 authorized ceiling. Prior2.35516 included. Remaining conservative room before the $3 allowance is34.64484, about$0.44 per78possible new calls. Normal Fable reviews separate.",
+-  "costSizing": {
+-    "basis": "Installed CLI estimates, not provider prices/invoice. Actual first response reports6 input+57132 cache-create+6144 output and1.4499; its estimate reconciles with10/20/50 USD per million input/cache-create/output tokens.",
+-    "conservativeObservedInputPlus8192OutputEstimateUSD": 1.5523,
+-    "configuredCliBudgetUSD": 2,
+-    "newCallAllowanceFloorUSD": 3,
+-    "limit": "Sizing at observed aggregate input is not a provider hard cap; lower primary context and continuous ledger/reserve protect remaining spend. Response count inside CLI turns is not exposed by result JSON; tokens>requested per-response cap are flagged as continuation/overrun, not a measured response count."
+-  }
+-}
