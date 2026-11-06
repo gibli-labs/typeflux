@@ -1,5 +1,25 @@
 apiVersion: typeflux.dev/graph/v1alpha1
 entities:
+  - id: check.console-scoped-transport-unit
+    kind: check
+    description: Unit checks preserve scoped mutation bytes, authorization, standard Request options and AbortSignal; GETs remain bodyless and registry discovery unscoped. Not browser or deployment evidence.
+    environment: node-web
+    ci: [web]
+    tests:
+      - {path: clients/console/src/apiTransport.test.ts, name: "preserves a scoped mutation's body, bearer, request options and abort signal"}
+      - {path: clients/console/src/apiTransport.test.ts, name: keeps scoped GETs bodyless and registry discovery unscoped}
+      - {path: clients/console/src/apiTransport.test.ts, name: keeps a scoped GET bodyless when the Request.body getter is unavailable}
+    links:
+      - {relation: verifies, target: invariant.browser-scoped-transport}
+  - id: check.console-scoped-transport-browser
+    kind: check
+    description: Real Chromium POST through the HTTP/1 proxy to each actual control-plane edition. The malformed command returns the actual API 422 once, naming user_decision; this negative transport test requires no provider credentials and does not establish Temporal dispatch or workflow progress.
+    environment: chromium-real-http-python-cp-and-ts-cp
+    ci: [browser-python, browser-typescript]
+    tests:
+      - {path: clients/console/e2e/transport.spec.ts, name: scoped review POST reaches the real API and retains its validation error}
+    links:
+      - {relation: verifies, target: invariant.browser-scoped-transport}
   - id: check.review-python
     kind: check
     description: Python HTTP review and binding contract regressions.

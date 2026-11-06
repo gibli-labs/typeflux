@@ -3,8 +3,9 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * End-to-end smoke (#293): a real served control-plane API + the rendered
  * console agree on routing (including project-scoped routes) and the key
- * read-only pages render. Non-live — read endpoints need no Temporal, and the
- * smoke never touches operations pages.
+ * read-only pages render. Non-live — read endpoints need no Temporal. Controlled
+ * operation cases remain separate from the real HTTP transport negative, which
+ * requires the actual validation response without starting a workflow.
  *
  * Two web servers are started:
  *  1. the control-plane API over the e2e registry (the examples manifest under

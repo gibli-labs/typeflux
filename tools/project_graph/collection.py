@@ -71,12 +71,17 @@ def collect_tests(root: Path, graph: dict) -> dict:
                     "TYPEFLUX_GRAPH_INVENTORY": str(output),
                 }
             elif runner == "vitest":
+                entrypoint = cwd / "node_modules/vitest/vitest.mjs"
+                if not entrypoint.is_file():
+                    raise GraphError(
+                        "vitest collection requires the installed package CLI; "
+                        "run uv run --project packages/python python -m tools.development sync all"
+                    )
                 # --json accepts an optional output filename: keep it LAST so a
                 # test path cannot be consumed as the output and overwritten.
                 command = [
-                    "pnpm",
-                    "exec",
-                    "vitest",
+                    "node",
+                    str(entrypoint),
                     "list",
                     "--no-static-parse",
                     *map(str, sorted(paths)),
@@ -85,12 +90,15 @@ def collect_tests(root: Path, graph: dict) -> dict:
                 # Collect gated Temporal test identities without executing hooks.
                 run_env = {**env, "TYPEFLUX_LIVE_TEMPORAL": "1"}
             else:
+                entrypoint = cwd / "node_modules/@playwright/test/cli.js"
+                if not entrypoint.is_file():
+                    raise GraphError(
+                        "playwright collection requires the installed package CLI; "
+                        "run uv run --project packages/python python -m tools.development sync all"
+                    )
                 command = [
-                    "npm",
-                    "--silent",
-                    "exec",
-                    "--",
-                    "playwright",
+                    "node",
+                    str(entrypoint),
                     "test",
                     "--list",
                     "--reporter=json",
