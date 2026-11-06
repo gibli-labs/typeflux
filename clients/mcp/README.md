@@ -31,6 +31,12 @@ npx -y typeflux-mcp
 | **managed-local** (default) | `TYPEFLUX_CP_URL` unset | Discovers your `typeflux.project.yaml` (via the MCP client's roots, or `TYPEFLUX_MANIFEST`) and drives the TypeScript control plane **in-process** on loopback, torn down on exit. Pure Node — no Python needed. |
 | **attach** | `TYPEFLUX_CP_URL` set | Talks to an already-running control plane (local or hosted, Python or TS) for full resolution and multi-project access. |
 
+`managed-local` owns an in-process **control-plane server**; it does not start a
+Typeflux Local workflow or add a resumable run registry. `TYPEFLUX_RUNTIME` selects
+a resolver edition, not the workflow's runtime engine. Local execution retains
+its foreground CLI/SDK entry points; run-management tools remain Temporal-backed.
+See the [capability and ownership decision](../../docs/local-management-decision.md).
+
 ### Environment
 
 | Variable | Meaning |

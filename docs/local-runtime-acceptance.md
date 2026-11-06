@@ -28,5 +28,5 @@ The accepted scope is a foreground, non-durable YAML runtime. For stronger execu
 requirements, use the existing [durable adoption guide](temporal-adoption.md),
 [review/lifecycle guide](temporal-review-adoption.md) and
 [compensation guide](temporal-compensation-adoption.md). These reuse Temporal;
-they do not reproduce its guarantees in the local process. Management-surface
-evaluation remains [#94](https://github.com/gibli-labs/typeflux/issues/94).
+they do not reproduce its guarantees in the local process. Management surfaces
+retain [CLI/SDK-only Local execution](local-management-decision.md).

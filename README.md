@@ -64,6 +64,8 @@ native delayed starts and triggering Local from an existing scheduler.
 
 The new local implementation is described against current source/candidate
 packages; the quickstarts show installing the actual candidate wheel/tarballs.
+Local execution remains [CLI/SDK-only](docs/local-management-decision.md);
+authoring tools and exported observations do not create managed Local runs.
 Registry installs apply once a release containing the feature is available:
 
 ```bash
