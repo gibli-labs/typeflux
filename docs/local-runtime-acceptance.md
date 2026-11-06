@@ -27,7 +27,7 @@ not add local run management or establish deployed-environment behavior.
 The accepted scope is a foreground, non-durable YAML runtime. Durability, queues,
 daemons, recovery and live-run migration remain [#90](https://github.com/gibli-labs/typeflux/issues/90);
 scheduling/timers use [native Temporal delay or an external caller](temporal-adoption.md#observe-a-native-delayed-start);
-review/lifecycle [#92](https://github.com/gibli-labs/typeflux/issues/92);
+review/lifecycle use the [Temporal adoption guide](temporal-review-adoption.md);
 compensation [#93](https://github.com/gibli-labs/typeflux/issues/93); and management
 surfaces [#94](https://github.com/gibli-labs/typeflux/issues/94). These are not
 commitments to reproduce Temporal guarantees in the local process.

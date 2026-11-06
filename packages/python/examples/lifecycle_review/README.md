@@ -18,11 +18,11 @@ docker run --rm -d --name typeflux-dev \
   temporalio/temporal:latest server start-dev --ip 0.0.0.0
 ```
 
-Run the demo commands from the repo root with `uv run` so they use the locked
+Run the demo commands from `packages/python` with `uv run` so they use the locked
 environment.
 
 The repo also includes Docker, Docker Compose, and Kubernetes worker templates
-in [YAML Worker Deployment](../../docs/yaml-worker-deployment.md).
+in [YAML Worker Deployment](../../../../docs/yaml-worker-deployment.md).
 For Temporal Cloud, create an ignored `.env.temporal-cloud` profile with
 `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `TEMPORAL_TLS=true`,
 `TEMPORAL_API_KEY`, and `TEMPORAL_TASK_QUEUE`, then run commands with
@@ -34,6 +34,13 @@ review gate, approves it, and prints the result:
 ```bash
 uv run python -m examples.lifecycle_review.main run
 ```
+
+The bounded `run` demonstration uses a unique queue and prepared start, observes
+the gate, targets the pinned run and verifies the `send_email` route, started
+steps, completed lifecycle and validated result. Its JSON observation is checked
+in the required isolated Temporal lane. This trusted SDK caller does not replace
+operator authorization; see the [Local-to-Temporal review guide](../../../../docs/temporal-review-adoption.md)
+for permissions, binding, uncertain delivery and Local exclusions.
 
 ## Run As App + Worker
 

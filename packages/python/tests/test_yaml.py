@@ -8972,6 +8972,56 @@ async def test_lifecycle_signals_verify_binding_before_dispatch(
 
 
 @pytest.mark.asyncio
+async def test_review_describe_failure_never_dispatches_signal(tmp_path, monkeypatch) -> None:
+    from temporalio.service import RPCError, RPCStatusCode
+
+    runtime, client, _ = await _build_langfuse_yaml_runtime(tmp_path, monkeypatch)
+    handle = _fake_bound_handle(client, "wf-review-unavailable")
+
+    async def unavailable():
+        raise RPCError("unavailable", RPCStatusCode.UNAVAILABLE, b"")
+
+    monkeypatch.setattr(handle, "describe", unavailable)
+    with pytest.raises(RPCError):
+        await runtime.submit_lifecycle_review(
+            "wf-review-unavailable",
+            {"user_decision": "send_email"},
+            run_id=_fake_run_id("wf-review-unavailable"),
+        )
+    assert handle.signals == []
+
+
+@pytest.mark.asyncio
+async def test_uncertain_review_is_not_retried_and_status_can_reconcile(
+    tmp_path, monkeypatch
+) -> None:
+    from temporalio.service import RPCError, RPCStatusCode
+
+    runtime, client, _ = await _build_langfuse_yaml_runtime(tmp_path, monkeypatch)
+    workflow_id = "wf-review-uncertain"
+    handle = _fake_bound_handle(client, workflow_id)
+    signal = handle.signal
+
+    async def accepted_with_lost_response(name, *args):
+        await signal(name, *args)
+        handle.lifecycle_status = WorkflowLifecycleStatus(state="completed")
+        raise RPCError("response unavailable", RPCStatusCode.UNAVAILABLE, b"")
+
+    monkeypatch.setattr(handle, "signal", accepted_with_lost_response)
+    with pytest.raises(RPCError):
+        await runtime.submit_lifecycle_review(
+            workflow_id, {"user_decision": "send_email"}, run_id=_fake_run_id(workflow_id)
+        )
+    assert len(handle.signals) == 1
+    status = await runtime.query_lifecycle_status(
+        workflow_id, run_id=_fake_run_id(workflow_id), trace=False
+    )
+    assert status.state == "completed"
+    assert len(handle.signals) == 1
+    assert handle.signals[0]["name"] == "typeflux_submit_review"
+
+
+@pytest.mark.asyncio
 async def test_wait_for_lifecycle_state_fails_fast_on_binding_mismatch(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

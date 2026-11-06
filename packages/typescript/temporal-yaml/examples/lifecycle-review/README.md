@@ -24,11 +24,21 @@ doesn't:
 The gate is workflow orchestration, so it runs against a real server. The flow
 (see [main.ts](./main.ts)):
 
-1. `client.workflow.start(...)` the workflow with the derived plan.
+1. `runtime.runWorkflow(...)` starts with the derived plan and normal Typeflux
+   memo/codecs/subjects/version preparation.
 2. Poll `handle.query("typeflux_lifecycle_status")` until `state` is
    `waiting_for_review`.
 3. `handle.signal("typeflux_submit_review", { user_decision, reviewer })`.
-4. `await handle.result()` — the routed `FinalDecision`.
+4. Await the validated routed result, query completed lifecycle and verify the
+   selected route, actual started steps and unchanged native run identity.
+
+The demo uses a unique queue and ID, bounded gate/result observation and owned
+cleanup. It refuses to signal if it never observes the gate or the requested
+decision is unknown. Its default `send_email` route skips the two earlier
+post-review steps. The required isolated Temporal lane executes this script and
+checks its JSON observation. This is a trusted application SDK caller; see the
+[review adoption guide](../../../../../docs/temporal-review-adoption.md) for
+control-plane permissions, run binding, uncertain delivery and Local exclusions.
 
 ## Python ↔ TS mapping
 

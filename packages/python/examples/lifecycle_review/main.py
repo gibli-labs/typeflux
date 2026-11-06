@@ -4,8 +4,12 @@ import argparse
 import asyncio
 import json
 import os
+import sys
+from datetime import timedelta
 from pathlib import Path
 from uuid import uuid4
+
+from temporalio.client import WorkflowExecutionStatus
 
 from examples.lifecycle_review.schemas import CaseInput, FinalDecision
 from typeflux import (
@@ -31,32 +35,87 @@ def sample_case() -> CaseInput:
 
 
 async def run_demo() -> int:
-    runtime = await _runtime()
+    runtime = await _runtime(task_queue=f"lifecycle-review-demo-{uuid4().hex}")
     workflow_id = f"lifecycle-review-{uuid4().hex[:8]}"
+    handle = None
+    primary_failed = False
     try:
         async with runtime.worker.build_worker():
-            handle = await runtime.client.start_workflow(
-                runtime.workflow_class.run,
+            handle = await runtime.start_workflow(
                 sample_case(),
                 id=workflow_id,
-                task_queue=runtime.spec.task_queue,
                 result_type=FinalDecision,
+                run_timeout=timedelta(seconds=45),
+                rpc_timeout=timedelta(seconds=5),
             )
-            print(f"workflow_id={workflow_id}")
-            waiting = await runtime.wait_for_lifecycle_state(workflow_id, "waiting_for_review")
-            print(waiting.model_dump_json(indent=2))
-            await runtime.submit_lifecycle_review(
-                workflow_id,
-                ReviewCommand(
-                    user_decision="send_email",
-                    reviewer="demo",
-                    notes="Route directly to email in demo run.",
+            before = await asyncio.wait_for(handle.describe(), timeout=3)
+            run_id = before.run_id
+            waiting = await asyncio.wait_for(
+                runtime.wait_for_lifecycle_state(
+                    workflow_id,
+                    "waiting_for_review",
+                    run_id=run_id,
+                    timeout_seconds=10,
+                    poll_interval_seconds=0.1,
                 ),
+                timeout=12,
             )
-            result = await handle.result()
-            print(result.model_dump_json(indent=2))
+            assert waiting.waiting_checkpoint == "package_for_review"
+            assert waiting.completed_units == 2
+            # This SDK demo is a trusted caller; operator authorization belongs
+            # to the existing control-plane permission boundary, not this script.
+            await asyncio.wait_for(
+                runtime.submit_lifecycle_review(
+                    workflow_id,
+                    ReviewCommand(user_decision="send_email"),
+                    run_id=run_id,
+                ),
+                timeout=5,
+            )
+            result = await asyncio.wait_for(handle.result(), timeout=15)
+            assert result.approved is True and result.decision == "approved"
+            completed = await asyncio.wait_for(
+                runtime.query_lifecycle_status(workflow_id, run_id=run_id), timeout=5
+            )
+            assert completed.state == "completed"
+            assert completed.review_route_target == "send_email"
+            assert completed.completed_units == completed.total_units == 3
+            ran = [event.step_id for event in completed.events if event.event == "step_started"]
+            assert ran == ["assess_case", "package_for_review", "send_email"]
+            after = await asyncio.wait_for(handle.describe(), timeout=3)
+            assert after.run_id == run_id and after.status == WorkflowExecutionStatus.COMPLETED
+            print(
+                json.dumps(
+                    {
+                        "scenario": "review-adoption",
+                        "sameRun": True,
+                        "waitingCheckpoint": waiting.waiting_checkpoint,
+                        "reviewRoute": completed.review_route_target,
+                        "state": completed.state,
+                        "stepsStarted": ran,
+                        "result": result.model_dump(),
+                    }
+                )
+            )
+    except BaseException:
+        primary_failed = True
+        raise
     finally:
-        runtime.observability.writer.shutdown()
+        try:
+            if (
+                handle is not None
+                and (await asyncio.wait_for(handle.describe(), timeout=3)).status
+                == WorkflowExecutionStatus.RUNNING
+            ):
+                await asyncio.wait_for(
+                    handle.terminate("owned lifecycle review demo cleanup"), timeout=3
+                )
+        except Exception:
+            if not primary_failed:
+                raise
+            print("Additional lifecycle review demo cleanup failed", file=sys.stderr)
+        finally:
+            runtime.observability.writer.shutdown()
     return 0
 
 
@@ -200,9 +259,12 @@ async def worker() -> int:
     return 0
 
 
-async def _runtime():
+async def _runtime(*, task_queue: str | None = None):
     load_env()
-    return await build_runtime(load_yaml_spec(YAML_PATH))
+    spec = load_yaml_spec(YAML_PATH)
+    if task_queue is not None:
+        spec = spec.model_copy(update={"task_queue": task_queue})
+    return await build_runtime(spec)
 
 
 def _enable_langfuse_observability() -> None:

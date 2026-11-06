@@ -219,7 +219,6 @@ handles. Keep secrets and effect payloads out of diagnostic evidence.
 
 Local gains no run database, checkpoints, persistent task queue, daemon, independent
 child-run registry or live-run migration. Native delayed starts and external
-triggers are covered above. Review/lifecycle and compensation adoption remain
-separate examples tracked by
-[#92](https://github.com/gibli-labs/typeflux/issues/92),
-[#93](https://github.com/gibli-labs/typeflux/issues/93).
+triggers are covered above. The [review/lifecycle adoption guide](temporal-review-adoption.md)
+extends the existing examples and operator journey. Compensation adoption remains
+tracked by [#93](https://github.com/gibli-labs/typeflux/issues/93).

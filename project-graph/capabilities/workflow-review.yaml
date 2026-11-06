@@ -9,7 +9,9 @@ entities:
       - packages/python/src/typeflux/controlplane/api.py
       - packages/typescript/temporal-controlplane/src/operations.ts
       - clients/console/src/panels/runs.tsx
-    documentation: [docs/control-plane.md, docs/control-plane-auth.md, docs/editions.md]
+      - packages/python/examples/lifecycle_review/main.py
+      - packages/typescript/temporal-yaml/examples/lifecycle-review/main.ts
+    documentation: [README.md, docs/development.md, docs/local-runtime.md, docs/local-runtime-acceptance.md, docs/temporal-adoption.md, docs/control-plane.md, docs/control-plane-auth.md, docs/editions.md, docs/temporal-review-adoption.md, packages/python/examples/lifecycle_review/README.md, packages/typescript/temporal-yaml/examples/lifecycle-review/README.md]
     examples:
       - packages/python/examples/lifecycle_review/main.py
       - packages/typescript/temporal-yaml/examples/lifecycle-review/main.ts

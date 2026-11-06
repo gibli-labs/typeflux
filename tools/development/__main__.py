@@ -329,6 +329,7 @@ class Runner:
                 self.pytest(
                     "tests/test_live_ts_binding.py",
                     "tests/test_live_local_runtime_parity.py",
+                    "tests/test_live_review_adoption.py",
                     "tests/test_yaml_subworkflows.py::test_parent_runs_child_plain_and_map_with_ids_and_memo",
                     "tests/test_yaml_subworkflows.py::test_still_running_child_id_collision_fails_the_parent_loudly",
                     "tests/test_yaml.py::test_sandboxed_yaml_runtime_worker_executes_generated_workflow_end_to_end",
@@ -345,6 +346,7 @@ class Runner:
                 self.vitest(
                     "packages/typescript/temporal-yaml",
                     "test/live-local-runtime-parity.test.ts",
+                    "test/live-review-adoption.test.ts",
                     env=env,
                 )
             finally:

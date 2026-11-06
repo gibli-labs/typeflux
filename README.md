@@ -97,6 +97,8 @@ scripted fake providers without model credentials. Local execution supports the
 shared computation and activity pipeline; durable history/retries, timers,
 review/lifecycle, compensation and run management require Temporal and their
 existing configuration/APIs. See the [acceptance matrix](docs/local-runtime-acceptance.md).
+The [review adoption guide](docs/temporal-review-adoption.md) shows both SDKs
+observing a Temporal gate, targeting its run and verifying routed completion.
 
 **First durable workflow with no checkout:** the [Temporal tutorial](docs/tutorial.md) §1 is
 fully self-contained — it creates every file it runs. The worked example
