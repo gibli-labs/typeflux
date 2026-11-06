@@ -15,7 +15,8 @@
  *
  * BOUNDED (Python `_temporal_bounded`, #581): every Temporal-tier call races the configured
  * timeout and maps a timeout / connect failure / gRPC UNAVAILABLE|DEADLINE_EXCEEDED to 503
- * `TemporalUnavailable`. Any OTHER Temporal error (a NOT_FOUND describe of a missing execution,
+ * `TemporalUnavailable`. A lifecycle status query also recognizes the qualified native no-poller
+ * FAILED_PRECONDITION as worker unavailability. Other Temporal errors (a NOT_FOUND describe,
  * an already-started start conflict) propagates — Python does NOT special-case these, so they
  * surface as the generic 500 the HTTP adapter renders, NOT a 404/409. Parity, not a new mapping.
  *
@@ -119,6 +120,20 @@ export type OperationsClientFactory = (
  * unavailability → 503, mirroring Python's `RPCStatusCode.UNAVAILABLE|DEADLINE_EXCEEDED` mapping. */
 const GRPC_UNAVAILABLE = 14;
 const GRPC_DEADLINE_EXCEEDED = 4;
+
+/** The server's specific query-availability failure, not arbitrary precondition errors.
+ * Applied only around the lifecycle query, after execution binding has succeeded. */
+function isNoPollerQueryFailure(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+    const grpc = current as Error & {code?: unknown; details?: unknown; cause?: unknown};
+    if (grpc.code === 9 && grpc.details === "no poller seen for task queue recently, worker may be down") {
+      return true;
+    }
+    current = grpc.cause;
+  }
+  return false;
+}
 
 const TEMPORAL_TIER_TIMEOUT_ENV = "TYPEFLUX_CONTROLPLANE_TEMPORAL_TIMEOUT_SECONDS";
 const TEMPORAL_TIER_TIMEOUT_DEFAULT_SECONDS = 10;
@@ -729,7 +744,17 @@ export class WorkflowOperations {
     const client = await temporalBounded(() => this.connect(), "querying execution status");
     return temporalBounded(async () => {
       const handle = await this.boundHandle(client, workflowId, runId);
-      const status = await handle.query<WorkflowLifecycleStatus>(LIFECYCLE_STATUS_QUERY);
+      let status: WorkflowLifecycleStatus;
+      try {
+        status = await handle.query<WorkflowLifecycleStatus>(LIFECYCLE_STATUS_QUERY);
+      } catch (error) {
+        if (!isNoPollerQueryFailure(error)) throw error;
+        throw new ProjectControlPlaneError(
+          "The Temporal workflow worker is unavailable for this lifecycle query. " +
+          "Start a compatible worker for the execution's task queue, then refresh status.",
+          503,
+        );
+      }
       // A run started on a pre-slice-4 worker reports no `waiting_gates`; the generated client
       // types promise the always-present-[] status convention, so normalize before returning
       // (Python normalizes via the pydantic default on model_validate).

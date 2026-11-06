@@ -1,0 +1,37 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.temporal-query-availability
+    kind: capability
+    description: TypeScript lifecycle status reports the qualified native no-poller query condition as worker unavailability after execution binding, with safe compatible-worker guidance and unchanged other error/mutation semantics.
+    implementation:
+      - packages/typescript/temporal-controlplane/src/operations.ts
+      - packages/typescript/temporal-yaml/scripts/live-operate-worker.mjs
+    documentation: [docs/control-plane.md, docs/development.md, packages/typescript/temporal-controlplane/README.md]
+    links:
+      - {relation: requires, target: invariant.temporal-query-availability}
+  - id: invariant.temporal-query-availability
+    kind: invariant
+    description: Only the bounded Error cause chain with gRPC FAILED_PRECONDITION and exact native no-poller details, thrown by the lifecycle query after successful binding, maps to 503 TemporalUnavailable. Other preconditions, messages, describe/start/signal errors keep their mappings; no mutation is retried or progress inferred.
+  - id: check.temporal-query-availability-unit
+    kind: check
+    description: Raw/wrapped typed conditions, qualified code/details, query-only scope, other error/mutation semantics, bounded cycles/depth and fixed guidance without wrapper payloads. These doubles are not deployed recovery evidence.
+    environment: node-non-live
+    ci: [typescript]
+    tests:
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: maps raw and wrapped typed no-poller status queries to worker unavailability}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'preserves other codes, preconditions and unqualified query messages'}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: does not classify no-poller-shaped describe failures as query availability}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: preserves signal and start failures without mutation retry}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: bounds cyclic and overdeep no-poller query causes}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: returns fixed worker guidance without copying wrapper payloads}
+    links:
+      - {relation: verifies, target: invariant.temporal-query-availability}
+  - id: check.temporal-query-availability-native
+    kind: check
+    description: An owned pinned CLI/SQLite server and worker reach a real gate; after worker stop and persistent-service kill/restart the same run yields the actual code9/no-poller details. The real TypeScript API must return 503 with worker guidance and no review signal. Existing isolated proofs remain mandatory; cloud and production recovery are separate.
+    environment: local-temporal
+    ci: [temporal]
+    tests:
+      - {path: packages/typescript/temporal-controlplane/test/live-operate.test.ts, name: reports a real no-poller lifecycle query as unavailable without signalling}
+    links:
+      - {relation: verifies, target: invariant.temporal-query-availability}

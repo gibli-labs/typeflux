@@ -126,6 +126,14 @@ cross-project attempt) fails closed with **409** before the op reaches the
 execution. There is no legacy fallback: an execution started outside the
 Typeflux runtime carries no identity memo and is refused.
 
+For TypeScript lifecycle status, the specific native no-poller query failure
+(`FAILED_PRECONDITION` with the recognized no-poller details) returns **503
+TemporalUnavailable** after binding succeeds. Restore a compatible worker for the
+execution's task queue, then refresh status. The backend can be reachable while its
+worker is absent. Other precondition errors keep their existing mappings; this
+classification applies to the status query and does not retry a review/start/signal
+or establish workflow progress.
+
 **Freshness split (deliberate):** read endpoints re-read the manifest per
 request, so YAML edits show up immediately. Operations pin the resolved
 runtime — including the verified policy hash — at first use per

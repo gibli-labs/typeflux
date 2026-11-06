@@ -20,6 +20,10 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { createServer as createPortLease } from "node:net";
+import { parse, stringify } from "yaml";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -35,6 +39,43 @@ const WORKFLOW_YAML = resolve(PROJECT_DIR, "workflow.yaml");
 // package, and @temporalio/worker is temporal-yaml's dependency, not this package's.
 const WORKER_HARNESS = resolve(HERE, "../../temporal-yaml/scripts/live-operate-worker.mjs");
 const ADDRESS = "localhost:7233";
+
+async function stopOwned(child: ChildProcess | undefined, signal: "SIGTERM" | "SIGKILL" = "SIGTERM"): Promise<void> {
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) return;
+  const exited = new Promise<void>((done) => child.once("close", () => done()));
+  child.kill(signal);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([exited, new Promise<never>((_, reject) => {
+      timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("owned no-poller process did not stop within 10s")); }, 10_000);
+    })]);
+  } finally { if (timer) clearTimeout(timer); }
+}
+
+async function startOwnedServer(port: number, directory: string): Promise<ChildProcess> {
+  const cli = resolve(HERE, "../../../../.project-graph/bin/temporal");
+  const child = spawn(cli, ["server", "start-dev", "--ip", "127.0.0.1", "--port", String(port),
+    "--headless", "--db-filename", resolve(directory, "history.db")], {stdio: ["ignore", "pipe", "pipe"]});
+  const log = resolve(directory, "server.log");
+  let stdout = "";
+  child.stdout!.on("data", (chunk: Buffer) => { stdout += chunk.toString(); appendFileSync(log, chunk); });
+  child.stderr!.on("data", (chunk: Buffer) => appendFileSync(log, chunk));
+  try {
+    await new Promise<void>((done, reject) => {
+      const timer = setTimeout(() => reject(new Error("owned no-poller server startup exceeded 45s")), 45_000);
+      const ready = () => {
+        if (new RegExp(`Temporal Server:\\s+[^\\s]+:${port}(?:\\s|$)`).test(stdout)) {
+          clearTimeout(timer); done();
+        }
+      };
+      child.stdout!.on("data", ready);
+      child.once("error", (error) => {clearTimeout(timer); reject(error);});
+      child.once("exit", () => {clearTimeout(timer); reject(new Error("owned no-poller server exited"));});
+      ready();
+    });
+    return child;
+  } catch (error) { await stopOwned(child); throw error; }
+}
 
 describe.skipIf(!LIVE)("operate tier — live end-to-end over the CP HTTP surface (#563)", () => {
   let worker: ChildProcess | undefined;
@@ -110,6 +151,108 @@ describe.skipIf(!LIVE)("operate tier — live end-to-end over the CP HTTP surfac
       await new Promise((r) => setTimeout(r, 500));
     }
   });
+
+  it("reports a real no-poller lifecycle query as unavailable without signalling", async () => {
+    const {Client, Connection} = await import("@temporalio/client");
+    const directory = mkdtempSync(resolve(tmpdir(), "typeflux-no-poller-"));
+    const project = resolve(directory, "project");
+    cpSync(PROJECT_DIR, project, {recursive: true});
+    const lease = createPortLease();
+    await new Promise<void>((done, reject) => {lease.once("error", reject); lease.listen(0, "127.0.0.1", done);});
+    const port = (lease.address() as {port: number}).port;
+    await new Promise<void>((done, reject) => lease.close(error => error ? reject(error) : done()));
+    const address = `127.0.0.1:${port}`;
+    const spec = parse(readFileSync(resolve(project, "workflow.yaml"), "utf8"));
+    spec.runtime.temporal.address = address;
+    spec.task_queue = `no-poller-${port}`;
+    writeFileSync(resolve(project, "workflow.yaml"), stringify(spec));
+    const environment = parse(readFileSync(resolve(project, "environments/local.yaml"), "utf8"));
+    environment.overrides.runtime.temporal.address = address;
+    writeFileSync(resolve(project, "environments/local.yaml"), stringify(environment));
+    let ownedServer: ChildProcess | undefined;
+    let ownedWorker: ChildProcess | undefined;
+    let ownApi: ControlPlaneServer | undefined;
+    let connection: Awaited<ReturnType<typeof Connection.connect>> | undefined;
+    let handle: ReturnType<InstanceType<typeof Client>["workflow"]["getHandle"]> | undefined;
+    try {
+      ownedServer = await startOwnedServer(port, directory);
+      connection = await Connection.connect({address, connectTimeout: 3000});
+      const client = new Client({connection, namespace: "default"});
+      ownApi = await serve({registry: loadProjectRegistry(resolve(project, "typeflux.projects.yaml")),
+        schemasFor: () => CONFORMANCE_SCHEMAS, port: 0, host: "127.0.0.1"});
+      const apiUrl = `http://127.0.0.1:${ownApi.port}`;
+      ownedWorker = spawn("node", [WORKER_HARNESS, resolve(project, "workflow.yaml")], {stdio: ["ignore", "pipe", "inherit"]});
+      await new Promise<void>((done, reject) => {
+        const timer = setTimeout(() => reject(new Error("owned no-poller worker startup exceeded 45s")), 45_000);
+        let text = "";
+        ownedWorker!.stdout!.on("data", (chunk: Buffer) => {
+          text = (text + chunk.toString()).slice(-8192);
+          if (text.includes('"event":"ready"')) { clearTimeout(timer); done(); }
+        });
+        ownedWorker!.once("error", error => {clearTimeout(timer); reject(error);});
+        ownedWorker!.once("exit", () => {clearTimeout(timer); reject(new Error("owned no-poller worker exited"));});
+      });
+      // The gate below establishes execution; the readiness line alone is insufficient.
+      const executionId = `live-no-poller-${port}`;
+      const receipt = await fetch(apiUrl + "/api/v1/workflows/workflow/start", {method: "POST",
+        headers: {"content-type": "application/json"}, body: JSON.stringify({environment_id: "local",
+          execution_id: executionId, input: {claims: [{value: "fixed"}]}})});
+      expect(receipt.status).toBe(200);
+      const runId = ((await receipt.json()) as {run_id: string}).run_id;
+      expect(typeof runId).toBe("string");
+      handle = client.workflow.getHandle(executionId, runId);
+      const statusUrl = apiUrl + `/api/v1/workflows/workflow/status?environment_id=local&execution_id=${executionId}&run_id=${runId}`;
+      const deadline = Date.now() + 30_000;
+      while (true) {
+        const response = await fetch(statusUrl);
+        expect(response.status).toBe(200);
+        if (((await response.json()) as {status: {state: string}}).status.state === "waiting_for_review") break;
+        if (Date.now() >= deadline) throw new Error("owned workflow did not reach its gate");
+        await new Promise(done => setTimeout(done, 100));
+      }
+      const before = await handle.fetchHistory();
+      await stopOwned(ownedWorker);
+      await connection.close(); connection = undefined;
+      await stopOwned(ownedServer, "SIGKILL");
+      ownedServer = await startOwnedServer(port, directory);
+      connection = await Connection.connect({address, connectTimeout: 3000});
+      const recovered = new Client({connection, namespace: "default"});
+      handle = recovered.workflow.getHandle(executionId, runId);
+      expect((await handle.describe()).runId).toBe(runId);
+      expect((await handle.fetchHistory()).events?.length).toBeGreaterThanOrEqual(before.events?.length ?? 0);
+      let failure: unknown;
+      try { await connection.withDeadline(Date.now() + 3000, () => handle!.query("typeflux_lifecycle_status")); }
+      catch (error) { failure = error; }
+      const causes: Array<{code: unknown; details: unknown}> = [];
+      for (let depth = 0; depth < 5 && failure instanceof Error; depth++) {
+        causes.push({code: (failure as {code?: unknown}).code, details: (failure as {details?: unknown}).details});
+        failure = failure.cause;
+      }
+      expect(causes).toContainEqual({code: 9, details: "no poller seen for task queue recently, worker may be down"});
+      const response = await fetch(statusUrl);
+      expect(response.status).toBe(503);
+      const body = await response.json() as {error: string; message: string};
+      expect(body.error).toBe("TemporalUnavailable");
+      expect(body.message).toContain("compatible worker");
+      const history = await handle.fetchHistory();
+      expect(history.events?.filter(event => event.workflowExecutionSignaledEventAttributes)).toHaveLength(0);
+      expect(history.events?.filter(event => event.activityTaskStartedEventAttributes)).toHaveLength(1);
+    } finally {
+      try { if (handle && connection) await handle.terminate("owned no-poller cleanup"); }
+      finally {
+        const outcomes = await Promise.allSettled([connection?.close(), ownApi?.close(),
+          stopOwned(ownedWorker), stopOwned(ownedServer)]);
+        const evidence = resolve(HERE, "../../../../.project-graph/evidence/temporal");
+        mkdirSync(evidence, {recursive: true});
+        if (existsSync(resolve(directory, "server.log")))
+          cpSync(resolve(directory, "server.log"), resolve(evidence, "no-poller-server.log"));
+        const failed = outcomes.filter((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
+        if (failed.length) throw new AggregateError(failed.map(outcome => outcome.reason), "owned no-poller cleanup incomplete; temporary data retained");
+        rmSync(directory, {recursive: true, force: true});
+      }
+    }
+  }, 180_000);
+
 
   it("starts, reaches the review gate, approves to completion", async () => {
     const executionId = `live-review-${Date.now()}`;
