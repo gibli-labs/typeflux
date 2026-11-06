@@ -9,6 +9,7 @@ entities:
       - packages/python/src/typeflux/controlplane/api.py
       - packages/typescript/temporal-controlplane/src/operations.ts
       - clients/console/src/panels/runs.tsx
+      - clients/console/src/api.ts
       - packages/python/examples/lifecycle_review/main.py
       - packages/typescript/temporal-yaml/examples/lifecycle-review/main.ts
     documentation: [README.md, docs/development.md, docs/local-runtime.md, docs/local-runtime-acceptance.md, docs/temporal-adoption.md, docs/control-plane.md, docs/control-plane-auth.md, docs/editions.md, docs/temporal-review-adoption.md, packages/python/examples/lifecycle_review/README.md, packages/typescript/temporal-yaml/examples/lifecycle-review/README.md]
@@ -20,6 +21,7 @@ entities:
       - {relation: requires, target: invariant.execution-binding}
       - {relation: requires, target: invariant.review-progress}
       - {relation: requires, target: invariant.review-failure}
+      - {relation: requires, target: invariant.browser-scoped-transport}
   - id: invariant.review-permission
     kind: invariant
     description: Only an authorized caller may submit a review; rejected requests produce no signal.
@@ -32,3 +34,6 @@ entities:
   - id: invariant.review-failure
     kind: invariant
     description: Invalid decisions, unavailable backends and uncertain delivery are surfaced honestly; recovery reconciles status before another decision.
+  - id: invariant.browser-scoped-transport
+    kind: invariant
+    description: Project URL rewriting preserves JSON mutation bytes, method, bearer and standard request options including cancellation, and works over real browser HTTP/1 without automatic mutation retry.

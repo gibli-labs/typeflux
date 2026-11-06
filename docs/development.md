@@ -111,6 +111,16 @@ Controlled default/project-scoped regressions require one request to show the
 503 error and verify that a deliberate reload can render recovered execution data.
 They retain the API-health observer and do not stub the original cold-load listing.
 
+The scoped-review transport check also uses the real HTTP/1 proxy and each actual
+control-plane edition. It submits one malformed fixed command and requires the
+actual 422 validation response naming `user_decision`,
+rather than a browser fetch failure. It never fulfills the operation response or
+retries the mutation. Separate unit checks retain body bytes, authorization, request
+options and AbortSignal through project URL rewriting, including bodyless GETs
+when the optional body getter is unavailable. This negative transport
+proof requires no provider credentials and does not establish successful dispatch or lifecycle progress; the native
+Temporal and deployed checks remain separate obligations.
+
 ## Investigating local API fan-out
 
 Use the read-only browser fixture diagnostic when investigating Python bundle or
@@ -265,6 +275,13 @@ have no retained reason; later passing executions cannot recover that informatio
 Keep those original reports separate from new evidence. Other explicitly opt-in
 live tests remain separate coverage obligations; these required proofs do not certify
 every live test.
+
+Graph identity collection uses the installed package-local Vitest and Playwright
+CLIs through Node. It does not invoke a package manager or install missing runners:
+using pnpm for an npm-managed client can convert its dependency directory and create
+a new lockfile, invalidating the source-bound inventory. Missing frozen setup,
+missing declared tests and any source changes still fail collection. Keep the
+original failed evidence; collection alone never establishes test execution.
 
 Finish local validation before committing with sign-off, pushing once, and opening
 the PR. Batch corrections from reviews. Avoid repeated reviewer invocations on work

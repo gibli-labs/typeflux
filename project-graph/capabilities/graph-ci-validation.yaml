@@ -7,6 +7,7 @@ entities:
     implementation:
       - tools/project_graph/compiler.py
       - tools/project_graph/repository.py
+      - tools/project_graph/collection.py
       - tools/development/checks.json
     documentation: [docs/development.md, tools/project_graph/README.md]
     examples: []
@@ -14,6 +15,7 @@ entities:
       - {relation: requires, target: invariant.graph-ci-registry}
       - {relation: requires, target: invariant.graph-ci-revision-data}
       - {relation: requires, target: invariant.graph-ci-evidence-boundary}
+      - {relation: requires, target: invariant.graph-installed-collection}
   - id: invariant.graph-ci-registry
     kind: invariant
     description: Normal compilation requires a valid registry and reports the declaration path, check ID, unknown execution ID and registered replacements; verifier/display names are not inferred as execution IDs and the schema contains no copied ID list.
@@ -23,6 +25,21 @@ entities:
   - id: invariant.graph-ci-evidence-boundary
     kind: invariant
     description: Static membership does not attest collection, execution or passing outcomes. Full trusted CI and both-revision job/test obligations remain mandatory; missing, skipped, stale and failed evidence cannot pass.
+  - id: invariant.graph-installed-collection
+    kind: invariant
+    description: JavaScript identity collection invokes each package's installed Vitest/Playwright CLI through Node, without package managers, dependency installation or download fallback. Missing setup, missing identities and source drift remain failures; collection never claims execution.
+  - id: check.graph-installed-collection
+    kind: check
+    description: Inspect installed-CLI commands for npm clients and pnpm SDK packages, preserve environment scrubbing and JSON argument ordering, and reject missing setup, missing identities and source drift. Actual runner collection remains separate in the graph verifier.
+    environment: python-non-live
+    ci: [python-3.12]
+    tests:
+      - {path: packages/python/tests/test_project_graph_collection.py, name: test_collection_uses_installed_package_cli}
+      - {path: packages/python/tests/test_project_graph_collection.py, name: test_missing_installed_cli_refuses_collection}
+      - {path: packages/python/tests/test_project_graph_collection.py, name: test_collection_keeps_source_drift_failure}
+      - {path: packages/python/tests/test_project_graph_collection.py, name: test_collection_keeps_missing_identity_failure}
+    links:
+      - {relation: verifies, target: invariant.graph-installed-collection}
   - id: check.graph-ci-validation
     kind: check
     description: Exercise normal CLI rejection, valid registered lanes, missing/malformed registries, immutable legacy history, revision data isolation and unchanged base/receipt/test-evidence refusal.

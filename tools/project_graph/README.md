@@ -78,6 +78,11 @@ declared identities, including the gated local Temporal tests. It imports test
 code, strips credentials from child environments, and refuses a record if inputs
 change during collection. Run it only in an unprivileged checkout, like tests;
 environment scrubbing is not a security sandbox. Collection is not a pass result.
+JavaScript collection invokes each package's installed Vitest/Playwright CLI
+directly through Node. It never invokes npm/pnpm, installs dependencies or downloads
+a missing runner. Complete the maintained frozen setup first; missing CLI files
+fail with that instruction. This applies to both npm-managed clients and pnpm SDK
+packages. Source-drift and missing-identity refusals remain mandatory.
 
 ## Journey evidence
 

@@ -91,7 +91,7 @@ const API_PREFIX = "/api/v1/";
 // Inject the active project segment into every request path. The typed call
 // sites stay unchanged (`/api/v1/workflows`); only the effective URL changes.
 client.use({
-  onRequest({ request }) {
+  async onRequest({ request }) {
     const projectId = currentProject();
     if (!projectId) return undefined;
     const url = new URL(request.url);
@@ -104,7 +104,24 @@ client.use({
     url.pathname = `${url.pathname.slice(0, at)}${API_PREFIX}projects/${encodeURIComponent(
       projectId,
     )}/${rest}`;
-    return new Request(url, request);
+    // Request-as-RequestInit exposes its body as a ReadableStream. Chromium
+    // requires HTTP/2 for that upload and rejects ordinary HTTP/1 proxies before
+    // sending a POST. These API bodies are JSON: keep their bytes and
+    // standard request options without turning them into streaming uploads.
+    return new Request(url, {
+      method: request.method,
+      headers: request.headers,
+      body: request.method === "GET" || request.method === "HEAD" ? null : await request.arrayBuffer(),
+      signal: request.signal,
+      credentials: request.credentials,
+      cache: request.cache,
+      redirect: request.redirect,
+      referrer: request.referrer,
+      referrerPolicy: request.referrerPolicy,
+      integrity: request.integrity,
+      keepalive: request.keepalive,
+      mode: request.mode,
+    });
   },
 });
 
