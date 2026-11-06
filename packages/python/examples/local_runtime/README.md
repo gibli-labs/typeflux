@@ -62,3 +62,10 @@ against the development server. It retains the computational YAML and uses a saf
 fake fault provider, unique queues and existing Temporal policies. See the
 [worked durable adoption guide](../../../../docs/temporal-adoption.md) for expected
 attempt/history observations, bounded verification and production limitations.
+
+Run `python delayed_start_demo.py` for a native two-second delayed start against
+the same development server. It observes pending history without a worker, then
+completes the same run and checks server task timestamps and validated output.
+The [scheduling and external-trigger guide](../../../../docs/temporal-adoption.md#observe-a-native-delayed-start)
+also shows invoking this Local CLI/SDK from an existing scheduler. Local itself
+stores no schedule and a new invocation starts from step one.

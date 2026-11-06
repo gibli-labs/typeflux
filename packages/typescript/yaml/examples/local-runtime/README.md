@@ -56,6 +56,13 @@ The offline bindings stay Temporal-free. See the
 [worked durable adoption guide](../../../../../docs/temporal-adoption.md) for
 expected attempt/history observations, isolated verification and limitations.
 
+Run `node delayed-start-demo.mjs` with those same Temporal dependencies for a
+native two-second delayed start. With its worker available, it verifies the
+server's recorded backoff, first task timestamps, same run and validated output.
+The [scheduling and external-trigger guide](../../../../../docs/temporal-adoption.md#observe-a-native-delayed-start)
+also shows invoking this Local CLI/SDK from an existing scheduler. Local itself
+stores no schedule and a new invocation starts from step one.
+
 A new local command always starts from the beginning. Process loss can prevent
 cleanup and a rerun may repeat completed effects. The packed-candidate probe executes
 these local CLI/SDK commands outside the workspace, with no `@temporalio/*` dependency

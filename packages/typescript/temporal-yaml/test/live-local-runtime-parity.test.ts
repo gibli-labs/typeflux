@@ -156,6 +156,15 @@ describe.skipIf(process.env["TYPEFLUX_LIVE_TEMPORAL"] !== "1")("local and Tempor
     } finally { rmSync(directory, {recursive: true, force: true}); }
   }, 95000);
 
+  it("records the native delayed start before an available worker executes the documented YAML", async () => {
+    const directory = mkdtempSync(fileURLToPath(new URL("./tmp-adoption-", import.meta.url)));
+    try {
+      cpSync(fileURLToPath(new URL("../../yaml/examples/local-runtime", import.meta.url)), directory, {recursive: true});
+      const {stdout} = await promisify(execFile)(process.execPath, [`${directory}/delayed-start-demo.mjs`], {timeout: 75000});
+      expect(JSON.parse(stdout)).toEqual({scenario: "delayed-start", backoffSeconds: 2, workerAvailable: true, sameRun: true, scheduledAfterDelay: true, firstTaskStartedAfterDelay: true, status: "COMPLETED", result: {text: "local result"}});
+    } finally { rmSync(directory, {recursive: true, force: true}); }
+  }, 80000);
+
   it("waits for a delayed failure report before shutting down the documented worker", async () => {
     const directory = mkdtempSync(fileURLToPath(new URL("./tmp-adoption-", import.meta.url)));
     try {

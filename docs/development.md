@@ -212,7 +212,11 @@ use controlled responses; the separate Temporal lane uses real local execution a
 fake providers. That lane also runs the shared eleven-case local/Temporal
 computational fixtures through actual Python and TypeScript workers and local SDK
 adapters, including registry conflict admission. The lane also executes both
-documented offline-to-Temporal adoption scripts. Separate foreground CLI subprocess tests in the Python and TypeScript
+documented offline-to-Temporal starters, recovery/timeout demonstrations and native
+delayed-start examples. The delay examples inspect recorded backoff and task
+timestamps, same-run completion and validated output, with Python observing a
+pending task before its worker starts and TypeScript using an available worker.
+Separate foreground CLI subprocess tests in the Python and TypeScript
 lanes use SIGKILL after a completed first-step effect, then verify a fresh command
 repeats it and executes from the beginning. Their append-only test logs observe
 external effects; they are not runtime checkpoints or a persistence service.

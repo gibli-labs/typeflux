@@ -59,6 +59,8 @@ Start without a server or credentials using the executable
 They include CLI, async SDK and project/environment examples with inline prompts
 and fake providers. The [runtime guide](docs/local-runtime.md) compares guarantees
 and shows switching to Temporal without rewriting supported computational steps.
+The [durable adoption guide](docs/temporal-adoption.md) demonstrates retries,
+native delayed starts and triggering Local from an existing scheduler.
 
 The new local implementation is described against current source/candidate
 packages; the quickstarts show installing the actual candidate wheel/tarballs.
