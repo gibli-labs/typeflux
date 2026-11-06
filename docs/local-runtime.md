@@ -17,6 +17,10 @@ Temporal review gates and lifecycle operations, with bound runs, operator
 permissions and observed routed completion. These operations remain unsupported
 by Local.
 
+The [compensation adoption guide](temporal-compensation-adoption.md) demonstrates
+existing Temporal saga recovery, partial compensation and replacement-worker
+observations. Local still supplies no rollback for completed effects.
+
 These instructions describe the current source and candidate packages. They do
 not assert that a release containing this feature has been published. For a fresh
 installation and executable offline CLI/SDK examples, use the
@@ -458,6 +462,5 @@ planning a rerun. Durability adoption is covered by
 [#90](https://github.com/gibli-labs/typeflux/issues/90), and scheduling by the
 [native delay/external-trigger guide](temporal-adoption.md#observe-a-native-delayed-start).
 Review/lifecycle adoption is covered by [its guide](temporal-review-adoption.md).
-Remaining adoption work is tracked in
-[#93](https://github.com/gibli-labs/typeflux/issues/93) (compensation) and
-[#94](https://github.com/gibli-labs/typeflux/issues/94) (management surfaces).
+Compensation adoption is covered by [its guide](temporal-compensation-adoption.md).
+Management-surface evaluation remains [#94](https://github.com/gibli-labs/typeflux/issues/94).

@@ -24,10 +24,9 @@ The existing `temporal` lane owns an isolated server and uses fake providers.
 Browser and HTTP conformance lanes exercise existing management surfaces; they do
 not add local run management or establish deployed-environment behavior.
 
-The accepted scope is a foreground, non-durable YAML runtime. Durability, queues,
-daemons, recovery and live-run migration remain [#90](https://github.com/gibli-labs/typeflux/issues/90);
-scheduling/timers use [native Temporal delay or an external caller](temporal-adoption.md#observe-a-native-delayed-start);
-review/lifecycle use the [Temporal adoption guide](temporal-review-adoption.md);
-compensation [#93](https://github.com/gibli-labs/typeflux/issues/93); and management
-surfaces [#94](https://github.com/gibli-labs/typeflux/issues/94). These are not
-commitments to reproduce Temporal guarantees in the local process.
+The accepted scope is a foreground, non-durable YAML runtime. For stronger execution
+requirements, use the existing [durable adoption guide](temporal-adoption.md),
+[review/lifecycle guide](temporal-review-adoption.md) and
+[compensation guide](temporal-compensation-adoption.md). These reuse Temporal;
+they do not reproduce its guarantees in the local process. Management-surface
+evaluation remains [#94](https://github.com/gibli-labs/typeflux/issues/94).
