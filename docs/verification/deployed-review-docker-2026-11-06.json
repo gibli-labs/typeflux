@@ -1,0 +1,778 @@
+{
+  "schemaVersion": 1,
+  "issue": 87,
+  "attempt": 8,
+  "observedAtUTC": "2026-11-06T04:42:53.907076+00:00",
+  "authority": "Source-bound local Docker observations, not trusted CI, release authorization or production recovery",
+  "candidate": {
+    "acceptedMain": {
+      "attempt": 1,
+      "receiptSha256": "80f7a18597f207d4874d56d8001e2b0909821cbd05aeaf410071108e6ad4d10a",
+      "run": 42161046580
+    },
+    "artifacts": [
+      {
+        "bytes": 198709,
+        "name": "console-dist.tar.gz",
+        "sha256": "092d0fae8f4f450986f2e2fb769630882f4c3f884049b0f4bff4ba70e4242fe1"
+      },
+      {
+        "bytes": 593379,
+        "name": "typeflux-0.1.0-py3-none-any.whl",
+        "sha256": "3e32de111465fd68a1a1ba5b1c92379454c4058071a2eb55b2d0e45d67a6552f"
+      },
+      {
+        "bytes": 22272,
+        "name": "typeflux-control-plane-client-1.15.1.tgz",
+        "sha256": "5aa6b3a3597b2a9a99d63f615f564fc2f5ef81add67770e86183b9c829213a2c"
+      },
+      {
+        "bytes": 215449,
+        "name": "typeflux-temporal-0.1.0.tgz",
+        "sha256": "371d4d54a83d22e0be76887223188faf7591ff630b817f56d7625f7f83bf90b4"
+      },
+      {
+        "bytes": 335086,
+        "name": "typeflux-temporal-controlplane-0.1.0.tgz",
+        "sha256": "944fdfbef03cd5bd087a6047a46709a8b7b32a526a938dfd8cea90fbbba53b36"
+      },
+      {
+        "bytes": 26929,
+        "name": "typeflux-temporal-worker-0.1.0.tgz",
+        "sha256": "2448b076e685605178819cf9a9e747502edd830d4df2ba78e32d052915e52002"
+      },
+      {
+        "bytes": 211454,
+        "name": "typeflux-temporal-yaml-0.1.0.tgz",
+        "sha256": "b6ad3af933e72aad297b90314536898643b7f63a007bc220de4c55954a29002a"
+      },
+      {
+        "bytes": 368215,
+        "name": "typeflux-yaml-0.1.0.tgz",
+        "sha256": "ab32d04c115ee9773e04778265fc947186a0625a367ce2ad4d8209d560420578"
+      }
+    ],
+    "graphDigest": "c658bbe0bfafd5b41d9ef8bcd953b9ee4158b6fdc164fef2b763aeb542f74761",
+    "producerInputs": "8aa764425016639b4816a02c233c9fe2f3691361d7b360eca622ce407b2142b3",
+    "producerRevision": "a2143eac495f60a59843e18aaef7d898abba231c",
+    "scope": "local artifact inventory; not independent CI, publication or deployment acceptance"
+  },
+  "environment": {
+    "Architecture": "aarch64",
+    "MemTotal": 8321515520,
+    "NCPU": 10,
+    "ServerVersion": "29.6.1"
+  },
+  "images": {
+    "console": "sha256:a85b3f920ef2a2324eb9325822e8bbe43b7baa457e2f40155753369ab5e49132",
+    "node": "sha256:cee37f4efcb5c95369a16b4c6f08a207e1b1173e4add95767c36a9bdd8f40d5c",
+    "node-base": "sha256:fb88a63330e2ec11e74522ceba00bc1b159557bf356ecb4297f700ad39347876",
+    "python": "sha256:cf2c75fb4ede9b964882aa82eae3e8993eb90b11436b708a950cfddebf1b8e59",
+    "python-base": "sha256:b9bb8f6b239a34cc9b1d543f0c50d1fbb70264f7c578b430fd05edb8b8e6a141"
+  },
+  "temporalImage": "temporalio/temporal@sha256:18667097470f91f31042a646926f84b8672693dc94f0e7384d22595ce356b55c",
+  "temporalVersions": {
+    "cli": "1.7.1",
+    "server": "1.31.0",
+    "ui": "2.49.1"
+  },
+  "networkTopology": "internal Temporal/worker network plus owned bridge for loopback API/console publication",
+  "thresholds": {
+    "automaticMutationRetries": 0,
+    "backendSeconds": 3,
+    "observationSeconds": 30,
+    "startupSeconds": 60,
+    "transportCeilingSeconds": 8
+  },
+  "thresholdMeaning": {
+    "automaticMutationRetries": "Observer and application commands are never automatically resubmitted; native SDK transport retries are not measured or overridden.",
+    "backendPaused": "Worker had already stopped, so this is not an isolated backend-only failure.",
+    "retryLowerBound": "Five-second activity backoff is observed; no upper-latency guarantee is inferred."
+  },
+  "observerFiles": {
+    "__init__.py": "132d65cd24f63487f99496b93e5a8fbb0afe7f44b2ff857af20aadd5a8022738",
+    "bindings.mjs": "987d031a37c85b3437d32fda88239f622b97b6db4a696201710dc91f60627a29",
+    "browser.mjs": "e758ce724c01f3beb2afe9b2493c89f719a93fb5bbaaece5d81471c79bec203e",
+    "client-consumer.mjs": "ca92ac5bc2668ab92f0d6118e2c9559ed81f38b60f230f9c8652ec24b340f656",
+    "console.Dockerfile": "978a20cf4107682bbe8619dea8fdb37f6d5fe9c246c628ee3cdcd46bbf16f978",
+    "console.conf": "9b3e7f01c0eb0fec3ed087561f84b07108e1071fed280554b769427ef71d7bd8",
+    "fault-proxy.mjs": "4705ac835eb1e453272ca0ace375b09d92f3653800fd0bee22aad46760885602",
+    "installation.mjs": "e6750a54b448a437547396b165faf78c5aa985967f835c67852dee8a41234127",
+    "installation.py": "7528931cf5fab020e930c3c219fd6d2805566f6e03c9201bb7c7a12dd94dd42f",
+    "node-probe.mjs": "46fbaf5564766969570052e4e71dd8fa91a61f798bbd6cc2f795205b51b804d5",
+    "node.Dockerfile": "24e55041eaf09e2a3a3a209ac7e7e494fcb3c63349ddd84a5df3ebbc074745fc",
+    "prepare.py": "6461f61b645bcfc068f7d24b692f28f87bf9f6b3e2b4baedfa734eeab8e6be6a",
+    "provider.py": "3885b679314460533897135145e2fac7fd61cb89f47c208bac1c1b30c918660a",
+    "python-probe.py": "633f65b26ece7bf603539cbd0974a426f300660fbc8e95b3eb56312f6d3d2ea0",
+    "python.Dockerfile": "d37886668f37c9effccf3cffee04e14af6e2e7d54a9165029d0dfe8621a4f209",
+    "run.py": "699690202a58909a2fca17850333d8b5dcd665751513676aaa907c9e8db51cac"
+  },
+  "rawRecordSHA256": {
+    "frozen.json": "6dc5b838685762c1f6014bdb9facfbae77da89faae97e112507cf06537700dd4",
+    "report.json": "f8000e99c9163ce76c8b9dcbee68b873a33e255ee0f4f789a742b4dd775e8442",
+    "resources.json": "fd98122b980be8131665a6308195fa51a3504287faeee81bf73c317e5ef58258",
+    "python-observations.json": "0d734588f02ef723f10c3eaab5612665674739e90a62f9b88d2337a407b8a29c",
+    "typescript-observations.json": "f162b35572a10af875c9df968b71407072af0646fb2b800da2cb94220f34e5e1"
+  },
+  "localConsumers": [
+    {
+      "cliPassed": true,
+      "edition": "python",
+      "installation": {
+        "candidateFiles": {
+          "typeflux-0.1.0-py3-none-any.whl": "3e32de111465fd68a1a1ba5b1c92379454c4058071a2eb55b2d0e45d67a6552f"
+        },
+        "dependencyLocks": {
+          "uv.lock": "3b6407b62a50cfa9a3d6e86f74fde84f129d076094f3f34d9f6acb54884cc745"
+        },
+        "sdkEntrySha256": "69a97a3aaeacb0175344ed243fe0eb11bf3c4efeba35c3e4a31806803f66daf3",
+        "sdkLocation": "/app/.venv/lib/python3.12/site-packages/typeflux/__init__.py",
+        "temporalImportable": false,
+        "versions": {
+          "fastapi": null,
+          "pydantic": "2.14.1",
+          "temporalio": null,
+          "typeflux": "0.1.0",
+          "uvicorn": null
+        }
+      },
+      "sdkPassed": true
+    },
+    {
+      "cliPassed": true,
+      "edition": "typescript",
+      "installation": {
+        "candidateFiles": {
+          "typeflux-temporal-0.1.0.tgz": "371d4d54a83d22e0be76887223188faf7591ff630b817f56d7625f7f83bf90b4",
+          "typeflux-yaml-0.1.0.tgz": "ab32d04c115ee9773e04778265fc947186a0625a367ce2ad4d8209d560420578"
+        },
+        "dependencyLocks": {
+          "package-lock.json": "b9f31903fa68f6eebe6ec9689179af48e0b05027e8a718b4cadd312bc9309f33"
+        },
+        "entries": {
+          "@typeflux/temporal": {
+            "path": "/app/node_modules/@typeflux/temporal/dist/index.js",
+            "sha256": "9d286ed0e16d84743cf0eba7ec4508445439789b1efec87e4962aebbb72eb8c2"
+          },
+          "@typeflux/yaml": {
+            "path": "/app/node_modules/@typeflux/yaml/dist/index.js",
+            "sha256": "9270cd52d3e782f51c98402a5457812cc42e461509701379b034d25b632566d9"
+          }
+        },
+        "temporalPackages": [],
+        "versions": {
+          "@temporalio/client": null,
+          "@temporalio/worker": null,
+          "@typeflux/control-plane-client": null,
+          "@typeflux/temporal": "0.1.0",
+          "@typeflux/temporal-controlplane": null,
+          "@typeflux/temporal-worker": null,
+          "@typeflux/temporal-yaml": null,
+          "@typeflux/yaml": "0.1.0",
+          "zod": "4.6.7"
+        }
+      },
+      "sdkPassed": true
+    }
+  ],
+  "journeys": [
+    {
+      "edition": "python",
+      "installedSdk": {
+        "candidateFiles": {
+          "typeflux-0.1.0-py3-none-any.whl": "3e32de111465fd68a1a1ba5b1c92379454c4058071a2eb55b2d0e45d67a6552f"
+        },
+        "dependencyLocks": {
+          "uv.lock": "3b6407b62a50cfa9a3d6e86f74fde84f129d076094f3f34d9f6acb54884cc745"
+        },
+        "sdkEntrySha256": "69a97a3aaeacb0175344ed243fe0eb11bf3c4efeba35c3e4a31806803f66daf3",
+        "sdkLocation": "/app/.venv/lib/python3.12/site-packages/typeflux/__init__.py",
+        "temporalImportable": true,
+        "versions": {
+          "fastapi": "0.159.1",
+          "pydantic": "2.14.1",
+          "temporalio": "1.34.0",
+          "typeflux": "0.1.0",
+          "uvicorn": "0.54.0"
+        }
+      },
+      "installedGeneratedClient": {
+        "package": "@typeflux/control-plane-client",
+        "policyHash": "0d30ae9178751ac627bcbc5e4806a2c7bcd1e7692654055dcdb38244b1e63e02",
+        "realApiStatus": 200,
+        "workflowName": "DeployedReviewPython"
+      },
+      "before": {
+        "eventCounts": {
+          "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 1,
+          "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 1,
+          "EVENT_TYPE_ACTIVITY_TASK_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 2,
+          "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 2,
+          "EVENT_TYPE_WORKFLOW_TASK_STARTED": 2
+        },
+        "historyEvents": 10,
+        "runId": "01a1af28-f548-7b42-9574-169b9e343add",
+        "status": "RUNNING"
+      },
+      "persistedAfterServerRestart": {
+        "eventCounts": {
+          "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 1,
+          "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 1,
+          "EVENT_TYPE_ACTIVITY_TASK_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 2,
+          "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 2,
+          "EVENT_TYPE_WORKFLOW_TASK_STARTED": 2
+        },
+        "historyEvents": 10,
+        "runId": "01a1af28-f548-7b42-9574-169b9e343add",
+        "status": "RUNNING"
+      },
+      "after": {
+        "eventCounts": {
+          "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+          "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+          "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+          "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+          "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+        },
+        "historyEvents": 27,
+        "replayPassed": true,
+        "runId": "01a1af28-f548-7b42-9574-169b9e343add",
+        "status": "COMPLETED",
+        "validatedResult": {
+          "value": "1"
+        }
+      },
+      "backendPausedWithWorkerStopped": {
+        "httpStatus": 503,
+        "seconds": 3.023387209046632,
+        "workerAlreadyStopped": true
+      },
+      "workerTimeoutSeconds": 3.0542943752370775,
+      "runIdReuse": {
+        "nativeRejectionReasonObserved": false,
+        "newRun": "01a1af29-5456-71b1-856f-4c15ed3948c6",
+        "newRunAfterDeliberateDecision": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+          },
+          "historyEvents": 27,
+          "runId": "01a1af29-5456-71b1-856f-4c15ed3948c6",
+          "status": "COMPLETED",
+          "validatedResult": {
+            "value": "1"
+          }
+        },
+        "newRunBeforeDeliberateDecision": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 1,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 1,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 2,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 2,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 2
+          },
+          "historyEvents": 10,
+          "runId": "01a1af29-5456-71b1-856f-4c15ed3948c6",
+          "status": "RUNNING"
+        },
+        "oldRun": "01a1af28-f548-7b42-9574-169b9e343add",
+        "pinnedClosedRunHttpStatus": 500,
+        "pinnedClosedRunWireResponse": {
+          "bodyFormat": "non-json",
+          "httpStatus": 500
+        },
+        "pinnedTerminalBeforeRejection": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+          },
+          "historyEvents": 27,
+          "runId": "01a1af28-f548-7b42-9574-169b9e343add",
+          "status": "COMPLETED",
+          "validatedResult": {
+            "value": "1"
+          }
+        }
+      },
+      "lostResponse": {
+        "deliberateResubmissions": 0,
+        "proxy": {
+          "decisions": 1,
+          "event": "upstream-response-discarded",
+          "status": 204
+        },
+        "reconciled": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+          },
+          "historyEvents": 27,
+          "runId": "01a1af29-7850-743e-81dd-865428d799e9",
+          "status": "COMPLETED",
+          "validatedResult": {
+            "value": "1"
+          }
+        }
+      },
+      "nextVersion": {
+        "eventCounts": {
+          "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 4,
+          "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 4,
+          "EVENT_TYPE_ACTIVITY_TASK_STARTED": 4,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 6,
+          "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 6,
+          "EVENT_TYPE_WORKFLOW_TASK_STARTED": 6
+        },
+        "historyEvents": 33,
+        "runId": "01a1af29-912d-7b74-a695-38b5c78d898b",
+        "status": "COMPLETED",
+        "validatedResult": {
+          "value": "1"
+        }
+      },
+      "frozenVersionRefused": true,
+      "browser": {
+        "passed": true,
+        "realApi": true,
+        "interceptedResponses": 0,
+        "observed": "completed",
+        "observedStates": [
+          "waiting_for_review",
+          "running",
+          "completed"
+        ],
+        "addressing": "console current-run execution ID; nullable status run ID; native history reconciled separately",
+        "decisionSubmissions": 1
+      },
+      "activityRetry": {
+        "attempts": [
+          1,
+          2
+        ],
+        "backoffMilliseconds": 5041,
+        "history": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+          },
+          "historyEvents": 27,
+          "runId": "01a1af29-a95a-7bc1-86ec-2233315cb269",
+          "status": "COMPLETED",
+          "validatedResult": {
+            "value": "1"
+          }
+        }
+      },
+      "drain": {
+        "initialRunning": 1,
+        "initialDrained": false,
+        "finalRunning": 0,
+        "finalDrained": true
+      },
+      "acknowledgedForwardProviderCalls": [
+        {
+          "activity": "assess_item",
+          "attempt": 1,
+          "runId": "01a1af28-f548-7b42-9574-169b9e343add",
+          "timeMs": 1793940061527
+        },
+        {
+          "activity": "summarize",
+          "attempt": 1,
+          "runId": "01a1af28-f548-7b42-9574-169b9e343add",
+          "timeMs": 1793940079966
+        }
+      ]
+    },
+    {
+      "edition": "typescript",
+      "installedSdk": {
+        "candidateFiles": {
+          "console-dist.tar.gz": "092d0fae8f4f450986f2e2fb769630882f4c3f884049b0f4bff4ba70e4242fe1",
+          "typeflux-0.1.0-py3-none-any.whl": "3e32de111465fd68a1a1ba5b1c92379454c4058071a2eb55b2d0e45d67a6552f",
+          "typeflux-control-plane-client-1.15.1.tgz": "5aa6b3a3597b2a9a99d63f615f564fc2f5ef81add67770e86183b9c829213a2c",
+          "typeflux-temporal-0.1.0.tgz": "371d4d54a83d22e0be76887223188faf7591ff630b817f56d7625f7f83bf90b4",
+          "typeflux-temporal-controlplane-0.1.0.tgz": "944fdfbef03cd5bd087a6047a46709a8b7b32a526a938dfd8cea90fbbba53b36",
+          "typeflux-temporal-worker-0.1.0.tgz": "2448b076e685605178819cf9a9e747502edd830d4df2ba78e32d052915e52002",
+          "typeflux-temporal-yaml-0.1.0.tgz": "b6ad3af933e72aad297b90314536898643b7f63a007bc220de4c55954a29002a",
+          "typeflux-yaml-0.1.0.tgz": "ab32d04c115ee9773e04778265fc947186a0625a367ce2ad4d8209d560420578"
+        },
+        "dependencyLocks": {
+          "package-lock.json": "4a64d27ebe9cce804de96b6f4331f6e2fd0bb5f34210be8e992e8dd01c7df332"
+        },
+        "entries": {
+          "@typeflux/control-plane-client": {
+            "path": "/app/node_modules/@typeflux/control-plane-client/dist/index.js",
+            "sha256": "7a1e6b08e33377ba58a0739c6f121ef80c0b670ce815034207e4d3c45f52940e"
+          },
+          "@typeflux/temporal": {
+            "path": "/app/node_modules/@typeflux/temporal/dist/index.js",
+            "sha256": "9d286ed0e16d84743cf0eba7ec4508445439789b1efec87e4962aebbb72eb8c2"
+          },
+          "@typeflux/temporal-controlplane": {
+            "path": "/app/node_modules/@typeflux/temporal-controlplane/dist/index.js",
+            "sha256": "3fc60ca83b1824ed497b1d9ae6fc8e79d07af5a779ddeb14e19bf1d0de7b1550"
+          },
+          "@typeflux/temporal-worker": {
+            "path": "/app/node_modules/@typeflux/temporal-worker/dist/index.js",
+            "sha256": "35ffcfab6b3421f3a919e3dda795430a3b6651d2d0edc4fc9fe648237e4b81ff"
+          },
+          "@typeflux/temporal-yaml": {
+            "path": "/app/node_modules/@typeflux/temporal-yaml/dist/index.js",
+            "sha256": "7e1b806026a18e7283a77ff50e3f3cb134383c4f37adb8c88e12deee3ffe1395"
+          },
+          "@typeflux/yaml": {
+            "path": "/app/node_modules/@typeflux/yaml/dist/index.js",
+            "sha256": "9270cd52d3e782f51c98402a5457812cc42e461509701379b034d25b632566d9"
+          }
+        },
+        "temporalPackages": [
+          "activity",
+          "client",
+          "common",
+          "core-bridge",
+          "nexus",
+          "proto",
+          "worker",
+          "workflow"
+        ],
+        "versions": {
+          "@temporalio/client": "1.24.0",
+          "@temporalio/worker": "1.24.0",
+          "@typeflux/control-plane-client": "1.15.1",
+          "@typeflux/temporal": "0.1.0",
+          "@typeflux/temporal-controlplane": "0.1.0",
+          "@typeflux/temporal-worker": "0.1.0",
+          "@typeflux/temporal-yaml": "0.1.0",
+          "@typeflux/yaml": "0.1.0",
+          "zod": "4.6.7"
+        }
+      },
+      "installedGeneratedClient": {
+        "package": "@typeflux/control-plane-client",
+        "policyHash": "adafb9d4d5582d1776082c47c987f408d8584d82ef30ade04272e0d62c131c1f",
+        "realApiStatus": 200,
+        "workflowName": "DeployedReviewTypescript"
+      },
+      "before": {
+        "eventCounts": {
+          "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 1,
+          "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 1,
+          "EVENT_TYPE_ACTIVITY_TASK_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 2,
+          "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 2,
+          "EVENT_TYPE_WORKFLOW_TASK_STARTED": 2
+        },
+        "historyEvents": 10,
+        "runId": "01a1af29-e827-7a8b-9657-cdeed33893d8",
+        "status": "RUNNING"
+      },
+      "persistedAfterServerRestart": {
+        "eventCounts": {
+          "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 1,
+          "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 1,
+          "EVENT_TYPE_ACTIVITY_TASK_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 2,
+          "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 2,
+          "EVENT_TYPE_WORKFLOW_TASK_STARTED": 2
+        },
+        "historyEvents": 10,
+        "runId": "01a1af29-e827-7a8b-9657-cdeed33893d8",
+        "status": "RUNNING"
+      },
+      "after": {
+        "eventCounts": {
+          "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+          "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+          "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+          "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+          "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+        },
+        "historyEvents": 27,
+        "replayPassed": true,
+        "runId": "01a1af29-e827-7a8b-9657-cdeed33893d8",
+        "status": "COMPLETED",
+        "validatedResult": {
+          "value": "1"
+        }
+      },
+      "backendPausedWithWorkerStopped": {
+        "httpStatus": 503,
+        "seconds": 3.0171916247345507,
+        "workerAlreadyStopped": true
+      },
+      "workerTimeoutSeconds": 3.0527630844153464,
+      "runIdReuse": {
+        "nativeRejectionReasonObserved": false,
+        "newRun": "01a1af2a-3964-7c36-8afa-210b6e39ebb8",
+        "newRunAfterDeliberateDecision": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+          },
+          "historyEvents": 27,
+          "runId": "01a1af2a-3964-7c36-8afa-210b6e39ebb8",
+          "status": "COMPLETED",
+          "validatedResult": {
+            "value": "1"
+          }
+        },
+        "newRunBeforeDeliberateDecision": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 1,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 1,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 2,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 2,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 2
+          },
+          "historyEvents": 10,
+          "runId": "01a1af2a-3964-7c36-8afa-210b6e39ebb8",
+          "status": "RUNNING"
+        },
+        "oldRun": "01a1af29-e827-7a8b-9657-cdeed33893d8",
+        "pinnedClosedRunHttpStatus": 500,
+        "pinnedClosedRunWireResponse": {
+          "error": "HTTPError",
+          "message": "internal server error"
+        },
+        "pinnedTerminalBeforeRejection": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+          },
+          "historyEvents": 27,
+          "runId": "01a1af29-e827-7a8b-9657-cdeed33893d8",
+          "status": "COMPLETED",
+          "validatedResult": {
+            "value": "1"
+          }
+        }
+      },
+      "lostResponse": {
+        "deliberateResubmissions": 0,
+        "proxy": {
+          "decisions": 1,
+          "event": "upstream-response-discarded",
+          "status": 204
+        },
+        "reconciled": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+          },
+          "historyEvents": 27,
+          "runId": "01a1af2a-4b82-73da-9a4a-0402854976c1",
+          "status": "COMPLETED",
+          "validatedResult": {
+            "value": "1"
+          }
+        }
+      },
+      "nextVersion": {
+        "eventCounts": {
+          "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 4,
+          "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 4,
+          "EVENT_TYPE_ACTIVITY_TASK_STARTED": 4,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+          "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+          "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 6,
+          "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 6,
+          "EVENT_TYPE_WORKFLOW_TASK_STARTED": 6
+        },
+        "historyEvents": 33,
+        "runId": "01a1af2a-5fc4-76e6-a7f5-9760b4429ef8",
+        "status": "COMPLETED",
+        "validatedResult": {
+          "value": "1"
+        }
+      },
+      "frozenVersionRefused": true,
+      "browser": {
+        "passed": true,
+        "realApi": true,
+        "interceptedResponses": 0,
+        "observed": "completed",
+        "observedStates": [
+          "waiting_for_review",
+          "running",
+          "completed"
+        ],
+        "addressing": "console current-run execution ID; nullable status run ID; native history reconciled separately",
+        "decisionSubmissions": 1
+      },
+      "activityRetry": {
+        "attempts": [
+          1,
+          2
+        ],
+        "backoffMilliseconds": 5035,
+        "history": {
+          "eventCounts": {
+            "EVENT_TYPE_ACTIVITY_TASK_COMPLETED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED": 3,
+            "EVENT_TYPE_ACTIVITY_TASK_STARTED": 3,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_SIGNALED": 1,
+            "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED": 1,
+            "EVENT_TYPE_WORKFLOW_TASK_COMPLETED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED": 5,
+            "EVENT_TYPE_WORKFLOW_TASK_STARTED": 5
+          },
+          "historyEvents": 27,
+          "runId": "01a1af2a-762b-72c9-82d8-8b5bd0ca0c23",
+          "status": "COMPLETED",
+          "validatedResult": {
+            "value": "1"
+          }
+        }
+      },
+      "drain": {
+        "initialRunning": 1,
+        "initialDrained": false,
+        "finalRunning": 0,
+        "finalDrained": true
+      },
+      "acknowledgedForwardProviderCalls": [
+        {
+          "activity": "assess_item",
+          "attempt": 1,
+          "runId": "01a1af29-e827-7a8b-9657-cdeed33893d8",
+          "timeMs": 1793940123167
+        },
+        {
+          "activity": "summarize",
+          "attempt": 1,
+          "runId": "01a1af29-e827-7a8b-9657-cdeed33893d8",
+          "timeMs": 1793940138733
+        },
+        {
+          "activity": "decide",
+          "attempt": 1,
+          "runId": "01a1af29-e827-7a8b-9657-cdeed33893d8",
+          "timeMs": 1793940138774
+        }
+      ]
+    }
+  ],
+  "cleanup": {
+    "passed": true,
+    "resourcesRemoved": 71,
+    "byKind": {
+      "container": 66,
+      "network": 2,
+      "volume": 3
+    }
+  },
+  "passed": true,
+  "limits": [
+    "one local Docker host",
+    "fixed fake providers and inputs",
+    "no arbitrary external-effect exactly-once guarantee",
+    "no cloud/high-availability/production proof",
+    "Console addresses the current run by execution ID; nullable DTO run IDs are independently reconciled against pinned native history.",
+    "Generic HTTP500 for the deliberate old-closed-run review cannot identify a native rejection cause; separate native terminal reads and zero-signal checks establish the stated boundary.",
+    "One passing full attempt does not establish a recovery SLO, high availability, arbitrary code upgrades or external-effect exactly-once behavior."
+  ],
+  "retainedFailures": [
+    {
+      "attempt": 1,
+      "reason": "Docker internal-network port publication and owned-volume permissions; fixed observer setup."
+    },
+    {
+      "attempt": 2,
+      "reason": "Fixture reused logical workflow names in one project; split versions into separate project manifests."
+    },
+    {
+      "attempt": 3,
+      "reason": "Nullable Python receipt run ID was encoded as None; reconcile through native describe."
+    },
+    {
+      "attempt": 4,
+      "reason": "Unknown-decision warn policy was incorrectly expected to reject; use actual malformed-command validation."
+    },
+    {
+      "attempt": 5,
+      "reason": "Wrong-project fixture retained original absolute schema import; corrected module identity."
+    },
+    {
+      "attempt": 6,
+      "reason": "Real scoped browser POST did not reach HTTP1 API. Fixed in PR160, issue158."
+    },
+    {
+      "attempt": 7,
+      "reason": "Python phases completed but TypeScript workerless query returned500 after persistent-service restart. Fixed in PR162, issue161."
+    }
+  ],
+  "additionalFailedDiagnostic": "A separate owned TypeScript target reproduced the same real gRPC9 no-poller condition before the fix; it remained failed and was fully cleaned."
+}

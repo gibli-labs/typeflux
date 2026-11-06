@@ -1,0 +1,32 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.deployed-review-verification
+    kind: capability
+    description: Explicit non-production Docker verification of installed candidate artifacts through real HTTP and console review, in-flight worker/server interruption, history replay, frozen-version refusal and drain observation. Local observations remain separate from trusted CI and cloud/production recovery.
+    implementation:
+      - tools/development/deployed_review/__init__.py
+      - tools/development/deployed_review/prepare.py
+      - tools/development/deployed_review/run.py
+      - tools/development/deployed_review/provider.py
+      - tools/development/deployed_review/bindings.mjs
+      - tools/development/deployed_review/browser.mjs
+      - tools/development/deployed_review/python-probe.py
+      - tools/development/deployed_review/node-probe.mjs
+      - tools/development/deployed_review/fault-proxy.mjs
+      - tools/development/deployed_review/client-consumer.mjs
+      - tools/development/deployed_review/installation.py
+      - tools/development/deployed_review/installation.mjs
+      - tools/development/deployed_review/python.Dockerfile
+      - tools/development/deployed_review/node.Dockerfile
+      - tools/development/deployed_review/console.Dockerfile
+      - tools/development/deployed_review/console.conf
+    documentation: [README.md, docs/development.md, docs/deployed-review-verification.md, docs/verification/deployed-review-docker-2026-11-06.json]
+    links:
+      - {relation: requires, target: invariant.deployed-review-ownership}
+      - {relation: requires, target: invariant.deployed-review-evidence}
+  - id: invariant.deployed-review-ownership
+    kind: invariant
+    description: Each attempt freezes inputs before target startup, owns resource IDs and labels, reconciles ambiguous creation without repeating it, and refuses cleanup of resources whose identity or ownership differs.
+  - id: invariant.deployed-review-evidence
+    kind: invariant
+    description: Actual installed artifacts, native history/result/replay and observed lifecycle establish the selected local Docker result. Missing, failed, stale, skipped or mocked observations cannot become deployment or production proof; release controls remain unchanged.

@@ -103,6 +103,11 @@ The [review adoption guide](docs/temporal-review-adoption.md) shows both SDKs
 observing a Temporal gate, targeting its run and verifying routed completion.
 The [compensation adoption guide](docs/temporal-compensation-adoption.md) observes
 reverse recovery, partial failure and pending compensation on a replacement worker.
+The [Docker deployment runbook](docs/deployed-review-verification.md) separately
+tests installed artifacts, real HTTP/console review and in-flight recovery in an
+owned local target. The [observed result](docs/deployed-review-verification.md#observed-result)
+passed both installed SDK editions. Its recorded scope and limits do not establish
+cloud or production recovery, and it adds no service to Local execution.
 
 **First durable workflow with no checkout:** the [Temporal tutorial](docs/tutorial.md) §1 is
 fully self-contained — it creates every file it runs. The worked example

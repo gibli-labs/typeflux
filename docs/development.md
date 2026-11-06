@@ -188,7 +188,8 @@ environment variables. Run with `--network none`, a PID cap, dropped capabilitie
 Compare `--cpus 4` versus `--cpus 1` with `--memory 2g --memory-swap 2g`; bound each
 container to 180 seconds. Retain failures, verify the exact CID's ownership label
 before timeout cleanup, and remove only containers created for the comparison.
-Local Docker observations do not certify cloud or deployed recovery; see #87.
+These API fan-out measurements do not exercise worker recovery; see the
+[Docker deployment runbook](deployed-review-verification.md) for separate target evidence.
 
 ## Implement and verify
 
@@ -253,6 +254,17 @@ The test uses the maintained pinned CLI, checks its owned startup output, retain
 the service log under Temporal evidence, and cleans up its own processes/data.
 This does not establish cloud or arbitrary worker-upgrade recovery. Client/query
 error classification adds no runtime metadata or execution-manifest event.
+
+For a separately selected non-production target, use the
+[Docker deployment runbook](deployed-review-verification.md). It freezes accepted
+main/artifact/graph/image identities before real API/console observations, tests
+same-run persistent-service and worker interruption, replay/version/drain and
+uncertain-response reconciliation, then verifies owned teardown. It is optional
+environment observation, not a new default CI lane or a production recovery claim.
+The published record must distinguish the actual passing scope from retained
+failures and unknowns; a local report never replaces trusted release evidence.
+The [observed result](deployed-review-verification.md#observed-result) records the
+passing Python/TypeScript target, retained failures and current promotion limits.
 
 The isolated Temporal lane also runs the existing Python sandboxed YAML workflow,
 both child-composition executions, and YAML subworkflow IDs/memo/map and occupied-child

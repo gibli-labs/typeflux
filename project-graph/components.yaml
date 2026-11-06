@@ -82,6 +82,8 @@ entities:
     kind: component
     description: Build, automation, generators, graph tooling and repository policy.
     paths: [.github/**, scripts/**, tools/**, skills/**, packages/typescript/test-setup/**, project-graph/**, AGENTS.md, package.json, pnpm-workspace.yaml, pnpm-lock.yaml, .gitignore]
+    links:
+      - {relation: implements, target: capability.deployed-review-verification}
   - id: component.documentation
     kind: component
     description: Repository documentation; capability-level coverage is intentionally incremental.
