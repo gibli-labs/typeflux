@@ -1,5 +1,17 @@
 apiVersion: typeflux.dev/graph/v1alpha1
 entities:
+  - id: check.deployed-review-ownership
+    kind: check
+    description: Unit refusal/ownership and real manifest-validation regressions for the optional Docker controller. These CI tests do not execute the deployed target or certify recovery.
+    environment: python-non-live
+    ci: [python-3.12]
+    tests:
+      - {path: packages/python/tests/test_deployed_review_verification.py, name: test_existing_attempt_is_never_overwritten}
+      - {path: packages/python/tests/test_deployed_review_verification.py, name: test_cleanup_refuses_another_resource}
+      - {path: packages/python/tests/test_deployed_review_verification.py, name: test_ambiguous_create_is_reconciled_but_remains_a_failed_attempt}
+      - {path: packages/python/tests/test_deployed_review_verification.py, name: test_prepared_version_projects_pass_real_manifest_validation}
+    links:
+      - {relation: verifies, target: invariant.deployed-review-ownership}
   - id: check.console-scoped-transport-unit
     kind: check
     description: Unit checks preserve scoped mutation bytes, authorization, standard Request options and AbortSignal; GETs remain bodyless and registry discovery unscoped. Not browser or deployment evidence.

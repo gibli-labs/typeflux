@@ -12,7 +12,7 @@ entities:
       - clients/console/src/api.ts
       - packages/python/examples/lifecycle_review/main.py
       - packages/typescript/temporal-yaml/examples/lifecycle-review/main.ts
-    documentation: [README.md, docs/development.md, docs/local-runtime.md, docs/local-runtime-acceptance.md, docs/temporal-adoption.md, docs/control-plane.md, docs/control-plane-auth.md, docs/editions.md, docs/temporal-review-adoption.md, packages/python/examples/lifecycle_review/README.md, packages/typescript/temporal-yaml/examples/lifecycle-review/README.md]
+    documentation: [README.md, docs/development.md, docs/local-runtime.md, docs/local-runtime-acceptance.md, docs/temporal-adoption.md, docs/control-plane.md, docs/control-plane-auth.md, docs/editions.md, docs/temporal-review-adoption.md, docs/deployed-review-verification.md, packages/python/examples/lifecycle_review/README.md, packages/typescript/temporal-yaml/examples/lifecycle-review/README.md]
     examples:
       - packages/python/examples/lifecycle_review/main.py
       - packages/typescript/temporal-yaml/examples/lifecycle-review/main.ts
