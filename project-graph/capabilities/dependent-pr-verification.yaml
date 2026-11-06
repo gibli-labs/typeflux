@@ -17,7 +17,7 @@ entities:
       - {relation: requires, target: invariant.dependent-pr-review}
   - id: invariant.dependent-pr-evidence
     kind: invariant
-    description: Accepted PRs target main and retain exact current head/base integration, run/attempt, mandatory jobs and base/candidate tests; updating dependencies invalidates old evidence and cannot broaden feature-branch or release authority.
+    description: Accepted PRs target main and retain exact current head/base integration, run/attempt, mandatory jobs and base/candidate tests; updating dependencies invalidates old evidence and cannot broaden feature-branch or release authority. Remote verification retains failed local observations and distinguishes native branch-dispatch results from trusted current-head PR contexts; a head refresh requires fresh CI and review, never manufactured statuses or protection changes.
   - id: invariant.dependent-pr-review
     kind: invariant
     description: Inspect review identity after head/base changes and reconcile prior findings; do not infer fresh review from a base edit, CI success or an older review. Finish coherent changes before requesting scarce reviewer signals.
