@@ -23,6 +23,7 @@ history. Completed local effects remain, so decide whether starting again is saf
 | Activity execution | The current foreground process | Workers poll configured queues; unavailable workers leave work pending subject to configured deadlines |
 | Provider/validation retries | Shared activity pipeline, only while the process lives | Same pipeline inside each separately retried Temporal activity attempt |
 | Timeouts and heartbeats | Provider request controls only | Existing activity start-to-close/heartbeat policies; configure them for actual work |
+| Delayed starts and recurrence | An external caller owns each invocation | Native Temporal start delay; use native Schedules for configured recurrence |
 | Deployment and failover | Application owns its process | Application owns worker placement, capacity, compatible code and service availability |
 | External side effects | Application owns cleanup/idempotency | Application still owns idempotency and uncertain or partial external effects |
 
@@ -99,6 +100,90 @@ failover, a production deployment, code-version migration, or worker draining
 with arbitrary in-flight effects. Those environment-specific procedures and
 observations remain [#87](https://github.com/gibli-labs/typeflux/issues/87).
 
+## Observe a native delayed start
+
+The optional delayed-start examples retain the quickstart's computational YAML,
+schemas, input and fake provider. From the copied application with the matching
+Temporal dependencies installed as above, run:
+
+```sh
+# Python application:
+python delayed_start_demo.py
+# TypeScript application:
+node delayed-start-demo.mjs
+```
+
+Both request a two-second delay through the existing native Temporal SDK and
+inspect actual history. Python passes `start_delay` through the existing Typeflux
+starter. It observes the recorded initial backoff, then a scheduled workflow task
+with no worker polling and no activity scheduled. Only then does it start its
+worker. TypeScript uses the native client's start interceptor to add `startDelay`
+while preserving Typeflux's normal memo, codecs, subjects and start guards. It
+keeps the normal `worker.runUntil` lifetime and asserts the worker is running
+before starting the workflow. Its available worker still cannot start the first
+task before the server's backoff expires.
+
+Each script checks the server timestamps for the first scheduled and started
+workflow tasks, the unchanged run identity, one scheduled activity, `COMPLETED`
+status and the validated `{"text":"local result"}`. It prints one JSON observation
+with `scenario: "delayed-start"`, `backoffSeconds: 2`, `sameRun: true`,
+`scheduledAfterDelay: true`, `firstTaskStartedAfterDelay: true`, status and result.
+Python also reports `pendingWithoutWorker: true`; TypeScript reports
+`workerAvailable: true`. A start acknowledgement alone is not this evidence.
+Unique queues/IDs and bounded observation, execution and owned cleanup isolate
+the examples. The required isolated Temporal check executes both scripts with
+the repository's locked SDK versions and pinned development server; this is not
+a compatibility claim for every historical SDK/server version.
+
+After Temporal accepts a delayed start, the service owns its pending backoff and
+history; the originating process need not stay alive to count down a local timer.
+The application still owns workflow ID policy, idempotent effects and reconciliation
+of an uncertain start response. These examples use one start attempt and do not
+claim durable delivery before acceptance. For recurrence, use Temporal's existing
+native Schedules SDK/CLI and its overlap, catch-up and failure policies, with the
+same validated workflow type, bindings and start preparation used by the existing
+integration. This example demonstrates delayed start, not a Typeflux schedule
+builder. Durable timers inside workflow code also use existing Temporal APIs;
+there is no new YAML timer step or scheduling dialect.
+
+## Trigger Local from an existing scheduler
+
+A caller can invoke the existing Local CLI or SDK whenever needed. From the
+copied quickstart application, after installing its candidate packages:
+
+```sh
+# Python CLI or SDK:
+typeflux-local --project typeflux.project.yaml --workflow echo --environment offline --input input.json
+python local_sdk.py
+# TypeScript CLI or SDK:
+npx --no-install typeflux-local --project typeflux.project.yaml --workflow echo --environment offline --bindings bindings.mjs --input input.json
+node local-sdk.mjs
+```
+
+For example, an existing cron installation can run the Python CLI every fifteen
+minutes using the application's actual absolute paths:
+
+```cron
+*/15 * * * * cd /absolute/path/to/application && /absolute/path/to/application/.venv/bin/typeflux-local --project typeflux.project.yaml --workflow echo --environment offline --input input.json
+```
+
+Configure this in a scheduler you already operate; the example does not install
+a crontab or add a scheduler dependency. Set its working directory, executable
+paths, environment and output destination explicitly. For Node, use the absolute
+Node executable and application script (or installed CLI), rather than relying on
+an interactive shell's PATH or allowing `npx` to download packages.
+
+The example commands print the validated JSON result and exit zero on success.
+The CLI reports failure with a nonzero exit; SDK execution returns/raises or
+resolves/rejects, and these scripts propagate errors as process failures. A caller
+must await completion and preserve failure status. It must own trigger delivery,
+overlap, retries, missed invocations, process lifetime and any persistent record.
+Cron alone does not catch up missed triggers or prevent overlap. A retry is a new
+Local execution from step one; process loss discards progress and completed
+external effects remain. Local has no schedule record, durable timer, resume
+handle or automatic rollback. Use application idempotency and choose Temporal
+when those execution guarantees are needed.
+
 ## Operate a distributed worker deployment
 
 Use existing [worker deployment patterns](yaml-worker-deployment.md). Separate the
@@ -133,8 +218,8 @@ exactly once. Caches, traces, logs and Local correlation IDs are not resumable r
 handles. Keep secrets and effect payloads out of diagnostic evidence.
 
 Local gains no run database, checkpoints, persistent task queue, daemon, independent
-child-run registry or live-run migration. Review/lifecycle, scheduling and
-compensation adoption remain separate examples tracked by
+child-run registry or live-run migration. Native delayed starts and external
+triggers are covered above. Review/lifecycle and compensation adoption remain
+separate examples tracked by
 [#92](https://github.com/gibli-labs/typeflux/issues/92),
-[#91](https://github.com/gibli-labs/typeflux/issues/91) and
 [#93](https://github.com/gibli-labs/typeflux/issues/93).

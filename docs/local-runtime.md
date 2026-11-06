@@ -7,9 +7,10 @@ Progress lives only in the process. Choose Temporal for durable orchestration,
 scheduling, human review or compensation.
 
 The [worked durable adoption guide](temporal-adoption.md) extends the offline
-quickstarts with credential-free Temporal worker replacement, retry and activity
-timeout observations in both editions. It introduces no Local persistence or
-recovery guarantee.
+quickstarts with credential-free Temporal worker replacement, retry, activity
+timeout and native delayed-start observations in both editions. It also shows
+external invocation of the Local CLI/SDK by an existing scheduler. It introduces
+no Local scheduling service, persistence or recovery guarantee.
 
 These instructions describe the current source and candidate packages. They do
 not assert that a release containing this feature has been published. For a fresh
@@ -448,8 +449,10 @@ ID as a durable run handle.
 Switching back requires selecting local on the whole closure and removing explicit
 Temporal placement/policies and unsupported lifecycle features; local preflight
 reports paths rather than silently degrading them. Keep completed effects when
-planning a rerun. Exclusions are tracked in [#90](https://github.com/gibli-labs/typeflux/issues/90)
-(durability), [#91](https://github.com/gibli-labs/typeflux/issues/91) (scheduling),
+planning a rerun. Durability adoption is covered by
+[#90](https://github.com/gibli-labs/typeflux/issues/90), and scheduling by the
+[native delay/external-trigger guide](temporal-adoption.md#observe-a-native-delayed-start).
+Remaining adoption work is tracked in
 [#92](https://github.com/gibli-labs/typeflux/issues/92) (review/lifecycle),
 [#93](https://github.com/gibli-labs/typeflux/issues/93) (compensation) and
 [#94](https://github.com/gibli-labs/typeflux/issues/94) (management surfaces).

@@ -2,13 +2,18 @@ apiVersion: typeflux.dev/graph/v1alpha1
 entities:
   - id: capability.temporal-adoption
     kind: capability
-    description: Reuse Local quickstart YAML on existing Temporal runtimes with credential-free worker replacement, durable retry and activity-timeout observations; local process loss remains non-recoverable and deployed recovery remains separately evidenced.
+    description: Reuse Local quickstart YAML on existing Temporal runtimes with credential-free worker replacement, durable retry, activity-timeout and native delayed-start history observations; external callers may trigger Local without adding schedule state or recovery.
     editions: {python: supported, typescript: supported}
     implementation:
       - packages/python/examples/local_runtime/recovery_demo.py
+      - packages/python/examples/local_runtime/delayed_start_demo.py
       - packages/python/examples/local_runtime/local_example/recovery_provider.py
       - packages/typescript/yaml/examples/local-runtime/recovery-demo.mjs
+      - packages/typescript/yaml/examples/local-runtime/delayed-start-demo.mjs
     documentation:
+      - README.md
+      - docs/development.md
+      - docs/local-runtime-acceptance.md
       - docs/temporal-adoption.md
       - docs/local-runtime.md
       - packages/python/examples/local_runtime/README.md
@@ -16,28 +21,32 @@ entities:
     examples:
       - packages/python/examples/local_runtime/temporal_sdk.py
       - packages/python/examples/local_runtime/recovery_demo.py
+      - packages/python/examples/local_runtime/delayed_start_demo.py
       - packages/typescript/yaml/examples/local-runtime/temporal-sdk.mjs
       - packages/typescript/yaml/examples/local-runtime/recovery-demo.mjs
+      - packages/typescript/yaml/examples/local-runtime/delayed-start-demo.mjs
     links:
       - {relation: requires, target: invariant.temporal-adoption-evidence}
       - {relation: requires, target: invariant.local-adoption-non-goals}
   - id: invariant.temporal-adoption-evidence
     kind: invariant
-    description: Isolated examples observe server-recorded retry failure before stopping the first worker, unchanged run identity, pending execution without a worker, retry attempts, typed timeout failure and actual scheduled policy/history. Provider notification cannot substitute for SDK/server acknowledgement; provider retries and external-effect idempotency remain distinct from durable retries. Isolated observations cannot prove deployed failover/drain compatibility.
+    description: Isolated examples observe server-recorded retry failure before stopping the first worker, unchanged run identity, pending execution without a worker, retry attempts, typed timeout failure and actual scheduled policy/history. Native delayed starts verify the initial backoff and first scheduled/started task timestamps; Python observes pending work before starting its worker and TypeScript asserts its worker is running before start. Provider notification or start acknowledgement cannot substitute for SDK/server history; provider retries and external-effect idempotency remain distinct from durable retries. Isolated observations cannot prove deployed failover/drain compatibility.
   - id: invariant.local-adoption-non-goals
     kind: invariant
     description: No Local persistence, daemon, persistent queue, live-run migration or exactly-once effect guarantee is added; stronger execution uses Temporal and the application still owns external effect safety and compatible worker deployments.
   - id: check.temporal-adoption
     kind: check
-    description: Execute both documented Temporal starters and recovery/timeout demonstrations on the isolated real Temporal server with fake providers; inspect attempts, same-run recovery, final status and recorded policy.
+    description: Execute both documented Temporal starters, recovery/timeout and native delayed-start demonstrations on the isolated real Temporal server with fake providers; inspect attempts, same-run recovery, final status, backoff/task timestamps and recorded policy.
     environment: local-temporal
     ci: [temporal]
     tests:
       - {path: packages/python/tests/test_live_local_runtime_parity.py, name: test_offline_example_temporal_adoption_script}
       - {path: packages/python/tests/test_live_local_runtime_parity.py, name: test_temporal_adoption_recovers_same_run_and_enforces_timeout}
       - {path: packages/python/tests/test_live_local_runtime_parity.py, name: test_temporal_adoption_waits_for_delayed_failure_report_before_shutdown}
+      - {path: packages/python/tests/test_live_local_runtime_parity.py, name: test_temporal_delayed_start_records_backoff_before_worker_and_keeps_run}
       - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: executes the documented offline example after switching its environment to Temporal}
       - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: recovers the documented Temporal run on a replacement worker and enforces activity timeout}
       - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: waits for a delayed failure report before shutting down the documented worker}
+      - {path: packages/typescript/temporal-yaml/test/live-local-runtime-parity.test.ts, name: records the native delayed start before an available worker executes the documented YAML}
     links:
       - {relation: verifies, target: invariant.temporal-adoption-evidence}

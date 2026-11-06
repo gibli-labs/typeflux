@@ -288,3 +288,31 @@ async def test_temporal_adoption_waits_for_delayed_failure_report_before_shutdow
         if process.returncode is None:
             process.kill()
             await process.wait()
+
+
+@pytest.mark.asyncio
+async def test_temporal_delayed_start_records_backoff_before_worker_and_keeps_run():
+    root = Path(__file__).resolve().parents[1] / "examples/local_runtime"
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        str(root / "delayed_start_demo.py"),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        out, err = await asyncio.wait_for(process.communicate(), timeout=75)
+        assert process.returncode == 0, err.decode()
+        assert json.loads(out) == {
+            "scenario": "delayed-start",
+            "backoffSeconds": 2,
+            "pendingWithoutWorker": True,
+            "sameRun": True,
+            "scheduledAfterDelay": True,
+            "firstTaskStartedAfterDelay": True,
+            "status": "COMPLETED",
+            "result": {"text": "local result"},
+        }
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
