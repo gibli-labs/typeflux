@@ -221,6 +221,12 @@ observed gate before a pinned decision and the routed lifecycle/result afterward
 Operation/HTTP tests separately cover binding, permissions, malformed commands,
 unavailable-before-dispatch and uncertain-response reconciliation; these doubles
 do not establish live network delivery or deployed recovery.
+The lane also runs the existing native compensation cases and both documented
+booking/charge adoption scripts: original forward failure, reverse unwind,
+partial compensation and a server-acknowledged pending compensation retry finished
+by a replacement worker on the same run. Terminal lifecycle queries are observed
+while a compatible worker still polls. This is isolated worker replacement, not
+deployed OS/server-loss or incompatible-code recovery.
 Separate foreground CLI subprocess tests in the Python and TypeScript
 lanes use SIGKILL after a completed first-step effect, then verify a fresh command
 repeats it and executes from the beginning. Their append-only test logs observe

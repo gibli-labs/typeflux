@@ -37,9 +37,26 @@ uv run python -m examples.compensation_saga.main run
 ```
 
 The demo runs the happy path against a real dev server with a scripted provider (no API
-key): all three side-effecting steps are recorded on the compensation LIFO but never
+key): the successful booking and charge are recorded on the compensation LIFO but never
 unwound because nothing fails. The reverse-order unwind on failure is proven by
 `tests/test_saga.py` and the slice-1 replay fixtures.
+
+For bounded forward-failure, partial-compensation and replacement-worker
+observations, run from `packages/python` against the same development server:
+
+```sh
+uv run python -m examples.compensation_saga.adoption_demo
+```
+
+This uses the existing YAML and a fixed fake fault provider. It verifies actual
+action/attempt order, terminal lifecycle, original failure and unchanged run
+identity, including a server-recorded compensation retry before worker shutdown.
+The required isolated Temporal lane executes it. See the
+[compensation adoption guide](../../../../docs/temporal-compensation-adoption.md)
+for the three JSON observations, query/worker lifetime, idempotency and deployment
+limits. The fake's in-memory ledgers do not survive process loss or establish
+transactional external rollback. Local execution rejects configured compensation
+and leaves completed effects in place.
 
 ## Tests
 

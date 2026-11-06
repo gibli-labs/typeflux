@@ -220,5 +220,6 @@ handles. Keep secrets and effect payloads out of diagnostic evidence.
 Local gains no run database, checkpoints, persistent task queue, daemon, independent
 child-run registry or live-run migration. Native delayed starts and external
 triggers are covered above. The [review/lifecycle adoption guide](temporal-review-adoption.md)
-extends the existing examples and operator journey. Compensation adoption remains
-tracked by [#93](https://github.com/gibli-labs/typeflux/issues/93).
+extends the existing examples and operator journey. The
+[compensation adoption guide](temporal-compensation-adoption.md) covers configured
+reverse recovery, partial failure and pending compensation on a replacement worker.

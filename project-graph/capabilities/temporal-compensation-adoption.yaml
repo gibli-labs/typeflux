@@ -1,0 +1,52 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.temporal-compensation-adoption
+    kind: capability
+    description: Reuse existing Temporal YAML saga declarations with safe fake booking/charge examples, actual reverse/partial compensation and same-run pending compensation on a replacement worker; Local supplies no rollback and deployed recovery remains separate evidence.
+    editions: {python: supported, typescript: supported}
+    implementation:
+      - packages/python/examples/compensation_saga/adoption_demo.py
+      - packages/python/examples/compensation_saga/adoption_provider.py
+      - packages/python/examples/compensation_saga/fakes.py
+      - packages/typescript/temporal-yaml/examples/compensation-saga/adoption-demo.mjs
+      - packages/typescript/temporal-yaml/examples/compensation-saga/bindings.mjs
+      - packages/typescript/temporal-yaml/examples/compensation-saga/typeflux.yaml
+    documentation:
+      - README.md
+      - docs/development.md
+      - docs/local-runtime.md
+      - docs/local-runtime-acceptance.md
+      - docs/temporal-adoption.md
+      - docs/temporal-compensation-adoption.md
+      - packages/python/examples/compensation_saga/README.md
+      - packages/typescript/temporal-yaml/examples/compensation-saga/README.md
+    examples:
+      - packages/python/examples/compensation_saga/typeflux.yaml
+      - packages/python/examples/compensation_saga/adoption_demo.py
+      - packages/typescript/temporal-yaml/examples/compensation-saga/typeflux.yaml
+      - packages/typescript/temporal-yaml/examples/compensation-saga/adoption-demo.mjs
+    links:
+      - {relation: requires, target: invariant.temporal-compensation-observation}
+      - {relation: requires, target: invariant.local-adoption-non-goals}
+  - id: invariant.temporal-compensation-observation
+    kind: invariant
+    description: Native observations establish which forward and compensation actions/attempts ran, reverse order, original failure, complete/partial lifecycle status and unchanged run identity. Replacement waits for service-recorded compensation failure before stopping the first worker; a compatible polling worker serves terminal lifecycle queries. Fake counters and graceful isolated worker replacement do not establish external transactional undo, persistent idempotency, OS/server-loss or deployed compatibility/drain recovery.
+  - id: check.temporal-compensation-adoption
+    kind: check
+    description: Execute both documented complete/partial/replacement demonstrations and existing real-server failure, partial, cooperative cancellation and fan-out compensation cases with fake providers.
+    environment: local-temporal
+    ci: [temporal]
+    tests:
+      - {path: packages/python/tests/test_live_compensation_adoption.py, name: test_documented_compensation_observes_complete_partial_and_worker_replacement}
+      - {path: packages/python/tests/test_live_compensation.py, name: test_live_compensation_unwinds_in_reverse_on_failure}
+      - {path: packages/python/tests/test_live_compensation.py, name: test_live_compensation_records_partial_and_preserves_original_error}
+      - {path: packages/python/tests/test_live_compensation.py, name: test_live_map_saga_compensates_item_that_succeeded_before_a_later_item_failed}
+      - {path: packages/python/tests/test_live_compensation.py, name: test_live_compensation_unwinds_on_cancellation}
+      - {path: packages/typescript/temporal-yaml/test/live-compensation-adoption.test.ts, name: observes complete and partial compensation and same-run worker replacement}
+      - {path: packages/typescript/temporal-yaml/test/live-compensation.test.ts, name: 'unwinds in reverse on failure: cancel_flight then cancel_hotel'}
+      - {path: packages/typescript/temporal-yaml/test/live-compensation.test.ts, name: 'records partial when a compensation fails, and still surfaces the original error'}
+      - {path: packages/typescript/temporal-yaml/test/live-compensation.test.ts, name: 'unwinds on cancellation too (D299-2a): a mid-run cancel triggers the LIFO'}
+      - {path: packages/typescript/temporal-yaml/test/live-compensation.test.ts, name: 'map: an item that succeeded before another item failed is still compensated'}
+      - {path: packages/typescript/temporal-yaml/test/live-compensation.test.ts, name: 'parallel: both completed branches are compensated when a later step fails'}
+    links:
+      - {relation: verifies, target: invariant.temporal-compensation-observation}

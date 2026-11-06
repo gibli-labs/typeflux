@@ -1,0 +1,64 @@
+# YAML counterpart of the existing Python booking/charge saga; existing Temporal contracts.
+project: compensation_saga
+name: compensation_saga
+task_queue: ${TEMPORAL_TASK_QUEUE:-compensation-saga-typeflux}
+runtime:
+  temporal:
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
+  registry:
+    type: inline
+    prompts:
+      saga-book: Book {{room}} for order {{order_id}} with key {{idempotency_key}}.
+      saga-cancel: Cancel booking for order {{order_id}}.
+      saga-charge: Charge order {{order_id}} with key {{idempotency_key}}.
+      saga-refund: Refund the charge for order {{order_id}}.
+      saga-fulfill: Fulfill order {{order_id}}.
+  provider:
+    type: fake
+  observability:
+    type: none
+activities:
+  definitions:
+  - name: book_room
+    input: schemas:OrderRequest
+    output: schemas:Booking
+    prompt: saga-book
+    side_effecting: true
+  - name: cancel_room
+    input: schemas:Booking
+    output: schemas:CancelResult
+    prompt: saga-cancel
+    side_effecting: true
+  - name: charge_card
+    input: schemas:Booking
+    output: schemas:ChargeResult
+    prompt: saga-charge
+    side_effecting: true
+  - name: refund_card
+    input: schemas:ChargeResult
+    output: schemas:RefundResult
+    prompt: saga-refund
+    side_effecting: true
+  - name: fulfill_order
+    input: schemas:ChargeResult
+    output: schemas:Fulfillment
+    prompt: saga-fulfill
+workflow:
+  name: CompensationSagaWorkflow
+  input: schemas:OrderRequest
+  output: schemas:Fulfillment
+  risk_tier: human_gated
+  lifecycle:
+    enabled: true
+  steps:
+  - id: book
+    activity: book_room
+    compensate:
+      activity: cancel_room
+  - id: charge
+    activity: charge_card
+    compensate:
+      activity: refund_card
+  - id: fulfill
+    activity: fulfill_order
