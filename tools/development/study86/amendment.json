@@ -1,0 +1,22 @@
+{
+  "previousProtocolSha256": "04acb382b05fe90b87fff508dce42dfde2057e689c86eb63a4f35c80c6ba5d18",
+  "previousPublicEvidence": "docs/verification/graph-study-resource-pilot-2026-11-06.json",
+  "previousStudyEstimateUSD": 2.35516,
+  "previousPrimaryOutcomes": 1,
+  "previousCandidateHeldoutExecutions": 0,
+  "reason": "Initial CLI call reached its $1 budget, reported $1.4499 and 6144 output tokens despite requested2048, and returned no patch. Requested output is per response, not a proven invocation-wide cap. Stop preserved before candidate validation; all costs retained.",
+  "changes": "Uniformly request8192 per-response output tokens and32000 primary context characters; CLI dollar budget2, new-call allowance at least3 (>=1.45x observed overrun), automatically raised to any larger recorded invocation estimate.9slots/54primarycells. Failed ci-diagnostics task is retained; exclude provider-defaults/neutral-manifest/interrupt-cleanup after the resource pilot using preflight scope/cost. No candidate held-out performance had been observed. Six grader calibrations rerun for the new configuration.",
+  "excludedTaskIds": [
+    "provider-defaults",
+    "neutral-manifest",
+    "interrupt-cleanup"
+  ],
+  "costPolicy": "Same cumulative ledger,$40 stop including next-call allowance,$50 authorized ceiling. Prior2.35516 included. Remaining conservative room before the $3 allowance is34.64484, about$0.44 per78possible new calls. Normal Fable reviews separate.",
+  "costSizing": {
+    "basis": "Installed CLI estimates, not provider prices/invoice. Actual first response reports6 input+57132 cache-create+6144 output and1.4499; its estimate reconciles with10/20/50 USD per million input/cache-create/output tokens.",
+    "conservativeObservedInputPlus8192OutputEstimateUSD": 1.5523,
+    "configuredCliBudgetUSD": 2,
+    "newCallAllowanceFloorUSD": 3,
+    "limit": "Sizing at observed aggregate input is not a provider hard cap; lower primary context and continuous ledger/reserve protect remaining spend. Response count inside CLI turns is not exposed by result JSON; tokens>requested per-response cap are flagged as continuation/overrun, not a measured response count."
+  }
+}

@@ -521,3 +521,10 @@ Graph-assisted productivity and safe selective CI remain hypotheses. Compare mat
 tasks for correctness, review effort, time, cost and missed impact before expanding
 automation. Passing this development loop does not complete the larger evaluation or
 deployment obligations tracked in issue #46.
+
+## Matched development evaluation
+
+The [graph development pilot](graph-development-study.md) is an explicit paid
+experiment, separate from the default development profile and Fable code reviews.
+Its frozen protocol, owned offline Docker checks and cost ledger do not establish
+full agent productivity, trusted CI or permission to publish.

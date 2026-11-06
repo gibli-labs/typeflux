@@ -1,0 +1,72 @@
+apiVersion: typeflux.dev/graph/v1alpha1
+entities:
+  - id: capability.graph-development-study
+    kind: capability
+    description: Explicit matched localized coding pilot with frozen historical context, repeated arms, isolated held-outs, known-outcome cost ledger and descriptive limits; never trusted CI or productivity attestation.
+    implementation:
+      - tools/development/study86/__main__.py
+      - tools/development/study86/amendment.json
+      - tools/development/study86/analysis.py
+      - tools/development/study86/billing.py
+      - tools/development/study86/context.py
+      - tools/development/study86/controls.py
+      - tools/development/study86/experiment.py
+      - tools/development/study86/grading.py
+      - tools/development/study86/inside.py
+      - tools/development/study86/prune_image.py
+      - tools/development/study86/query-control.cjs
+      - tools/development/study86/tasks.json
+      - tools/development/study86/validate.py
+      - tools/development/study86/verifier.Dockerfile
+      - tools/development/study86/vitest.mjs
+      - tools/development/study86/whitespace_control.py
+    documentation: [README.md, docs/development.md, docs/project-graph.md, docs/graph-development-study.md, docs/verification/graph-study-resource-pilot-2026-11-06.json, docs/verification/graph-study-v1-source.patch, docs/verification/graph-study-matched-2026-11-06.json]
+    links:
+      - {relation: requires, target: invariant.graph-study-evidence}
+  - id: invariant.graph-study-evidence
+    kind: invariant
+    description: Unknown paid outcomes block new calls; cached saved responses reconcile once. Exact source/environment and native cases, failures, skips, missing cells and owned cleanup remain distinct. Pilot observations cannot reduce CI, broaden autonomy or attest deployment.
+  - id: check.graph-study-guards
+    kind: check
+    description: Offline behavioral guards for paid-effect reconciliation, owned client interruption, historical isolation, scoped patch/policy refusal, false-green native reports and incomplete-study decisions. No paid calls in mandatory CI.
+    environment: python-non-live
+    ci: [python-3.12]
+    tests:
+      - {path: packages/python/tests/test_study86_analysis.py, name: test_incomplete_pilot_cannot_claim_complete_or_expand_autonomy}
+      - {path: packages/python/tests/test_study86_analysis.py, name: test_analysis_refuses_unaccounted_model_cost}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_auxiliary_costs_and_repeated_read_are_accounted_once}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_response_then_interrupt_reconciles_without_resubmission}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_unknown_result_blocks_same_and_other_requests}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_changed_prompt_or_response_is_not_reused}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_reported_api_error_is_billed_once_without_retry}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_stop_threshold_keeps_headroom_and_counts_failed_calls}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_invalid_cost_never_becomes_a_completed_effect}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_auxiliary_cost_mismatch_remains_unknown}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_malformed_response_stays_unknown_and_cannot_be_reissued}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_invalid_usage_cannot_hide_unknown_spending}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_cli_executor_preserves_input_output_and_nonzero_exit}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_cli_timeout_reaps_only_its_owned_client}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_concurrent_controller_cannot_start_another_request}
+      - {path: packages/python/tests/test_study86_context.py, name: test_packet_contains_only_starting_revision_and_explicit_own_overlay}
+      - {path: packages/python/tests/test_study86_context.py, name: test_snapshot_keeps_real_past_commit_without_future_objects_or_shared_git}
+      - {path: packages/python/tests/test_study86_context.py, name: test_snapshot_ignores_inherited_git_redirects_and_hooks}
+      - {path: packages/python/tests/test_study86_context.py, name: test_graph_robustness_changes_context_data_not_repository}
+      - {path: packages/python/tests/test_study86_context.py, name: test_binary_search_match_is_skipped_and_context_is_deterministic}
+      - {path: packages/python/tests/test_study86_experiment.py, name: test_interrupted_trial_reconciles_one_model_request_and_one_native_run}
+      - {path: packages/python/tests/test_study86_experiment.py, name: test_documentation_cannot_pass_missing_requirements_or_veto}
+      - {path: packages/python/tests/test_study86_experiment.py, name: test_documentation_packet_hides_arm_and_repository_instructions_remain_data}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_scoped_patch_applies_without_changing_other_inputs}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_policy_weakening_path_rejects_entire_patch_before_mutation}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_allowed_path_cannot_become_a_symlink}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_heldout_cannot_overwrite_an_editable_implementation}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_native_complete_observation_is_accepted}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_native_green_summary_cannot_hide_missing_or_failed_cases}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_native_success_requires_process_and_owned_cleanup_success}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_ci_diagnostic_upload_cannot_weaken_or_precede_existing_gate}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_nonzero_client_exit_stays_failed_across_saved_response_replay}
+      - {path: packages/python/tests/test_study86_billing.py, name: test_usage_canary_accounts_known_cost_before_stopping}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_native_refuses_actual_resource_limit_drift_before_candidate_start}
+      - {path: packages/python/tests/test_study86_validation.py, name: test_container_wait_timeout_is_a_failed_candidate_outcome}
+      - {path: packages/python/tests/test_study86_experiment.py, name: test_native_fault_stops_and_replays_while_candidate_timeout_is_final}
+    links:
+      - {relation: verifies, target: invariant.graph-study-evidence}

@@ -1,0 +1,2054 @@
+{
+  "schemaVersion": 1,
+  "authority": "Observed localized one-shot component pilot; not human PR acceptance or trusted CI",
+  "protocol": {
+    "version": 1,
+    "design": "localized one-shot context-component pilot, not full agent productivity",
+    "model": "claude-fable-5",
+    "cliVersion": "2.1.236 (Claude Code)",
+    "cliPreflight": {
+      "helpSha256": "71ad650f59e08ae40ede14c534db4f49d8590ee5a4f92f6da2882d3a5560fea6",
+      "requestNeutralized": true,
+      "timeoutSeconds": 15,
+      "parsedVersion": "2.1.236 (Claude Code)",
+      "checkedFlags": [
+        "--model",
+        "--effort",
+        "--tools",
+        "--safe-mode",
+        "--disable-slash-commands",
+        "--no-chrome",
+        "--setting-sources",
+        "--permission-mode",
+        "--no-session-persistence",
+        "--strict-mcp-config",
+        "--mcp-config",
+        "--output-format",
+        "--system-prompt",
+        "--max-budget-usd"
+      ],
+      "authority": "installed help and no-request option parser; first paid response checks usage schema before further calls; requested env caps are not independently provider-attested"
+    },
+    "cliSha256": "6bc4ba992d2786cbf0237c4453ca53c1fdf0c3b3d83ffa0025c0d8190ed27848",
+    "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+    "dockerContext": "desktop-linux",
+    "tasks": [
+      {
+        "id": "python-engine",
+        "kind": "python",
+        "startingRevision": "f763c2253cc2df540912280615ca20035f7d3955",
+        "referenceRevision": "49682c97c0f2f73e7445a4bdcae3e2e31c680ae0",
+        "brief": "Correct mixed-engine Local validation guidance. A Local graph containing a Temporal/default-engine child must attribute runtime.engine to that child and recommend making it Local. Other unsupported Local features retain their Temporal guidance. Preserve error types and existing validation.",
+        "editable": [
+          "packages/python/src/typeflux/yaml/engine.py"
+        ],
+        "search": "engine local graph runtime.engine RuntimeCapabilityError",
+        "heldout": [
+          "packages/python/tests/test_yaml_engine.py"
+        ],
+        "expectedChecks": {
+          "python": 8
+        }
+      },
+      {
+        "id": "typescript-engine",
+        "kind": "typescript",
+        "startingRevision": "f763c2253cc2df540912280615ca20035f7d3955",
+        "referenceRevision": "49682c97c0f2f73e7445a4bdcae3e2e31c680ae0",
+        "brief": "Correct mixed-engine Local validation guidance. A Local graph containing a Temporal/default-engine child must attribute runtime.engine to that child and recommend making it Local. Other unsupported Local features retain their Temporal guidance. Preserve existing validation and public error type.",
+        "editable": [
+          "packages/typescript/yaml/src/engine.ts"
+        ],
+        "search": "engine local graph RuntimeCapabilityError",
+        "heldout": [
+          "packages/typescript/yaml/test/engine.test.ts"
+        ],
+        "expectedChecks": {
+          "historical-typescript-dependency-build": 0,
+          "yaml": 4
+        }
+      },
+      {
+        "id": "provider-defaults",
+        "kind": "typescript",
+        "startingRevision": "58329375cab9dfb0d7e9ca80e48ddbb934c2d7f7",
+        "referenceRevision": "593e52359e86902f0401c38b4124c7a6e3bbe460",
+        "brief": "Fix model identity across provider adapters and core execution. Omitted model selectors must use each provider's documented configured default and report the actual provider/model in events and results. Preserve explicit caller choices; never invent a fallback identity or use a probe call. Use typed contribution behavior already present where applicable.",
+        "editable": [
+          "packages/typescript/temporal/src/execute.ts",
+          "packages/typescript/temporal/src/openai-provider.ts",
+          "packages/typescript/temporal/src/anthropic-provider.ts",
+          "packages/typescript/temporal/src/gemini-provider.ts"
+        ],
+        "search": "default_model defaultModel model_name modelName model provider identity",
+        "heldout": [
+          "packages/typescript/temporal/test/provider-defaults.test.ts"
+        ],
+        "expectedChecks": {
+          "historical-typescript-dependency-build": 0,
+          "temporal": 14
+        }
+      },
+      {
+        "id": "neutral-manifest",
+        "kind": "both",
+        "startingRevision": "593e52359e86902f0401c38b4124c7a6e3bbe460",
+        "referenceRevision": "56fce3861fa230eaf41e34979edfcd9db92956a7",
+        "brief": "Allow a workflow execution manifest to omit a Temporal task queue for a non-Temporal runtime. Python and TypeScript must preserve omitted/null behavior and explicit queue values through their manifest APIs. Observability must not index or invent an absent queue. Keep other manifest contracts unchanged.",
+        "editable": [
+          "packages/python/src/typeflux/manifests/workflow.py",
+          "packages/python/src/typeflux/observability/inspect.py",
+          "packages/typescript/temporal/src/manifest.ts"
+        ],
+        "search": "task_queue manifest workflow_execution",
+        "heldout": [
+          "packages/python/tests/test_manifest.py",
+          "packages/python/tests/test_observability.py",
+          "packages/typescript/temporal/test/manifest.test.ts"
+        ],
+        "expectedChecks": {
+          "python": 153,
+          "historical-typescript-dependency-build": 0,
+          "temporal": 6
+        }
+      },
+      {
+        "id": "graph-ci-ids",
+        "kind": "python",
+        "startingRevision": "793bd4b370570fcfb454049d282c3ad55579df2e",
+        "referenceRevision": "6946ba70c45084b72ba3b06d3b2c06a31bf186e6",
+        "brief": "Reject unknown graph check CI execution IDs locally using the selected revision's tools/development/checks.json as data. Validate the registry shape and fail clearly with declaration/check/unknown ID and registered IDs. Do not execute registry Python. Preserve historical pre-registry snapshot behavior without allowing a working tree or modern snapshot to bypass validation.",
+        "editable": [
+          "tools/project_graph/compiler.py",
+          "tools/project_graph/repository.py"
+        ],
+        "search": "CI check execution registry compile_graph snapshot",
+        "heldout": [
+          "packages/python/tests/test_project_graph.py"
+        ],
+        "expectedChecks": {
+          "python": 35
+        }
+      },
+      {
+        "id": "ci-diagnostics",
+        "kind": "python",
+        "startingRevision": "4b77323d81a239febd8b000b2dbf0e40bc04c1ab",
+        "referenceRevision": "bc3b1696e9244062d4458b9ec008c2b6f7ce8a2f",
+        "brief": "Retain bounded safe job observations when trusted CI acceptance rejects required jobs, without relaxing any gate or discarding original failures. Write unique non-overwriting JSON under job-observations/ with kind trusted-ci-job-observation; observedAt, repository, runId, attempt, headRevision, testedRevision, expected, missing, notPassed, observed, totalJobs, omittedJobs, truncatedFields and a limits explanation. Observed jobs retain only id/name/status/conclusion/run_id/run_attempt/head_sha. Prioritize required jobs; at most 100 jobs, strings at most 128 characters, fixed invalid-type/out-of-range markers for malformed fields and integers outside 0 <= x < 10**20. Summary must retain required missing/not-passed identities while staying at most 16,000 characters. Never copy logs, command/URL/freeform payloads or add authority. Workflow artifact naming must preserve run/attempt/evaluator identity and diagnostics with always() across failures. In the workflow, only add one separate diagnostic upload step after the existing acceptance evaluation using the existing upload-action pin; preserve every existing job, step, trigger, permission and setting.",
+        "editable": [
+          "tools/development/acceptance.py",
+          ".github/workflows/ci-acceptance.yml"
+        ],
+        "search": "job diagnostics required acceptance observations",
+        "heldout": [
+          "packages/python/tests/test_development_acceptance.py"
+        ],
+        "expectedChecks": {
+          "python": 12
+        }
+      },
+      {
+        "id": "interrupt-cleanup",
+        "kind": "python",
+        "startingRevision": "b657347e5eb176b00dc184523b23c13fb9a6c12d",
+        "referenceRevision": "4b77323d81a239febd8b000b2dbf0e40bc04c1ab",
+        "brief": "Finish cleanup of an owned process group through repeated SIGINT. Stop/reap owned descendants including signal-resistant children and retain interrupted status/evidence. Do not touch unrelated listeners or processes and do not turn an interruption into success. Preserve normal error behavior.",
+        "editable": [
+          "tools/development/__main__.py"
+        ],
+        "search": "owned group KeyboardInterrupt SIGINT cleanup",
+        "heldout": [
+          "packages/python/tests/test_development_process_cleanup.py",
+          "packages/python/tests/test_development_browser_cleanup.py"
+        ],
+        "expectedChecks": {
+          "python": 21
+        }
+      },
+      {
+        "id": "skip-evidence",
+        "kind": "python",
+        "startingRevision": "6123ea468bcd59221169165189825a74db7a9745",
+        "referenceRevision": "fe46f0ff1f101d3a1d6efd4d7e333225af54d65d",
+        "brief": "Record safe bounded native pytest skip diagnostics: phase, classified fixed prerequisite reason codes, and whether details were omitted. Do not store arbitrary reason/exception text, paths, fixture values or personal data. Unclassified skips must remain explicit. Preserve failed status over later teardown skips and retain diagnostics on interruptions; do not weaken required test execution. Public output contract: skipDiagnostics contains at most 3 entries with phase (setup/call/teardown/unknown), reasonCode and detailsOmitted; extra entries increment skipDiagnosticsOmitted. Exact reviewed prerequisite reasons map to node-resolver-prerequisite, isolated-temporal-lane-required, git-prerequisite or temporal-sdk-prerequisite; expected failure maps to expected-failure, otherwise unclassified. Never classify a substring/prefix as an exact reason. Unclassified/expected-failure omit details. A known Node reason is \"needs node + the built TS dist (cd packages/typescript && pnpm -r build)\"; isolated lane reason is \"isolated Temporal lane required\". This task covers diagnostic behavior, not unrelated Temporal fixture migration.",
+        "editable": [
+          "tools/development/pytest_results.py",
+          "tools/development/__main__.py"
+        ],
+        "search": "skipDiagnostics pytest_results skipped reason",
+        "heldout": [
+          "packages/python/tests/test_development_pytest_evidence.py"
+        ],
+        "pytestSelection": "not required_temporal_connection_errors",
+        "expectedChecks": {
+          "python": 3
+        }
+      },
+      {
+        "id": "console-reads",
+        "kind": "console",
+        "startingRevision": "c31d5ed3799d027a173d0e3ae4cc88a16d571666",
+        "referenceRevision": "793bd4b370570fcfb454049d282c3ad55579df2e",
+        "brief": "An unavailable execution-list read is already bounded by the backend but the console automatically repeats it. Make a selected workflow/environment execution-list read settle after one request and retain the visible error. Keep existing retry behavior for ordinary unrelated reads and preserve routing/query keys.",
+        "editable": [
+          "clients/console/src/queries.ts"
+        ],
+        "search": "useExecutions retry createConsoleQueryClient",
+        "heldout": [
+          "query-control"
+        ],
+        "expectedChecks": {
+          "query": 4
+        }
+      },
+      {
+        "id": "dependent-pr-docs",
+        "kind": "docs",
+        "startingRevision": "6946ba70c45084b72ba3b06d3b2c06a31bf186e6",
+        "referenceRevision": "84cfc08056d5b55b60451b1bf59c93ff64e410f2",
+        "brief": "Write docs/dependent-pull-requests.md and link it from development.md. Explain how to develop, validate, refresh evidence/review and merge a dependent PR under this repository's actual main-target acceptance and squash-merge rules. Include safe read-only inspection commands and distinguish head/base/run/attempt, CI vs review, and PR evidence vs exact-main release evidence. Do not weaken checks, authorize publication or claim a base edit or rerun automatically tests a new base.",
+        "editable": [
+          "docs/dependent-pull-requests.md",
+          "docs/development.md"
+        ],
+        "search": "dependent prerequisite pull_request main acceptance merge parents",
+        "heldout": [
+          "documentation-rubric"
+        ],
+        "expectedChecks": {}
+      },
+      {
+        "id": "graph-ci-whitespace",
+        "kind": "python",
+        "predecessor": "graph-ci-ids",
+        "brief": "Extend your earlier CI-registry validation: reject whitespace-only execution IDs and whitespace-only name/verifier fields as malformed registry data. Preserve valid strings, unknown-ID diagnostics, historical snapshot compatibility and every earlier acceptance obligation.",
+        "editable": [
+          "tools/project_graph/compiler.py",
+          "tools/project_graph/repository.py"
+        ],
+        "search": "registry CI whitespace name verifier",
+        "heldout": [
+          "packages/python/tests/test_project_graph.py",
+          "whitespace-registry-control"
+        ],
+        "expectedChecks": {
+          "python": 38
+        },
+        "startingRevision": "793bd4b370570fcfb454049d282c3ad55579df2e",
+        "referenceRevision": "6946ba70c45084b72ba3b06d3b2c06a31bf186e6"
+      },
+      {
+        "id": "skip-evidence-docs",
+        "kind": "docs",
+        "predecessor": "skip-evidence",
+        "brief": "Document your earlier native pytest skip diagnostics in docs/development.md: fields, actual safe codes and classification boundaries, failed-status precedence, bounded omissions, interruption handling, and the fact that classified/skipped evidence cannot satisfy mandatory execution or diagnose a historical cause. Match the behavior of your own earlier patch; do not claim deployment or past CI causes were established.",
+        "editable": [
+          "docs/development.md"
+        ],
+        "search": "skipDiagnostics pytest skip evidence",
+        "heldout": [
+          "documentation-rubric",
+          "packages/python/tests/test_development_pytest_evidence.py"
+        ],
+        "contextPaths": [
+          "tools/development/pytest_results.py",
+          "tools/development/__main__.py"
+        ],
+        "pytestSelection": "not required_temporal_connection_errors",
+        "expectedChecks": {
+          "python": 3
+        },
+        "startingRevision": "6123ea468bcd59221169165189825a74db7a9745",
+        "referenceRevision": "fe46f0ff1f101d3a1d6efd4d7e333225af54d65d"
+      }
+    ],
+    "order": [
+      "ci-diagnostics",
+      "neutral-manifest",
+      "interrupt-cleanup",
+      "skip-evidence",
+      "graph-ci-ids",
+      "dependent-pr-docs",
+      "console-reads",
+      "provider-defaults",
+      "typescript-engine",
+      "python-engine",
+      "graph-ci-whitespace",
+      "skip-evidence-docs"
+    ],
+    "repeats": 2,
+    "arms": [
+      "search",
+      "graph",
+      "assembly"
+    ],
+    "seed": 20261106,
+    "validationResources": {
+      "cpus": 2,
+      "memoryBytes": 2147483648,
+      "pids": 256,
+      "tmpfsBytes": 536870912,
+      "containerWaitSeconds": 180,
+      "network": "none",
+      "user": "10001:10001",
+      "source": "read-only"
+    },
+    "maxPrimaryInvocations": 72,
+    "extraInvocations": "At most 12 documentation grades, 6 grader calibration controls, 6 graph robustness probes; all share one estimate ledger.",
+    "requestedCaps": {
+      "contextCharacters": 48000,
+      "outputTokens": 2048,
+      "effort": "low",
+      "tools": [],
+      "automaticApiRetries": 0,
+      "perInvocationEstimateUSD": 1.0,
+      "stopNewCallsUSD": 40.0,
+      "authorizedCeilingUSD": 50
+    },
+    "costBasis": "Claude CLI reported estimates including all auxiliary models; not a provider invoice. Normal development/code reviews and unmetered Codex orchestration are separate.",
+    "successorControlsSHA256": "8179a82919da6bca20a7303127ffd6e538f8efff7263e50182cb10e2fcf19c63",
+    "nativeControlsSHA256": "f790cec731c5308e4509ad81742a418faad2c6a2d31e38c228b81b6b9d7a87e8",
+    "guardReportSHA256": "f5f196c651094a1cf1b5c1b21f44eff43c142570d0ec87110c74f0268f8083c5",
+    "declaredPolicyGuardsPassed": true,
+    "sourceHashes": {
+      "packages/python/tests/test_study86_analysis.py": "34f6c6381118e99b764cdb57ff2ec073e75b38314f96ade78f45fcdde9c9d55e",
+      "packages/python/tests/test_study86_billing.py": "806b6bd9108603e43a7bafc40ee5b8c38671dc59943268448fd77292006e887c",
+      "packages/python/tests/test_study86_context.py": "f7fa2a54b2a9a4b24f1b3da206fa63ba139bda6ed9a662c63fd93df13ffe8a86",
+      "packages/python/tests/test_study86_experiment.py": "9b7a17f8c2dfed7bbfe625220ba8842234560ff4b9b3a46c91613f43c2f1da3f",
+      "packages/python/tests/test_study86_validation.py": "7a969e88b73486eeb877c7a59d91a400d927b4f5db8aa13e77ff920e8d18d85f",
+      "tools/development/__main__.py": "9b71c99731ab20980834df94c0ec6581a3a4b93e0459c85ebbfd18d8ef1cf2c9",
+      "tools/development/checks.json": "ceb8a875498e57990726e2a48c0b8c06de3bf68288f652c476bcf5bd28951320",
+      "tools/development/deployed_review/run.py": "699690202a58909a2fca17850333d8b5dcd665751513676aaa907c9e8db51cac",
+      "tools/development/registry.py": "dc9020af872987a1290280dae61057665f3ef4a288224a32f9b4deecc59b8838",
+      "tools/development/study86/__main__.py": "c91daf3b27b4eafab43c043c957702f3654089901eae0e9c1beea2d3a892c048",
+      "tools/development/study86/analysis.py": "162272e41b4bfc58d170e7ece350a3e6ebff2270420eea1f11fdfeeaa0011747",
+      "tools/development/study86/billing.py": "8cbe6df7186db3db709c67d3e3b90bdb7655893f6ec21d3a3db6bb5bfb23b9c5",
+      "tools/development/study86/context.py": "aa2d0a8bae920f6c0821baf2d2c5a4a4d88affb765543066bc1a8e1a9fa260e6",
+      "tools/development/study86/controls.py": "42288952430ce8cd790dc1962a3a69c4c4ca7e7711909baf67f3e8aff55b8e41",
+      "tools/development/study86/experiment.py": "15beeb7f29765c1647ac7cfcc3af7255a81464da5b772fba2cb368996e535489",
+      "tools/development/study86/grading.py": "664a47fdcfde2bcbfc78b696a7c4c387579235ef2eb9b15cee93ce2afb804c2b",
+      "tools/development/study86/inside.py": "5dd6f79ecec42380ba032dd950b6fb1117bdb88b47b28af301d2b780596489f8",
+      "tools/development/study86/prune_image.py": "5a48a9d8f1d1d2a36a309447bed776c260c7f3cf1aad3baa04718f53b27c0285",
+      "tools/development/study86/query-control.cjs": "b2ac23bc28dfbefa17667fbfc8430ca4a443a243b2c96a1d8b8e9b663310029c",
+      "tools/development/study86/tasks.json": "b70234d58d3d8b4d6555ac0fa39e205c4b79a137d42c2b214e0d6a9a13d87b58",
+      "tools/development/study86/validate.py": "86119415f77e70f3ae49d5e3065b4d63a745d557e7695bb1fd41d2a58eb009b8",
+      "tools/development/study86/verifier.Dockerfile": "d76826daaea8089a4050ded9f271604202dd686c78dc6c4ea10ec944f6faef14",
+      "tools/development/study86/vitest.mjs": "e0196560fbcf2c6a00921d3f96db7f2e328d3773cdc866156455d2625ef44b23",
+      "tools/development/study86/whitespace_control.py": "d2456aaff214b134f0287c0768dc765ff08ec834e353d7c5a675dbc57c988a4c",
+      "tools/project_graph/README.md": "07c907ec09dfc370a2ae4f8788177c78593ccafdfdb44e3c67eeba64f75671dd",
+      "tools/project_graph/__init__.py": "fe0d5d00d872fbe6bc725009d881de0c4e2ddcbea8ced2e912d13d4b431fe137",
+      "tools/project_graph/__main__.py": "263509a6ed542d4a08282bbf191f46accfbd847973c2ce04f1a3758abf6067bd",
+      "tools/project_graph/benchmark.py": "7739f3429b3f0a63fe6df716cec133cbf36f7321652b84d318de395cdd0ca808",
+      "tools/project_graph/ci.py": "5ff106d41c2ebb80d236ff9a22f8d78b21c311f14f685fe1306edd683992344b",
+      "tools/project_graph/collection.py": "ef6a471d4b35c688781093e5a11ba568d2d36b782e6c95b4e8766f7581d1520a",
+      "tools/project_graph/compiler.py": "74ee39f2abd41873fce5cfae21109c245112fe885ee3f4321987378caf66cd87",
+      "tools/project_graph/explorer.py": "3ea623add18bb1231bc5860249c9696e23a5651d97edc5547e09d220e66fd481",
+      "tools/project_graph/integration.py": "d1ea56b2e9d91b768e09b15678394383b5952c96045e05127324581413c8d677",
+      "tools/project_graph/pytest_inventory.py": "20de90b7112198e3e6d0a9cf9029950273a75aa2527eb9e00ee78d04d50b1f34",
+      "tools/project_graph/queries.py": "5f756d07ef493f45789da90a5c677c4b96b8d5e67d5191de5d59d1c2417ba0e4",
+      "tools/project_graph/records.py": "4ab5b24a3b6e65531adea225c11f2cb17a3a7538ff8365a3068607adc9b343b3",
+      "tools/project_graph/release.py": "feabfd07e891de3e171a4b44e7505a47ee12f42e2f2889718c7fc534755cbbf2",
+      "tools/project_graph/repository.py": "38351eff2017f687a24e591830ad1d0a2bb1e068ad4afef0c32507151f6f4595",
+      "tools/project_graph/verification.py": "0c0158dfebb7aed09a250c2e1c71b7db7c18da4b39dbc420d8e5781b81d6b2fc"
+    },
+    "acceptance": "Matching reported primary model, applicable in-scope patch, every exact held-out case/build passing and owned cleanup. Docs additionally require 5/5 fixed rubric criteria and no veto.",
+    "successors": "Each arm/repeat uses its own applicable predecessor patch, even if earlier held-outs failed. Inapplicable/error predecessors block the successor without another call.",
+    "stopping": "No automatic paid retry/correction. Unknown outcome, changed source/model/environment or failed grader calibration stops new work. Budget stop retains unmatched/unreached observations as missing, never passed.",
+    "metrics": [
+      "held-out acceptance and regressions",
+      "implementation vs infrastructure failures",
+      "requested/observed model usage and estimates per accepted patch",
+      "context/model/validation/review wall time",
+      "known required consumers missed",
+      "out-of-scope context byte proxy",
+      "declaration changes and automated graph preparation effort",
+      "own-patch successive quality"
+    ],
+    "limitations": [
+      "12 slots, 10 historical + 2 successors; smaller than proposed 30\u201350 independent tasks under $50",
+      "Python/TypeScript engine pair and shared development-tool tasks are correlated",
+      "component filenames are retrospectively localized; solution code and held-outs are withheld from primary context",
+      "current frozen third-party dependencies, historical SDK source rebuilt per candidate",
+      "same-model rubric is not human review or independent weights",
+      "source-window/character/output bounds and fixed search recipe are not adaptive agent exploration",
+      "human labor/maintenance time and Codex orchestration charges are not measured",
+      "graph maintenance is declaration-change/automated-preparation evidence, not a claim about human effort",
+      "no CI reduction, autonomy expansion or runtime/manifest changes"
+    ]
+  },
+  "analysis": {
+    "protocolSha256": "04acb382b05fe90b87fff508dce42dfde2057e689c86eb63a4f35c80c6ba5d18",
+    "authority": "descriptive localized patch pilot; not human PR acceptance",
+    "recoverableInfrastructureEvents": [],
+    "requestedPrimaryCells": 72,
+    "observedPrimaryOutcomes": 1,
+    "unreachedPrimaryCells": 71,
+    "pendingPaidOutcomes": [],
+    "reportedEstimateUSDAllStudyInvocations": 2.35516,
+    "reportedInvocationCount": 7,
+    "costBasis": "Claude CLI reported estimates including all auxiliary models; not a provider invoice. Normal development/code reviews and unmetered Codex orchestration are separate.",
+    "arms": {
+      "search": {
+        "outcomes": 1,
+        "accepted": 0,
+        "acceptanceOnObservedSlots": 0.0,
+        "repeatAccepted": [
+          0,
+          0
+        ],
+        "reportedEstimateUSD": 1.4499,
+        "estimatePerAcceptedPatch": null,
+        "cliReportedMedianSeconds": 70.026,
+        "contextPreparationMedianSeconds": 0.43747925013303757,
+        "nativeValidationMedianSeconds": null,
+        "reviewMedianSeconds": null,
+        "failureClasses": {
+          "infrastructure-api": 1
+        },
+        "declarationEdits": 0,
+        "declarationMetricLimit": "Edit scopes are frozen in this component study; zero is by design, not zero human graph-maintenance cost.",
+        "sourceCharacters": 45634,
+        "outsideAssignedScopeSourceCharacters": 36436,
+        "contextProxyLimit": "Outside assigned implementation/context/held-out paths, not a semantic irrelevance label; dependencies can still be useful.",
+        "knownConsumersNotSatisfied": {},
+        "observedModelTokens": {
+          "claude-fable-5": {
+            "inputTokens": 6,
+            "outputTokens": 6144,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 57132
+          }
+        }
+      },
+      "graph": {
+        "outcomes": 0,
+        "accepted": 0,
+        "acceptanceOnObservedSlots": null,
+        "repeatAccepted": [
+          0,
+          0
+        ],
+        "reportedEstimateUSD": 0,
+        "estimatePerAcceptedPatch": null,
+        "cliReportedMedianSeconds": null,
+        "contextPreparationMedianSeconds": null,
+        "nativeValidationMedianSeconds": null,
+        "reviewMedianSeconds": null,
+        "failureClasses": {},
+        "declarationEdits": 0,
+        "declarationMetricLimit": "Edit scopes are frozen in this component study; zero is by design, not zero human graph-maintenance cost.",
+        "sourceCharacters": 0,
+        "outsideAssignedScopeSourceCharacters": 0,
+        "contextProxyLimit": "Outside assigned implementation/context/held-out paths, not a semantic irrelevance label; dependencies can still be useful.",
+        "knownConsumersNotSatisfied": {},
+        "observedModelTokens": {}
+      },
+      "assembly": {
+        "outcomes": 0,
+        "accepted": 0,
+        "acceptanceOnObservedSlots": null,
+        "repeatAccepted": [
+          0,
+          0
+        ],
+        "reportedEstimateUSD": 0,
+        "estimatePerAcceptedPatch": null,
+        "cliReportedMedianSeconds": null,
+        "contextPreparationMedianSeconds": null,
+        "nativeValidationMedianSeconds": null,
+        "reviewMedianSeconds": null,
+        "failureClasses": {},
+        "declarationEdits": 0,
+        "declarationMetricLimit": "Edit scopes are frozen in this component study; zero is by design, not zero human graph-maintenance cost.",
+        "sourceCharacters": 0,
+        "outsideAssignedScopeSourceCharacters": 0,
+        "contextProxyLimit": "Outside assigned implementation/context/held-out paths, not a semantic irrelevance label; dependencies can still be useful.",
+        "knownConsumersNotSatisfied": {},
+        "observedModelTokens": {}
+      }
+    },
+    "robustness": [],
+    "uncertainty": "Retrospective localized component scopes, only two repeats and correlated task families. Sensitivity ranges are not confidence intervals or population effects.",
+    "unmeasured": [
+      "human labor and maintenance time",
+      "Codex orchestration charges",
+      "provider invoice",
+      "unobserved regressions beyond held-outs",
+      "full interactive-agent productivity"
+    ],
+    "ciDecision": "Keep every mandatory CI/review/release obligation; no autonomy expansion.",
+    "decisionRule": "Assembly is only a positive pilot signal if it wins at least two complete task families in both repeats, the declared deterministic policy guards pass, and it costs at most 1.25x search per accepted patch. These are bounded checks, not arbitrary-adversary proof. Even then it remains experimental; no broader adoption or CI change is authorized.",
+    "completeMatchedTaskRepeats": 0,
+    "pairedSensitivity": {
+      "graph": {
+        "observedDifference": null,
+        "leaveOneFamilyOutRange": null
+      },
+      "assembly": {
+        "observedDifference": null,
+        "leaveOneFamilyOutRange": null
+      }
+    },
+    "complete": false,
+    "assemblyFamiliesWinningBothRepeats": [],
+    "positiveAssemblyPilotSignal": false,
+    "featureDecision": "Retain the existing advisory graph and full verification controls. Keep source assembly experimental: the predeclared adoption signal was not demonstrated; no default or autonomy expansion."
+  },
+  "calibration": {
+    "passed": true,
+    "results": [
+      {
+        "task": "dependent-pr-docs",
+        "control": "reference",
+        "grade": {
+          "passed": true,
+          "criteria": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "veto": false,
+          "confidence": "high",
+          "authority": "separate same-model rubric, not independent weights or human acceptance"
+        }
+      },
+      {
+        "task": "dependent-pr-docs",
+        "control": "empty",
+        "grade": {
+          "passed": false,
+          "criteria": [
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "veto": false,
+          "confidence": "high",
+          "authority": "separate same-model rubric, not independent weights or human acceptance"
+        }
+      },
+      {
+        "task": "dependent-pr-docs",
+        "control": "unsafe",
+        "grade": {
+          "passed": false,
+          "criteria": [
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "veto": true,
+          "confidence": "high",
+          "authority": "separate same-model rubric, not independent weights or human acceptance"
+        }
+      },
+      {
+        "task": "skip-evidence-docs",
+        "control": "reference",
+        "grade": {
+          "passed": true,
+          "criteria": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "veto": false,
+          "confidence": "high",
+          "authority": "separate same-model rubric, not independent weights or human acceptance"
+        }
+      },
+      {
+        "task": "skip-evidence-docs",
+        "control": "empty",
+        "grade": {
+          "passed": false,
+          "criteria": [
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "veto": false,
+          "confidence": "high",
+          "authority": "separate same-model rubric, not independent weights or human acceptance"
+        }
+      },
+      {
+        "task": "skip-evidence-docs",
+        "control": "unsafe",
+        "grade": {
+          "passed": false,
+          "criteria": [
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "veto": true,
+          "confidence": "high",
+          "authority": "separate same-model rubric, not independent weights or human acceptance"
+        }
+      }
+    ]
+  },
+  "interruptionExercise": {
+    "request": "ci-diagnostics-search-r0",
+    "boundary": "response saved, effect pending"
+  },
+  "nativeControls": [
+    {
+      "task": "python-engine",
+      "label": "baseline",
+      "identity": {
+        "revision": "f763c2253cc2df540912280615ca20035f7d3955",
+        "packSha256": "f5fc8215e488af5f42bd21c11e4574f14ad5ec767ba55010dcadc8310595d44e",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_yaml_engine.py",
+          "sha256": "0b77fdb04e3e5c985d90291b348628f9604776b46d47ea38015c2ab385b62a50"
+        }
+      ],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 1,
+              "cases": 8,
+              "failed": 1,
+              "errors": 0,
+              "skipped": 0,
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "python-engine",
+      "label": "reference",
+      "identity": {
+        "revision": "49682c97c0f2f73e7445a4bdcae3e2e31c680ae0",
+        "packSha256": "98f730b0738280f002f557b1c6c30451fe9cf91a5c00b97a535adb1b536f0093",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_yaml_engine.py",
+          "sha256": "0b77fdb04e3e5c985d90291b348628f9604776b46d47ea38015c2ab385b62a50"
+        }
+      ],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 0,
+              "cases": 8,
+              "failed": 0,
+              "errors": 0,
+              "skipped": 0,
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "typescript-engine",
+      "label": "baseline",
+      "identity": {
+        "revision": "f763c2253cc2df540912280615ca20035f7d3955",
+        "packSha256": "f5fc8215e488af5f42bd21c11e4574f14ad5ec767ba55010dcadc8310595d44e",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/typescript/yaml/test/engine.test.ts",
+          "sha256": "b06ef71aaf274fa4ad87976ec2c7c96876b65c7c74c065e1de9af7056a9a2ace"
+        }
+      ],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "historical-typescript-dependency-build",
+              "exitCode": 0,
+              "passed": true
+            },
+            {
+              "kind": "yaml",
+              "exitCode": 1,
+              "cases": 4,
+              "failed": 1,
+              "skipped": 0,
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "typescript-engine",
+      "label": "reference",
+      "identity": {
+        "revision": "49682c97c0f2f73e7445a4bdcae3e2e31c680ae0",
+        "packSha256": "98f730b0738280f002f557b1c6c30451fe9cf91a5c00b97a535adb1b536f0093",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/typescript/yaml/test/engine.test.ts",
+          "sha256": "b06ef71aaf274fa4ad87976ec2c7c96876b65c7c74c065e1de9af7056a9a2ace"
+        }
+      ],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "historical-typescript-dependency-build",
+              "exitCode": 0,
+              "passed": true
+            },
+            {
+              "kind": "yaml",
+              "exitCode": 0,
+              "cases": 4,
+              "failed": 0,
+              "skipped": 0,
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "provider-defaults",
+      "label": "baseline",
+      "identity": {
+        "revision": "58329375cab9dfb0d7e9ca80e48ddbb934c2d7f7",
+        "packSha256": "0332ba99933bb3aef0f04c4ea55945c329b143d7a4dc73c4f0c3ffd9d586201e",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/typescript/temporal/test/provider-defaults.test.ts",
+          "sha256": "841aac7bdc2666311ab7b8473e2b1f5689ab1bf97c961e9eee525626d3387785"
+        }
+      ],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "historical-typescript-dependency-build",
+              "exitCode": 0,
+              "passed": true
+            },
+            {
+              "kind": "temporal",
+              "exitCode": 1,
+              "cases": 14,
+              "failed": 13,
+              "skipped": 0,
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "provider-defaults",
+      "label": "reference",
+      "identity": {
+        "revision": "593e52359e86902f0401c38b4124c7a6e3bbe460",
+        "packSha256": "8bde8f63e1fc89e910ba129471f339418dc072f58c56def9024728bbbb6e00d0",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/typescript/temporal/test/provider-defaults.test.ts",
+          "sha256": "841aac7bdc2666311ab7b8473e2b1f5689ab1bf97c961e9eee525626d3387785"
+        }
+      ],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "historical-typescript-dependency-build",
+              "exitCode": 0,
+              "passed": true
+            },
+            {
+              "kind": "temporal",
+              "exitCode": 0,
+              "cases": 14,
+              "failed": 0,
+              "skipped": 0,
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "neutral-manifest",
+      "label": "baseline",
+      "identity": {
+        "revision": "593e52359e86902f0401c38b4124c7a6e3bbe460",
+        "packSha256": "8bde8f63e1fc89e910ba129471f339418dc072f58c56def9024728bbbb6e00d0",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_manifest.py",
+          "sha256": "160f7f7acd9e0108a7f28c475b015ddf00bdfae872abf8af00f8ac4f811deec2"
+        },
+        {
+          "path": "packages/python/tests/test_observability.py",
+          "sha256": "d904e4bb677567d9962c589e5497c08322fb4b13671ebf484cea47f138859837"
+        },
+        {
+          "path": "packages/typescript/temporal/test/manifest.test.ts",
+          "sha256": "6b79352f9d896b412eaa4702305de3d7092161e384c1af55ae619282d110f310"
+        }
+      ],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 1,
+              "cases": 153,
+              "failed": 2,
+              "errors": 0,
+              "skipped": 0,
+              "passed": false
+            },
+            {
+              "kind": "historical-typescript-dependency-build",
+              "exitCode": 0,
+              "passed": true
+            },
+            {
+              "kind": "temporal",
+              "exitCode": 1,
+              "cases": 6,
+              "failed": 1,
+              "skipped": 0,
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "neutral-manifest",
+      "label": "reference",
+      "identity": {
+        "revision": "56fce3861fa230eaf41e34979edfcd9db92956a7",
+        "packSha256": "b248a612853f9929a4faf9b438b0e7af372ec09bb071509a30b52d09a0f0713b",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_manifest.py",
+          "sha256": "160f7f7acd9e0108a7f28c475b015ddf00bdfae872abf8af00f8ac4f811deec2"
+        },
+        {
+          "path": "packages/python/tests/test_observability.py",
+          "sha256": "d904e4bb677567d9962c589e5497c08322fb4b13671ebf484cea47f138859837"
+        },
+        {
+          "path": "packages/typescript/temporal/test/manifest.test.ts",
+          "sha256": "6b79352f9d896b412eaa4702305de3d7092161e384c1af55ae619282d110f310"
+        }
+      ],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 0,
+              "cases": 153,
+              "failed": 0,
+              "errors": 0,
+              "skipped": 0,
+              "passed": true
+            },
+            {
+              "kind": "historical-typescript-dependency-build",
+              "exitCode": 0,
+              "passed": true
+            },
+            {
+              "kind": "temporal",
+              "exitCode": 0,
+              "cases": 6,
+              "failed": 0,
+              "skipped": 0,
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "graph-ci-ids",
+      "label": "baseline",
+      "identity": {
+        "revision": "793bd4b370570fcfb454049d282c3ad55579df2e",
+        "packSha256": "1417a126e64c6b2e8f0518d14d4d3fc9b6d7b94f8037ead24344b16de59f5ab8",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_project_graph.py",
+          "sha256": "894d00666964b73a46f578f3f9b83febd6c22d991eb1618e322cc00faa4dec8c"
+        }
+      ],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 1,
+              "cases": 35,
+              "failed": 12,
+              "errors": 0,
+              "skipped": 0,
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "graph-ci-ids",
+      "label": "reference",
+      "identity": {
+        "revision": "6946ba70c45084b72ba3b06d3b2c06a31bf186e6",
+        "packSha256": "2d6dba42c63cbb28c67f50e019ce21362ea6981af1fcd8c21530cd8ed436cd30",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_project_graph.py",
+          "sha256": "894d00666964b73a46f578f3f9b83febd6c22d991eb1618e322cc00faa4dec8c"
+        }
+      ],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 0,
+              "cases": 35,
+              "failed": 0,
+              "errors": 0,
+              "skipped": 0,
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "ci-diagnostics",
+      "label": "baseline",
+      "identity": {
+        "revision": "4b77323d81a239febd8b000b2dbf0e40bc04c1ab",
+        "packSha256": "3b811ebe8bbcdf84a8eb9e6e4529846320246f430d5d282ba2eaa151192e96aa",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_development_acceptance.py",
+          "sha256": "a7c2aea5da3e093ef56dc177e688aaad73a0656576904677d9d07a8235951242"
+        }
+      ],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 1,
+              "cases": 12,
+              "failed": 12,
+              "errors": 0,
+              "skipped": 0,
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "ci-diagnostics",
+      "label": "reference",
+      "identity": {
+        "revision": "bc3b1696e9244062d4458b9ec008c2b6f7ce8a2f",
+        "packSha256": "36b34ae4b6e6396e8668590c3913b6e8629f92c608db32eae6c81fc0e7b3dbf7",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_development_acceptance.py",
+          "sha256": "a7c2aea5da3e093ef56dc177e688aaad73a0656576904677d9d07a8235951242"
+        }
+      ],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 0,
+              "cases": 12,
+              "failed": 0,
+              "errors": 0,
+              "skipped": 0,
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "interrupt-cleanup",
+      "label": "baseline",
+      "identity": {
+        "revision": "b657347e5eb176b00dc184523b23c13fb9a6c12d",
+        "packSha256": "cf873c77aedf311f0048c95d8dc4171b393b8da53d174edfd0ced3d929b5fd5c",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_development_process_cleanup.py",
+          "sha256": "73d3df80615b9368c97c597f67c77194686619a433200ad40e3426ccce01baa9"
+        },
+        {
+          "path": "packages/python/tests/test_development_browser_cleanup.py",
+          "sha256": "9b47236f3d016aa7e0bfc3d8ce7f19fdef9c484761f168fd48dcd41ab08b232a"
+        }
+      ],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 1,
+              "cases": 21,
+              "failed": 14,
+              "errors": 0,
+              "skipped": 0,
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "interrupt-cleanup",
+      "label": "reference",
+      "identity": {
+        "revision": "4b77323d81a239febd8b000b2dbf0e40bc04c1ab",
+        "packSha256": "3b811ebe8bbcdf84a8eb9e6e4529846320246f430d5d282ba2eaa151192e96aa",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_development_process_cleanup.py",
+          "sha256": "73d3df80615b9368c97c597f67c77194686619a433200ad40e3426ccce01baa9"
+        },
+        {
+          "path": "packages/python/tests/test_development_browser_cleanup.py",
+          "sha256": "9b47236f3d016aa7e0bfc3d8ce7f19fdef9c484761f168fd48dcd41ab08b232a"
+        }
+      ],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 0,
+              "cases": 21,
+              "failed": 0,
+              "errors": 0,
+              "skipped": 0,
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "skip-evidence",
+      "label": "baseline",
+      "identity": {
+        "revision": "6123ea468bcd59221169165189825a74db7a9745",
+        "packSha256": "b9b669ce9cb326deb6530fb7a295e0aa4fc349efd6ffc9edfad9245159519c01",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_development_pytest_evidence.py",
+          "sha256": "76ff7006274a1ee017be5d92d1c2054b2f4bbfc01bf5a047be7bc54db78d53f0"
+        }
+      ],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 1,
+              "cases": 3,
+              "failed": 3,
+              "errors": 0,
+              "skipped": 0,
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "skip-evidence",
+      "label": "reference",
+      "identity": {
+        "revision": "fe46f0ff1f101d3a1d6efd4d7e333225af54d65d",
+        "packSha256": "851ec551ebdbaba9606e75f8079c833f7712d89f507a444d4ad92a3ab5eb5fbe",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_development_pytest_evidence.py",
+          "sha256": "76ff7006274a1ee017be5d92d1c2054b2f4bbfc01bf5a047be7bc54db78d53f0"
+        }
+      ],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 0,
+              "cases": 3,
+              "failed": 0,
+              "errors": 0,
+              "skipped": 0,
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "console-reads",
+      "label": "baseline",
+      "identity": {
+        "revision": "c31d5ed3799d027a173d0e3ae4cc88a16d571666",
+        "packSha256": "4de1134a69e06cd88a53d97a152835b21cce41d3f9d99c4fbe84cb62e8baca94",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "query",
+              "exitCode": 1,
+              "tests": [
+                {
+                  "name": "bounded execution read sends one request",
+                  "status": "failed"
+                },
+                {
+                  "name": "selected workflow/environment reach API",
+                  "status": "passed"
+                },
+                {
+                  "name": "unavailable error stays visible",
+                  "status": "passed"
+                },
+                {
+                  "name": "ordinary read retains existing retry policy",
+                  "status": "passed"
+                }
+              ],
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "task": "console-reads",
+      "label": "reference",
+      "identity": {
+        "revision": "793bd4b370570fcfb454049d282c3ad55579df2e",
+        "packSha256": "1417a126e64c6b2e8f0518d14d4d3fc9b6d7b94f8037ead24344b16de59f5ab8",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "query",
+              "exitCode": 0,
+              "tests": [
+                {
+                  "name": "bounded execution read sends one request",
+                  "status": "passed"
+                },
+                {
+                  "name": "selected workflow/environment reach API",
+                  "status": "passed"
+                },
+                {
+                  "name": "unavailable error stays visible",
+                  "status": "passed"
+                },
+                {
+                  "name": "ordinary read retains existing retry policy",
+                  "status": "passed"
+                }
+              ],
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    }
+  ],
+  "successorControls": [
+    {
+      "label": "baseline",
+      "identity": {
+        "revision": "6946ba70c45084b72ba3b06d3b2c06a31bf186e6",
+        "packSha256": "2d6dba42c63cbb28c67f50e019ce21362ea6981af1fcd8c21530cd8ed436cd30",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_project_graph.py",
+          "sha256": "894d00666964b73a46f578f3f9b83febd6c22d991eb1618e322cc00faa4dec8c"
+        }
+      ],
+      "result": {
+        "passed": false,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 1,
+        "oomKilled": false,
+        "checks": {
+          "passed": false,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 1,
+              "cases": 38,
+              "failed": 3,
+              "errors": 0,
+              "skipped": 0,
+              "passed": false
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    },
+    {
+      "label": "reference",
+      "identity": {
+        "revision": "6946ba70c45084b72ba3b06d3b2c06a31bf186e6",
+        "packSha256": "2d6dba42c63cbb28c67f50e019ce21362ea6981af1fcd8c21530cd8ed436cd30",
+        "gitObjects": "starting commit and reachable past only"
+      },
+      "heldout": [
+        {
+          "path": "packages/python/tests/test_project_graph.py",
+          "sha256": "894d00666964b73a46f578f3f9b83febd6c22d991eb1618e322cc00faa4dec8c"
+        }
+      ],
+      "result": {
+        "passed": true,
+        "image": "sha256:cfb7ec442dcd81fb8d4a76d30310c473610415f7badda263562760ae4679a112",
+        "authority": "isolated candidate test output",
+        "limits": "component held-outs, not full mandatory CI or independent attestation",
+        "observedResources": {
+          "NanoCpus": 2000000000,
+          "Memory": 2147483648,
+          "PidsLimit": 256,
+          "ReadonlyRootfs": true,
+          "NetworkMode": "none",
+          "Tmpfs": {
+            "/tmp": "rw,size=512m,mode=1777"
+          }
+        },
+        "observedUser": "10001:10001",
+        "containerExitCode": 0,
+        "oomKilled": false,
+        "checks": {
+          "passed": true,
+          "checks": [
+            {
+              "kind": "python",
+              "exitCode": 0,
+              "cases": 38,
+              "failed": 0,
+              "errors": 0,
+              "skipped": 0,
+              "passed": true
+            }
+          ]
+        },
+        "cleanupFailures": []
+      }
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "ci-diagnostics-search-r0",
+      "task": "ci-diagnostics",
+      "arm": "search",
+      "repeat": 0,
+      "protocolSha256": "04acb382b05fe90b87fff508dce42dfde2057e689c86eb63a4f35c80c6ba5d18",
+      "requestId": "p04acb382b0-ci-diagnostics-search-r0",
+      "perturbation": null,
+      "passed": false,
+      "applicable": false,
+      "failureClass": "infrastructure-api",
+      "usage": {
+        "claude-fable-5": {
+          "inputTokens": 6,
+          "outputTokens": 6144,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 57132,
+          "webSearchRequests": 0,
+          "costUSD": 1.4499,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 64000,
+          "canonicalModel": "claude-fable-5",
+          "provider": "firstParty"
+        }
+      },
+      "reportedEstimateUSD": 1.4499,
+      "reportedModelDurationMilliseconds": 70026,
+      "reportedApiDurationMilliseconds": 46748,
+      "modelReportedError": true,
+      "clientExitCode": 1,
+      "context": {
+        "revision": "4b77323d81a239febd8b000b2dbf0e40bc04c1ab",
+        "characters": 47873,
+        "preparationSeconds": 0.43747925013303757,
+        "included": [
+          {
+            "path": "tools/development/acceptance.py",
+            "characters": 7500,
+            "sha256": "167e818ddc157f1efdba757e20912c42b3eab2749bd854b8059cec72e18c75a9",
+            "truncated": true,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/ci-acceptance.yml",
+            "characters": 1698,
+            "sha256": "44de40003b46c63bb879b95684f82df0810596075e8170d4e8ad97ce96672d92",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+            "characters": 2009,
+            "sha256": "6e26fad2b35e464af9693664e2463ca4b82ccbdea3b90aea994b348dfb1bac3a",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/ISSUE_TEMPLATE/design_proposal.yml",
+            "characters": 1506,
+            "sha256": "b276a099471a7f5c06138888bc9fef2e2693ee6f8f44d2f662530b57b5811dd4",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/ISSUE_TEMPLATE/documentation.yml",
+            "characters": 649,
+            "sha256": "5fe6f422607f07bf70c97e1f35e4e6b89076ee1a37d51cae162201219ee183db",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/ISSUE_TEMPLATE/feature_request.yml",
+            "characters": 1069,
+            "sha256": "2f717b90982ca69348f3dd5451be5637ea4390dccad161ac2ddfb0a8484c4d03",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/label-policy.json",
+            "characters": 3207,
+            "sha256": "445371392f96a47d166f12a8a43e6adb194f495e43ac20ee5c59cfb4d37398e9",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/pull_request_template.md",
+            "characters": 729,
+            "sha256": "c727bc0d9a195292f6293039374349eecd0281f3a5a60416381246dd4f25acc6",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/auto-fix.yml",
+            "characters": 3952,
+            "sha256": "916fbecc6820a8a28cb1a711fc121ddac806584b59e980191da2a53384e8a09d",
+            "truncated": true,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/ci.yml",
+            "characters": 1126,
+            "sha256": "e873e3460e5a51fe29b3f0dd5f4843d1912592df17c9129ea05f75c75977cde1",
+            "truncated": true,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/codeql.yml",
+            "characters": 1113,
+            "sha256": "f698df91ed1351c219502223651ad60880c1a520f5094e2d191f910d6344b920",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/dco.yml",
+            "characters": 1627,
+            "sha256": "4518fa367a51171705af9036fe04e53bbce7d93e7b5a57107db8b8174f4ebcde",
+            "truncated": true,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/dependency-freshness.yml",
+            "characters": 1774,
+            "sha256": "d447b3518d85b44ef05315a4bd21130a55cbc9a98dc16ab1e31241ff5c12105c",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/dependency-review.yml",
+            "characters": 1172,
+            "sha256": "156e8600bd542ac6880881b4b8beb6498e950306629c14795ae9e5d2bde88b72",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/release-client.yml",
+            "characters": 2954,
+            "sha256": "4fe1e492106cfa20399163b17e2001f78a7537d34ecc5c551f2ebbe30d5142fd",
+            "truncated": true,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/release-mcp.yml",
+            "characters": 2737,
+            "sha256": "68478d0731fc66b9fe1131818259340c75baada32aeb68edbd52118ad9b49f7c",
+            "truncated": true,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/release-python.yml",
+            "characters": 3611,
+            "sha256": "98b57ea0f21bbe626cafd7629546ddc6247689aac76692f087c38c1066c5a3f7",
+            "truncated": true,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/release-typescript.yml",
+            "characters": 2900,
+            "sha256": "72181dd07ce3c9f05f613531771ea7abead9e111f04da18f5da7c0476a1136da",
+            "truncated": true,
+            "ownPredecessor": false
+          },
+          {
+            "path": ".github/workflows/scorecard.yml",
+            "characters": 1359,
+            "sha256": "2de2029b3fe1a4324e2e55253359ee6a4c9bb5ebe7518487e57ef7cc7d28cecd",
+            "truncated": false,
+            "ownPredecessor": false
+          },
+          {
+            "path": "clients/console/EXTRACTION.md",
+            "characters": 2640,
+            "sha256": "6491dabd9d478d661e3e932ccaf105f5de54175c00e5f4ebe2afdbb6164af1af",
+            "truncated": true,
+            "ownPredecessor": false
+          },
+          {
+            "path": "clients/mcp/NOTICE",
+            "characters": 302,
+            "sha256": "37107846516e3e7ff13161e4e9a8ce67e877d960abc188db597bf20ee41983e0",
+            "truncated": false,
+            "ownPredecessor": false
+          }
+        ],
+        "nonTextSkipped": [],
+        "perturbation": null,
+        "limits": "Fixed ordinary-search recipe and character cap, not adaptive exploration",
+        "omittedPathCount": 401,
+        "omittedPathListSha256": "f8cb70c804bf1b415a8ef8e0440054c73f7d4d77996a9aee451fa5347fda1576"
+      },
+      "graphDigest": null,
+      "primaryPacketSha256": "b5084a76e80046312e53b0cadac544600905ec109c2b4bc50c760a8781968f25",
+      "responseSha256": "2b5f5184732c6fb250a97a95fe7033a94445c30617eb80dad84c650541e4bef0"
+    }
+  ],
+  "paidEstimateLedger": [
+    {
+      "key": "study86-p04acb382b0-calibration-dependent-pr-docs-empty",
+      "state": "confirmed",
+      "receipt": "a840d4a3266e0490d00faa3e5ba227a2442d88318f6bbff17519999ac854b76b",
+      "requestSha256": "11cb5001ce1f66ca77fee018da3e4af878a8e69f426c1f5e9db74c14d3ae002f",
+      "costUSD": 0.01812,
+      "costBasis": "Claude CLI estimate; provider invoice unavailable",
+      "models": {
+        "claude-fable-5": {
+          "cacheCreationInputTokens": 750,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-fable-5",
+          "contextWindow": 1000000,
+          "costUSD": 0.01812,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 62,
+          "provider": "firstParty",
+          "webSearchRequests": 0
+        }
+      },
+      "reportedError": false,
+      "clientExitCode": 0,
+      "clientExitReceipt": "df4d721d233a2334088d2d2e0110346ae9e509ff46bf0b379fbcfa85c715af4d"
+    },
+    {
+      "key": "study86-p04acb382b0-calibration-dependent-pr-docs-reference",
+      "state": "confirmed",
+      "receipt": "34095644001c16c94951ae90ea72ef0677adf6c7304c60550fd73f08923757b4",
+      "requestSha256": "c3c6c597f96e5d483e556c78982fc95b7879d351f8c6073b5905ad5559da1bb4",
+      "costUSD": 0.14804,
+      "costBasis": "Claude CLI estimate; provider invoice unavailable",
+      "models": {
+        "claude-fable-5": {
+          "cacheCreationInputTokens": 7316,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-fable-5",
+          "contextWindow": 1000000,
+          "costUSD": 0.14804,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 34,
+          "provider": "firstParty",
+          "webSearchRequests": 0
+        }
+      },
+      "reportedError": false,
+      "clientExitCode": 0,
+      "clientExitReceipt": "df4d721d233a2334088d2d2e0110346ae9e509ff46bf0b379fbcfa85c715af4d"
+    },
+    {
+      "key": "study86-p04acb382b0-calibration-dependent-pr-docs-unsafe",
+      "state": "confirmed",
+      "receipt": "0cddb3e5f2e221bf9afdec9d90682970857a8ff223b6b283b1af4357631068e9",
+      "requestSha256": "fd13027e01327556365701dd062d5e2aed0a1e03fb7cea5a96c494724e2c95a9",
+      "costUSD": 0.01786,
+      "costBasis": "Claude CLI estimate; provider invoice unavailable",
+      "models": {
+        "claude-fable-5": {
+          "cacheCreationInputTokens": 807,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-fable-5",
+          "contextWindow": 1000000,
+          "costUSD": 0.01786,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 34,
+          "provider": "firstParty",
+          "webSearchRequests": 0
+        }
+      },
+      "reportedError": false,
+      "clientExitCode": 0,
+      "clientExitReceipt": "df4d721d233a2334088d2d2e0110346ae9e509ff46bf0b379fbcfa85c715af4d"
+    },
+    {
+      "key": "study86-p04acb382b0-calibration-skip-evidence-docs-empty",
+      "state": "confirmed",
+      "receipt": "d4636f1e3775cf481e62fd862fc9c9067ea57fc2f1071f4f313c7b393765677b",
+      "requestSha256": "cd03db55711ebc20a6a1f08039de0814240658ef5c79c15e49a2f4541794abd3",
+      "costUSD": 0.18710000000000002,
+      "costBasis": "Claude CLI estimate; provider invoice unavailable",
+      "models": {
+        "claude-fable-5": {
+          "cacheCreationInputTokens": 9154,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-fable-5",
+          "contextWindow": 1000000,
+          "costUSD": 0.18710000000000002,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 80,
+          "provider": "firstParty",
+          "webSearchRequests": 0
+        }
+      },
+      "reportedError": false,
+      "clientExitCode": 0,
+      "clientExitReceipt": "df4d721d233a2334088d2d2e0110346ae9e509ff46bf0b379fbcfa85c715af4d"
+    },
+    {
+      "key": "study86-p04acb382b0-calibration-skip-evidence-docs-reference",
+      "state": "confirmed",
+      "receipt": "5778387172630b8ff2607da2b2dc631949ee81e4e5a4f8a0fcc4bf6eb6ef10e3",
+      "requestSha256": "550dc6d1732e5be32287bfac07f8a14c9ee9d5a87792e78679c28c88629feb22",
+      "costUSD": 0.34878,
+      "costBasis": "Claude CLI estimate; provider invoice unavailable",
+      "models": {
+        "claude-fable-5": {
+          "cacheCreationInputTokens": 17233,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-fable-5",
+          "contextWindow": 1000000,
+          "costUSD": 0.34878,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 82,
+          "provider": "firstParty",
+          "webSearchRequests": 0
+        }
+      },
+      "reportedError": false,
+      "clientExitCode": 0,
+      "clientExitReceipt": "df4d721d233a2334088d2d2e0110346ae9e509ff46bf0b379fbcfa85c715af4d"
+    },
+    {
+      "key": "study86-p04acb382b0-calibration-skip-evidence-docs-unsafe",
+      "state": "confirmed",
+      "receipt": "b2c12afe6b568302797322f599ad32009d32486806b58df5cf3bbc4bfee5bcb4",
+      "requestSha256": "434aabad745c08c89d937776e5751d4afe1095256107e469524f28c17df2a9f7",
+      "costUSD": 0.18535999999999997,
+      "costBasis": "Claude CLI estimate; provider invoice unavailable",
+      "models": {
+        "claude-fable-5": {
+          "cacheCreationInputTokens": 9182,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-fable-5",
+          "contextWindow": 1000000,
+          "costUSD": 0.18535999999999997,
+          "inputTokens": 2,
+          "maxOutputTokens": 64000,
+          "outputTokens": 34,
+          "provider": "firstParty",
+          "webSearchRequests": 0
+        }
+      },
+      "reportedError": false,
+      "clientExitCode": 0,
+      "clientExitReceipt": "df4d721d233a2334088d2d2e0110346ae9e509ff46bf0b379fbcfa85c715af4d"
+    },
+    {
+      "key": "study86-p04acb382b0-ci-diagnostics-search-r0",
+      "state": "confirmed",
+      "receipt": "2b5f5184732c6fb250a97a95fe7033a94445c30617eb80dad84c650541e4bef0",
+      "requestSha256": "1e9c1ea7d11cda019256119489f72771a1585a4c0f68d5e676a510717536d782",
+      "costUSD": 1.4499,
+      "costBasis": "Claude CLI estimate; provider invoice unavailable",
+      "models": {
+        "claude-fable-5": {
+          "cacheCreationInputTokens": 57132,
+          "cacheReadInputTokens": 0,
+          "canonicalModel": "claude-fable-5",
+          "contextWindow": 1000000,
+          "costUSD": 1.4499,
+          "inputTokens": 6,
+          "maxOutputTokens": 64000,
+          "outputTokens": 6144,
+          "provider": "firstParty",
+          "webSearchRequests": 0
+        }
+      },
+      "reportedError": true,
+      "clientExitCode": 1,
+      "clientExitReceipt": "8869ca5e7f3ae989b151917c32f706ea8b83fd8d2ab5fd425117c4860c4e595f"
+    }
+  ],
+  "limits": "Raw response records and diagnostics remain private; extracted candidate patches and primary result text are included as inert untrusted data. No provider invoice or human productivity measurement.",
+  "sourceReconstruction": {
+    "patch": "docs/verification/graph-study-v1-source.patch",
+    "sha256": "e452b203e0df1c4f4b8a175654982f1a794553a81f7bf03590fb59ca5fe7cd51",
+    "verification": "Applied only in a private temporary copy; all 39 frozen source hashes matched. Inspect historical evidence only; do not rerun paid calls or reset the cumulative study ledger."
+  },
+  "curation": "Machine paths and raw diagnostics omitted. Included source paths/hashes and primary-packet hashes retained; omitted-path lists are represented by count and SHA256 of compact JSON in original order. Full raw records remain private. Candidate text/patches are inert untrusted data."
+}

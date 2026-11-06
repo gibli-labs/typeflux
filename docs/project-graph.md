@@ -378,6 +378,10 @@ or production access.
 
 ## Evaluation plan
 
+See the [matched component pilot](graph-development-study.md) for the budgeted
+#86 protocol and its narrower scope. The navigation diagnostic remains a retrieval
+check; neither it nor local graph declarations certify development productivity.
+
 Build evaluation with the first graph slice. Start with approximately 30–50
 representative tasks across SDK behavior, contracts, console journeys, docs,
 and deployment logic, expanding as smaller effects need more observations.
