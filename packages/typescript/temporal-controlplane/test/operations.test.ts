@@ -54,6 +54,82 @@ const goodMemo = (): Record<string, unknown> => ({
   typeflux_spec_digest: DIGEST,
 });
 
+describe("lifecycle query worker availability", () => {
+  const details = "no poller seen for task queue recently, worker may be down";
+  const noPoller = () => Object.assign(new Error("9 FAILED_PRECONDITION: " + details), {code: 9, details});
+  const wrap = (error: Error) => new Error("fixture query wrapper", {cause: error});
+  const fixture = (failure: Error, phase: "query" | "describe" | "signal" | "start" = "query") => {
+    const {client, calls} = fakeClient({type: YAML_WORKFLOW_TYPE, runId: "run-1", memo: goodMemo()});
+    const getHandle = client.getHandle;
+    let queries = 0;
+    client.getHandle = (id, runId) => {
+      const handle = getHandle(id, runId);
+      return {...handle,
+        describe: phase === "describe" ? async () => {throw failure;} : handle.describe,
+        query: phase === "query" ? async () => {queries++; throw failure;} : handle.query,
+        signal: phase === "signal" ? async (...args) => {await handle.signal(...args); throw failure;} : handle.signal,
+      };
+    };
+    if (phase === "start") client.start = async () => {throw failure;};
+    return {ops: new WorkflowOperations(SPEC, {clientFactory: async () => client}), calls, queries: () => queries};
+  };
+
+  it("maps raw and wrapped typed no-poller status queries to worker unavailability", async () => {
+    for (const failure of [noPoller(), wrap(noPoller()), wrap(wrap(noPoller()))]) {
+      const {ops, calls, queries} = fixture(failure);
+      await expect(ops.status("exec-1", {runId: "run-1"})).rejects.toMatchObject({status: 503});
+      expect(queries()).toBe(1);
+      expect(calls.signals).toEqual([]);
+    }
+  });
+
+  it("preserves other codes, preconditions and unqualified query messages", async () => {
+    for (const failure of [Object.assign(new Error("other precondition"), {code: 9, details: "another state"}),
+      Object.assign(new Error(details), {code: 5, details}), Object.assign(new Error(details), {code: 9})]) {
+      const {ops} = fixture(wrap(failure));
+      await expect(ops.status("exec-1")).rejects.toMatchObject({cause: failure});
+      await expect(ops.status("exec-1")).rejects.not.toBeInstanceOf(ProjectControlPlaneError);
+    }
+  });
+
+  it("does not classify no-poller-shaped describe failures as query availability", async () => {
+    const failure = wrap(noPoller());
+    const {ops, queries, calls} = fixture(failure, "describe");
+    await expect(ops.status("exec-1")).rejects.toBe(failure);
+    expect(queries()).toBe(0);
+    expect(calls.signals).toEqual([]);
+  });
+
+  it("preserves signal and start failures without mutation retry", async () => {
+    const failure = wrap(noPoller());
+    const signal = fixture(failure, "signal");
+    await expect(signal.ops.submitReview("exec-1", {user_decision: "approve"})).rejects.toBe(failure);
+    expect(signal.calls.signals).toHaveLength(1);
+    const start = fixture(failure, "start");
+    await expect(start.ops.start({}, {workflowId: "exec-2"})).rejects.toBe(failure);
+  });
+
+  it("bounds cyclic and overdeep no-poller query causes", async () => {
+    const cycle = Object.assign(new Error("fixture cycle"), {cause: undefined as unknown});
+    cycle.cause = cycle;
+    let deep: Error = noPoller();
+    for (let count = 0; count < 5; count++) deep = wrap(deep);
+    for (const failure of [cycle, deep]) {
+      const {ops} = fixture(failure);
+      await expect(ops.status("exec-1")).rejects.toBe(failure);
+    }
+  });
+
+  it("returns fixed worker guidance without copying wrapper payloads", async () => {
+    const {ops} = fixture(new Error("fixture private wrapper text", {cause: noPoller()}));
+    let caught: unknown;
+    try {await ops.status("exec-1");} catch (error) {caught = error;}
+    expect(caught).toBeInstanceOf(ProjectControlPlaneError);
+    expect((caught as Error).message).toContain("compatible worker");
+    expect((caught as Error).message).not.toContain("fixture private wrapper text");
+  });
+});
+
 interface FakeCalls {
   getHandle: Array<{ workflowId: string; runId: string | undefined }>;
   starts: StartHandleOptions[];

@@ -243,6 +243,17 @@ repeats it and executes from the beginning. Their append-only test logs observe
 external effects; they are not runtime checkpoints or a persistence service.
 Neither lane proves behavior in a deployed environment.
 
+The isolated Temporal lane also exercises the native TypeScript no-poller status
+condition with a separately owned loopback CLI/SQLite service and worker. A gate
+and acknowledged first activity precede worker stop and service kill/restart. The
+same run must produce the actual native code 9 and recognized no-poller details;
+the real API then returns 503 with compatible-worker guidance and zero review
+signals. A never-polled queue's ordinary deadline does not satisfy that proof.
+The test uses the maintained pinned CLI, checks its owned startup output, retains
+the service log under Temporal evidence, and cleans up its own processes/data.
+This does not establish cloud or arbitrary worker-upgrade recovery. Client/query
+error classification adds no runtime metadata or execution-manifest event.
+
 The isolated Temporal lane also runs the existing Python sandboxed YAML workflow,
 both child-composition executions, and YAML subworkflow IDs/memo/map and occupied-child
 collision proofs against its owned, pinned server with fake providers. Search-attribute

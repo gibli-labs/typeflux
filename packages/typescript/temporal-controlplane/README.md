@@ -68,6 +68,12 @@ land, and an unreachable cluster surfaces as a 503 `TemporalUnavailable`. Input 
 validated against the workflow's injected schema before dispatch (422 on
 mismatch, Python `_coerce_input` parity).
 
+Lifecycle status also returns 503 `TemporalUnavailable` for the recognized native
+no-poller query condition, with guidance to restore a compatible worker and refresh.
+This is a narrow code/details match after execution binding; other preconditions
+and describe/start/signal errors keep their mappings. No mutation retry or workflow
+progress is implied by the availability response.
+
 `migrate` (#204) is the long-drain primitive — terminate-and-resubmit with input
 carry-over, addressed like cancel/review (`execution_id` + optional `run_id`).
 Every start-leg precondition (same-version, serving workers, open gates,

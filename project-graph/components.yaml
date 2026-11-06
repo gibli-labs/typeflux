@@ -50,6 +50,7 @@ entities:
     description: TypeScript control plane and HTTP operations.
     paths: [packages/typescript/temporal-controlplane/**]
     links:
+      - {relation: implements, target: capability.temporal-query-availability}
       - {relation: implements, target: capability.workflow-review}
       - {relation: provides, target: 'api:review_api_v1_projects__project__workflows__workflow_id__review_post'}
       - {relation: provides, target: 'api:status_api_v1_projects__project__workflows__workflow_id__status_get'}

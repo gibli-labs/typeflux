@@ -34,7 +34,7 @@ const provider = {
   structuredCall: () => ({ value: "ok", reviews: [{ value: "ok" }] }),
 };
 
-const connection = await NativeConnection.connect({ address: "localhost:7233" });
+const connection = await NativeConnection.connect({ address: spec.runtime.temporal?.address ?? "localhost:7233" });
 const runtime = await buildRuntime(spec, { provider, schemas, worker: { connection } });
 const workerRun = runtime.worker.run();
 console.log(JSON.stringify({ event: "ready", taskQueue: runtime.taskQueue }));
