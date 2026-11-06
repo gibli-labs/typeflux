@@ -1433,6 +1433,20 @@ def test_review_permission_denial_never_dispatches_signal(
     assert not _FakeOperations.calls
 
 
+def test_malformed_review_never_constructs_operations_or_dispatches_signal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = _ops_client(tmp_path, monkeypatch)
+    response = client.post(
+        "/api/v1/workflows/workflow/review",
+        json={"environment_id": "local", "execution_id": "case-1", "command": {}},
+    )
+    assert response.status_code == 422
+    assert not _FakeOperations.calls
+    assert not _FakeOperations.recorded
+
+
 def test_migrate_route_addresses_like_cancel_with_optional_run_id(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

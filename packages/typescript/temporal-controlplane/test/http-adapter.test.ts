@@ -1125,6 +1125,12 @@ describe("operate tier routes — refresh/repin/204/body-validation (#563)", () 
     ).rejects.toMatchObject({ status: 403, message: "operation requires the 'review' permission" });
   });
 
+  it("a malformed review is refused before the unreachable backend can dispatch", async () => {
+    await expect(post("/api/v1/workflows/workflow/review", {
+      environment_id: "unreachable", execution_id: "e", command: {},
+    })).rejects.toMatchObject({status: 422});
+  });
+
   it("cancel permission gate: a reader 403s with the 'cancel' message", async () => {
     const tokenCtx = {
       registry: loadProjectRegistry(REGISTRY_PATH),

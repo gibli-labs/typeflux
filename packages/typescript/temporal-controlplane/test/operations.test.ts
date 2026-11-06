@@ -571,6 +571,42 @@ describe("WorkflowOperations.status/review/cancel (#563)", () => {
     ]);
   });
 
+  const refuseReview = async (description: WorkflowDescription) => {
+    const {client, calls} = fakeClient({...description, runId: "foreign-run"});
+    const ops = new WorkflowOperations(SPEC, {clientFactory: async () => client});
+    await expect(ops.submitReview("exec-1", {user_decision: "approve"})).rejects.toMatchObject({status: 409});
+    expect(calls.signals).toEqual([]);
+  };
+  it("review refuses workflow type binding without signalling", () => refuseReview({type: "foreign", memo: goodMemo()}));
+  it("review refuses project binding without signalling", () => refuseReview({type: YAML_WORKFLOW_TYPE, memo: {...goodMemo(), typeflux_project: "foreign"}}));
+  it("review refuses workflow binding without signalling", () => refuseReview({type: YAML_WORKFLOW_TYPE, memo: {...goodMemo(), typeflux_workflow: "foreign"}}));
+  it("review refuses version binding without signalling", () => refuseReview({type: YAML_WORKFLOW_TYPE, memo: {...goodMemo(), typeflux_workflow_version: "stale"}}));
+
+  it("an unavailable describe cannot dispatch a review signal", async () => {
+    const {client, calls} = fakeClient(async () => {throw Object.assign(new Error("unavailable"), {code: 14});});
+    const ops = new WorkflowOperations(SPEC, {clientFactory: async () => client});
+    await expect(ops.submitReview("exec-1", {user_decision: "approve"})).rejects.toMatchObject({status: 503});
+    expect(calls.signals).toEqual([]);
+  });
+
+  it("an uncertain review response is not retried and can be reconciled by status", async () => {
+    const {client, calls} = fakeClient({type: YAML_WORKFLOW_TYPE, runId: "run-1", memo: goodMemo()}, {status: {state: "completed"}});
+    const getHandle = client.getHandle;
+    client.getHandle = (id, runId) => {
+      const handle = getHandle(id, runId);
+      const signal = handle.signal;
+      return {...handle, signal: async (name, ...args) => {
+        await signal(name, ...args); // Accepted effect, then a lost response.
+        throw Object.assign(new Error("response unavailable"), {code: 14});
+      }};
+    };
+    const ops = new WorkflowOperations(SPEC, {clientFactory: async () => client});
+    await expect(ops.submitReview("exec-1", {user_decision: "approve"}, {runId: "run-1"})).rejects.toMatchObject({status: 503});
+    expect(calls.signals).toHaveLength(1);
+    expect((await ops.status("exec-1", {runId: "run-1"})).status.state).toBe("completed");
+    expect(calls.signals).toEqual([{type: "typeflux_submit_review@run-1", args: [{user_decision: "approve"}]}]);
+  });
+
   it("requestCancel signals typeflux_request_cancel with the reason (null when absent)", async () => {
     const { client, calls } = fakeClient({ type: YAML_WORKFLOW_TYPE, runId: "run-1", memo: goodMemo() });
     const ops = new WorkflowOperations(SPEC, { clientFactory: async () => client });

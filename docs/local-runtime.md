@@ -12,6 +12,11 @@ timeout and native delayed-start observations in both editions. It also shows
 external invocation of the Local CLI/SDK by an existing scheduler. It introduces
 no Local scheduling service, persistence or recovery guarantee.
 
+The [review adoption guide](temporal-review-adoption.md) demonstrates existing
+Temporal review gates and lifecycle operations, with bound runs, operator
+permissions and observed routed completion. These operations remain unsupported
+by Local.
+
 These instructions describe the current source and candidate packages. They do
 not assert that a release containing this feature has been published. For a fresh
 installation and executable offline CLI/SDK examples, use the
@@ -452,7 +457,7 @@ reports paths rather than silently degrading them. Keep completed effects when
 planning a rerun. Durability adoption is covered by
 [#90](https://github.com/gibli-labs/typeflux/issues/90), and scheduling by the
 [native delay/external-trigger guide](temporal-adoption.md#observe-a-native-delayed-start).
+Review/lifecycle adoption is covered by [its guide](temporal-review-adoption.md).
 Remaining adoption work is tracked in
-[#92](https://github.com/gibli-labs/typeflux/issues/92) (review/lifecycle),
 [#93](https://github.com/gibli-labs/typeflux/issues/93) (compensation) and
 [#94](https://github.com/gibli-labs/typeflux/issues/94) (management surfaces).

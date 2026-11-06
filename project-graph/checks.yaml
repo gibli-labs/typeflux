@@ -7,8 +7,12 @@ entities:
     ci: [python-3.12]
     tests:
       - {path: packages/python/tests/test_controlplane_api.py, name: test_review_permission_denial_never_dispatches_signal}
+      - {path: packages/python/tests/test_controlplane_api.py, name: test_malformed_review_never_constructs_operations_or_dispatches_signal}
       - {path: packages/python/tests/test_controlplane_api.py, name: test_review_and_cancel_return_no_content}
       - {path: packages/python/tests/test_controlplane_api.py, name: test_lifecycle_binding_error_maps_to_409}
+      - {path: packages/python/tests/test_yaml.py, name: test_lifecycle_signals_verify_binding_before_dispatch}
+      - {path: packages/python/tests/test_yaml.py, name: test_review_describe_failure_never_dispatches_signal}
+      - {path: packages/python/tests/test_yaml.py, name: test_uncertain_review_is_not_retried_and_status_can_reconcile}
       - {path: packages/python/tests/test_project.py, name: test_project_cli_review_submits_the_decision_with_gate_semantics}
     links:
       - {relation: verifies, target: invariant.execution-binding}
@@ -22,6 +26,13 @@ entities:
       - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'submitReview signals typeflux_submit_review with the command'}
       - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 're-pins to the described run id when the handle was id-only (TOCTOU guard)'}
       - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'a gRPC UNAVAILABLE on describe maps to 503 (top-level .code)'}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'an unavailable describe cannot dispatch a review signal'}
+      - {path: packages/typescript/temporal-controlplane/test/http-adapter.test.ts, name: 'a malformed review is refused before the unreachable backend can dispatch'}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'review refuses workflow type binding without signalling'}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'review refuses project binding without signalling'}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'review refuses workflow binding without signalling'}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'review refuses version binding without signalling'}
+      - {path: packages/typescript/temporal-controlplane/test/operations.test.ts, name: 'an uncertain review response is not retried and can be reconciled by status'}
     links:
       - {relation: verifies, target: invariant.execution-binding}
       - {relation: verifies, target: invariant.review-failure}
@@ -43,12 +54,15 @@ entities:
       - {relation: verifies, target: invariant.review-failure}
   - id: check.review-temporal
     kind: check
-    description: Real local Temporal with fake providers; both control planes acknowledge a review and observe workflow completion. Runs in isolated CI and local development without external provider credentials.
+    description: Real local Temporal with fake providers; both control planes acknowledge a review and observe workflow completion. Both documented SDK demos observe a gate before signalling, target a pinned run, then verify its selected route, started steps, completed lifecycle and validated result. Runs in isolated CI and local development without external provider credentials.
     environment: local-temporal
     ci: [temporal]
     tests:
       - {path: packages/python/tests/test_live_ts_binding.py, name: test_python_cp_operates_a_ts_execution_live}
       - {path: packages/typescript/temporal-controlplane/test/live-operate.test.ts, name: 'starts, reaches the review gate, approves to completion'}
+      - {path: packages/python/tests/test_live_review_adoption.py, name: test_documented_review_adoption_observes_bound_gate_route_and_result}
+      - {path: packages/typescript/temporal-yaml/test/live-review-adoption.test.ts, name: 'observes the bound gate, selected route and result through the documented SDK caller'}
+      - {path: packages/typescript/temporal-yaml/test/live-review-adoption.test.ts, name: 'preserves a rejected start and submits no review decision'}
     links:
       - {relation: verifies, target: invariant.review-progress}
       - {relation: verifies, target: invariant.execution-binding}

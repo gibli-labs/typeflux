@@ -216,6 +216,11 @@ documented offline-to-Temporal starters, recovery/timeout demonstrations and nat
 delayed-start examples. The delay examples inspect recorded backoff and task
 timestamps, same-run completion and validated output, with Python observing a
 pending task before its worker starts and TypeScript using an available worker.
+It also executes both documented lifecycle-review SDK demos, verifying the
+observed gate before a pinned decision and the routed lifecycle/result afterwards.
+Operation/HTTP tests separately cover binding, permissions, malformed commands,
+unavailable-before-dispatch and uncertain-response reconciliation; these doubles
+do not establish live network delivery or deployed recovery.
 Separate foreground CLI subprocess tests in the Python and TypeScript
 lanes use SIGKILL after a completed first-step effect, then verify a fresh command
 repeats it and executes from the beginning. Their append-only test logs observe
