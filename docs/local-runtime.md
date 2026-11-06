@@ -49,7 +49,7 @@ quickstarts; the maintained probes install and exercise the same candidate input
 | Durable scheduling, timers, signals/queries, human review and lifecycle operations | Unsupported; configured features are refused | Use the existing Temporal integration |
 | Compensation | Unsupported; completed effects remain | Existing configured compensation support; external effects still require application design |
 | Independently addressable child executions | No; children are in-process calls | Temporal child workflows |
-| Console/control-plane/MCP management of runs | Outside the local runtime MVP | Existing Temporal management surfaces |
+| Console/control-plane/MCP management of runs | Unsupported; [CLI/SDK-only ownership decision](local-management-decision.md) | Existing Temporal management surfaces |
 
 Local execution never falls back automatically from an unavailable Temporal
 service. Neither engine implies exactly-once external side effects. Logs, caches,
@@ -463,4 +463,4 @@ planning a rerun. Durability adoption is covered by
 [native delay/external-trigger guide](temporal-adoption.md#observe-a-native-delayed-start).
 Review/lifecycle adoption is covered by [its guide](temporal-review-adoption.md).
 Compensation adoption is covered by [its guide](temporal-compensation-adoption.md).
-Management-surface evaluation remains [#94](https://github.com/gibli-labs/typeflux/issues/94).
+Management surfaces retain [CLI/SDK-only Local execution](local-management-decision.md).

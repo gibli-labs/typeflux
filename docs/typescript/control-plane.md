@@ -13,7 +13,8 @@ server** — snake_case DTO field names match exactly.
 
 Run-management operations are Temporal-backed. `@typeflux/yaml` local execution
 uses its foreground CLI/SDK and does not add local run management to this server,
-the console or MCP. See the [local runtime guide](../local-runtime.md).
+the console or MCP. See the [local runtime guide](../local-runtime.md) and
+[CLI/SDK-only management decision](../local-management-decision.md).
 
 ## Serving a TypeScript project
 

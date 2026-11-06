@@ -16,7 +16,8 @@ Temporal execution operations; workflows stay authored in code and YAML.
 The run-management operations described here are Temporal-backed. The local
 foreground CLI/SDK does not expose durable handles, lifecycle operations or a
 managed local service through this API, console or MCP. Project authoring/planning
-and local execution are distinct surfaces; see the [local runtime guide](local-runtime.md).
+and local execution are distinct surfaces; see the [local runtime guide](local-runtime.md)
+and [CLI/SDK-only management decision](local-management-decision.md).
 
 ## Install and run
 
