@@ -18,6 +18,7 @@ project: p
 name: ${name}
 task_queue: base-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -211,7 +212,7 @@ describe("ProjectControlPlane — bundle (#563)", () => {
       "project: p",
       "name: review",
       "task_queue: base-queue",
-      "runtime: { temporal: {}, registry: { type: inline, prompts: { p/x: hi } }, provider: { type: openai, model: gpt-4o-mini } }",
+      "runtime: { engine: temporal, temporal: {}, registry: { type: inline, prompts: { p/x: hi } }, provider: { type: openai, model: gpt-4o-mini } }",
       "activities:",
       "  definitions: [{ name: a, input: schemas:In, output: schemas:Mid, prompt: p/x }]",
       "workflow:",
@@ -235,6 +236,7 @@ describe("ProjectControlPlane — bundle (#563)", () => {
       "name: review",
       "task_queue: base-queue",
       "runtime:",
+      "  engine: temporal",
       "  temporal: { address: temporal.example:7233, tls: true, api_key: sk-temporal-secret }",
       "  registry: { type: inline, prompts: { p/x: hi } }",
       "  provider: { type: openai, model: gpt-4o-mini, api_key: sk-provider-secret }",
@@ -271,6 +273,7 @@ describe("ProjectControlPlane — bundle (#563)", () => {
       "name: review",
       "task_queue: base-queue",
       "runtime:",
+      "  engine: temporal",
       "  temporal: {}",
       '  registry: { type: langfuse, host: "https://user:sk-secret@lf.example/api?token=abc" }',
       "  provider: { type: openai, params: { model: gpt-4o } }", // model only in params
@@ -297,6 +300,7 @@ describe("ProjectControlPlane — bundle (#563)", () => {
       "name: review",
       "task_queue: base-queue",
       "runtime:",
+      "  engine: temporal",
       "  temporal: {}",
       "  registry: { type: inline, prompts: { p/x: hi } }",
       "  provider: { type: openai, api_key: { value_from: { env: TF_BUNDLE_TEST_UNSET_KEY } } }", // no model; unset key ref
@@ -323,7 +327,7 @@ describe("ProjectControlPlane — bundle (#563)", () => {
       "project: p",
       "name: review",
       "task_queue: base-queue",
-      "runtime: { temporal: {}, registry: { type: inline, prompts: { p/x: hi } }, provider: { type: openai, model: gpt-4o-mini } }",
+      "runtime: { engine: temporal, temporal: {}, registry: { type: inline, prompts: { p/x: hi } }, provider: { type: openai, model: gpt-4o-mini } }",
       "activities:",
       "  definitions:",
       "    - { name: a, input: schemas:In, output: schemas:Mid, prompt: p/x }",
@@ -372,6 +376,7 @@ describe("ProjectControlPlane — bundle (#563)", () => {
       "name: review",
       "task_queue: base-queue",
       "runtime:",
+      "  engine: temporal",
       "  temporal: {}",
       "  registry: { type: inline, prompts: { p/x: hi } }",
       "  provider: { type: openai, model: gpt-4o-mini, api_key: { value_from: { env: TF_ENV_KEY } } }",
@@ -700,7 +705,7 @@ describe("ProjectControlPlane — connections (#563 slice 2b)", () => {
         workflows: {
           review:
             "project: p\nname: review\ntask_queue: q\n" +
-            "runtime:\n  temporal: {}\n  registry: { type: langfuse, label: prod }\n  observability: { type: langfuse }\n" +
+            "runtime:\n  engine: temporal\n  temporal: {}\n  registry: { type: langfuse, label: prod }\n  observability: { type: langfuse }\n" +
             "  provider: { type: openai, model: gpt-4o-mini }\n" +
             "activities:\n  definitions:\n    - { name: a, input: schemas:In, output: schemas:Out, prompt: { name: lab, label: prod } }\n" +
             "workflow:\n  name: W\n  input: schemas:In\n  steps: [{ id: s, activity: a }]\n",
@@ -1152,6 +1157,7 @@ project: p
 name: parent
 task_queue: base-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -1168,6 +1174,7 @@ project: p
 name: child
 task_queue: base-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: ${model} }

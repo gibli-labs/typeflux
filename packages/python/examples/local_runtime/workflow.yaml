@@ -1,7 +1,7 @@
 project: local_example
 name: echo
 runtime:
-  engine: local
+  # Local is the default; choose engine: temporal in the durable environment.
   provider:
     type: custom
     class: local_example.provider:OfflineProvider

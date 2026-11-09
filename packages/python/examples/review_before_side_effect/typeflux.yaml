@@ -3,6 +3,7 @@ name: review_before_side_effect
 task_queue: ${TEMPORAL_TASK_QUEUE:-review-before-side-effect-typeflux}
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

@@ -31,6 +31,7 @@ project: p
 name: ${name}
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }
@@ -118,6 +119,7 @@ project: p
 name: Child
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }
@@ -155,6 +157,7 @@ project: p
 name: Child
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }

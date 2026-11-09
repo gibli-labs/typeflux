@@ -6,6 +6,7 @@ name: escalation_review
 task_queue: ${TEMPORAL_TASK_QUEUE:-claims-review-composition-typeflux}
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

@@ -95,7 +95,7 @@ from typeflux.providers import (
     validate_provider_params_supported,
 )
 from typeflux.testing import FakeProvider
-from typeflux.yaml.engine import require_temporal_engine
+from typeflux.yaml.engine import require_temporal_engine, runtime_engine
 from typeflux.yaml.identity import GENERATOR_VERSION, SPEC_DIGEST_ALGORITHM
 from typeflux.yaml.imports import (
     collect_activities,
@@ -1820,7 +1820,7 @@ def _yaml_metadata_contributors(
         SecretReferenceContributor(secret_reference_records(spec)),
         *(
             (LocalRuntimeContributor(),)
-            if spec.runtime.engine == "local"
+            if runtime_engine(spec) == "local"
             else (_temporal_connection_contributor(spec),)
         ),
         RuntimePlacementContributor.from_env(),

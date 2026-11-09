@@ -47,6 +47,7 @@ project: replay_demo_project
 name: unit_saga
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {{}}
   registry: {{ type: inline, prompts: {{ t: hello }} }}
   provider: {{ type: custom, class: replay_demo_project.fakes:ReplaySagaProvider }}
@@ -542,6 +543,7 @@ project: replay_demo_project
 name: unit_route
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { t: hello } }
   provider: { type: custom, class: replay_demo_project.fakes:ReplaySagaProvider }

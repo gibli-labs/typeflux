@@ -1,6 +1,6 @@
 # Tutorial: from zero to a governed, observed, deployed AI workflow
 
-This is the **effective path** through Typeflux Temporal — the opinionated way to take an AI
+This is the **effective path** through Typeflux — the opinionated way to take an AI
 workflow from nothing to production and then operate it. It is a guided arc, not an API
 reference: each section links out to the reference doc that carries the field-by-field
 detail, and every command and YAML block below was run against a live local stack before it
@@ -137,6 +137,7 @@ name: tutorial_quickstart
 task_queue: ${TEMPORAL_TASK_QUEUE:-tutorial-quickstart-typeflux}
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

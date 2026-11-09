@@ -75,6 +75,7 @@ def test_yaml_env_interpolation_supports_defaults_and_required_vars(
         name: demo
         task_queue: ${TASK_QUEUE:-default-queue}
         runtime:
+          engine: temporal
           temporal:
             address: ${TEMPORAL_ADDRESS}
           registry:
@@ -109,6 +110,7 @@ def _hermetic_yaml(tmp_path: Path, queue_expr: str) -> Path:
         name: demo
         task_queue: {queue_expr}
         runtime:
+          engine: temporal
           temporal: {{}}
           registry: {{ type: inline, prompts: {{}} }}
           provider: {{ type: fake }}
@@ -340,6 +342,7 @@ def test_yaml_load_rejects_duplicate_mapping_keys(tmp_path: Path) -> None:
             name: shadowed_yaml
             task_queue: demo-task-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -1809,6 +1812,7 @@ def test_yaml_env_interpolation_fails_on_missing_required_var(tmp_path: Path) ->
         name: demo
         task_queue: ${MISSING_TASK_QUEUE}
         runtime:
+          engine: temporal
           registry:
             type: inline
             prompts: {}
@@ -1838,6 +1842,7 @@ def test_yaml_runtime_import_policy_parses(tmp_path: Path) -> None:
         name: demo
         task_queue: demo-task-queue
         runtime:
+          engine: temporal
           registry:
             type: inline
             prompts: {}
@@ -1875,6 +1880,7 @@ def test_yaml_env_interpolation_error_includes_file_and_nested_path(tmp_path: Pa
         name: demo
         task_queue: demo-task-queue
         runtime:
+          engine: temporal
           registry:
             type: inline
             prompts: {}
@@ -1916,6 +1922,7 @@ def test_yaml_env_interpolation_skips_inline_prompt_text(
         name: demo
         task_queue: demo-task-queue
         runtime:
+          engine: temporal
           registry:
             type: inline
             prompts:
@@ -1986,6 +1993,7 @@ def test_yaml_env_interpolation_escape_renders_literal_reference(
         name: "demo-$${NOT_A_VAR}"
         task_queue: ${REAL_QUEUE}-$${SUFFIX:-x}
         runtime:
+          engine: temporal
           registry:
             type: inline
             prompts: {}
@@ -3040,6 +3048,7 @@ def test_yaml_activities_requires_at_least_one_source(tmp_path: Path) -> None:
         name: demo
         task_queue: demo-task-queue
         runtime:
+          engine: temporal
           registry:
             type: inline
             prompts: {}
@@ -3204,6 +3213,7 @@ def _write_temporal_demo_yaml(tmp_path: Path, *, steps: str | None = None) -> Pa
         name: temporal_demo
         task_queue: temporal-demo-queue
         runtime:
+          engine: temporal
           temporal:
             address: localhost:7233
           registry:
@@ -3350,6 +3360,7 @@ def test_map_steps_reject_plain_temporal_activities(
             name: temporal_map_demo
             task_queue: temporal-demo-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -8310,7 +8321,7 @@ async def test_yaml_runtime_override_provenance_is_safe_in_metadata_and_manifest
                 "provider": {
                     "api_key": "secret-openai-key",
                     "model": "override-model",
-                }
+                },
             },
         },
     )
@@ -10072,6 +10083,7 @@ def _write_map_demo_yaml(
         "name: map_demo_yaml",
         "task_queue: demo-task-queue",
         "runtime:",
+        "  engine: temporal",
         "  temporal:",
         "    address: localhost:7233",
         "  registry:",
@@ -10251,6 +10263,7 @@ def _write_demo_yaml(
         f"name: {yaml_name}",
         f"task_queue: {task_queue}",
         "runtime:",
+        "  engine: temporal",
         indent(dedent(runtime).strip(), "  "),
         "activities:",
     ]

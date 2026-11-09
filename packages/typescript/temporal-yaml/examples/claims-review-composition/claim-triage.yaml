@@ -5,6 +5,7 @@ project: claims_review_composition
 name: claim_triage
 task_queue: claims-review-composition-ts
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline

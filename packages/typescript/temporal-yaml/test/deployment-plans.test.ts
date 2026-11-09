@@ -35,6 +35,7 @@ project: p
 name: n
 task_queue: wf-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -273,6 +274,7 @@ project: p
 name: ${name}
 task_queue: ${name}-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }

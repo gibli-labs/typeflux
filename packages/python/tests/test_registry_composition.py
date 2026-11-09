@@ -38,6 +38,7 @@ project: p
 name: {name}
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {{}}
   registry:
 {registry_body}

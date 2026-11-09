@@ -68,6 +68,7 @@ project: p
 name: w
 task_queue: q
 runtime:
+  engine: temporal
   temporal:${temporalBlock}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: ${providerType}${modelPart} }
@@ -99,6 +100,7 @@ project: p
 name: w
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }
@@ -132,6 +134,7 @@ project: p
 name: w
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }
@@ -366,6 +369,7 @@ project: p
 name: parent
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }
@@ -403,6 +407,7 @@ project: p
 name: parent
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }
@@ -444,6 +449,7 @@ project: p
 name: parent
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }
@@ -485,6 +491,7 @@ project: p
 name: parent
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }
@@ -518,6 +525,7 @@ project: p
 name: child
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }

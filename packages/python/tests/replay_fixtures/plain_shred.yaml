@@ -7,6 +7,7 @@ name: replay_plain_shred
 task_queue: replay-fixture-plain-shred-typeflux
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     payload_codec:

@@ -6,8 +6,7 @@ declaratively; [`@typeflux/temporal-yaml`](../../packages/typescript/temporal-ya
 loads it, validates it, derives its workflow, and runs it on a Temporal worker.
 For non-durable foreground execution use [`@typeflux/yaml`](../../packages/typescript/yaml),
 `buildLocalRuntime` or `typeflux-local` with `runtime.engine: local`; no Temporal
-SDK/server is required. Omitting the engine retains Temporal behavior and requires
-a task queue. The Temporal examples below use `buildRuntime` and a worker;
+SDK/server is required. Omitting the engine selects Local. Temporal requires explicit selection and a task queue. The Temporal examples below use `buildRuntime` and a worker;
 they are not the local entry point. See the [local capability/migration guide](../local-runtime.md)
 and [offline TypeScript quickstart](../../packages/typescript/yaml/examples/local-runtime/README.md).
 

@@ -14,7 +14,7 @@ import {
 
 const yaml = (extraTemporal = "", version = "") =>
   "project: p\nname: n\ntask_queue: q\n" +
-  `runtime:\n  temporal: { address: 'localhost:7233'${extraTemporal} }\n` +
+  `runtime:\n  engine: temporal\n  temporal: { address: 'localhost:7233'${extraTemporal} }\n` +
   "  registry: { type: inline, prompts: { x: hi } }\n  provider: { type: openai, model: gpt-4o-mini }\n" +
   "activities:\n  definitions:\n    - { name: a, input: schemas:In, output: schemas:In, prompt: x }\n" +
   `workflow:\n  name: W\n${version}  input: schemas:In\n  steps:\n    - { id: s1, activity: a }\n`;

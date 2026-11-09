@@ -14,8 +14,8 @@ same shared computation supports sequences, predicates, parallel branches, bound
 ordered maps and same-project children; unsupported durable/lifecycle features
 are refused across the entire closure before execution.
 
-Omitted `runtime.engine` retains Temporal behavior and requires a queue;
-`runtime.engine: temporal` is explicit. Profiles/environments can select the engine
+Omitted `runtime.engine` selects Local. Temporal requires explicit
+`runtime.engine: temporal` and a queue. Profiles/environments can select the engine
 without rewriting steps. See the [runtime guide](local-runtime.md) for the complete
 capability/CLI/SDK contract and migration, and the [offline Python quickstart](../packages/python/examples/local_runtime/README.md).
 The Temporal connection/policy/lifecycle examples below use that integration;
@@ -33,6 +33,7 @@ name: support_triage_langfuse
 task_queue: support-triage-langfuse-typeflux
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

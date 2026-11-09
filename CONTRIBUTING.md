@@ -1,4 +1,4 @@
-# Contributing to Typeflux Temporal
+# Contributing to Typeflux
 
 Thanks for your interest in contributing! This document covers how to set up a
 development environment, validate changes, and get a pull request merged.

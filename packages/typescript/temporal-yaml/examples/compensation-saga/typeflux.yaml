@@ -3,6 +3,7 @@ project: compensation_saga
 name: compensation_saga
 task_queue: ${TEMPORAL_TASK_QUEUE:-compensation-saga-typeflux}
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

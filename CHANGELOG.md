@@ -1,12 +1,20 @@
 # Changelog
 
-All notable Typeflux Temporal changes should be recorded here before a release.
+All notable Typeflux changes should be recorded here before a release.
 
 This project uses SemVer-style versioning for public package releases. Keep
 unreleased changes under `Unreleased`, then move them under a dated version
 heading as part of the release PR or tag preparation.
 
 ## Unreleased
+
+- **Breaking default change:** omitted `runtime.engine` now selects Local in both
+  SDKs. Existing Temporal YAML must explicitly select `runtime.engine: temporal`
+  in its workflow, project defaults, runtime profile or project environment, and retain
+  its task queue. Local needs no Temporal SDK/server; Temporal remains the
+  integration for durable execution, scheduling, review and run management.
+  MCP workflow scaffolding also defaults to Local. See the
+  [migration guide](docs/local-runtime.md#migrating-workflows-that-relied-on-the-old-default).
 
 - Initialize direct/local Python OTEL observations without importing Temporal.
   Explicit Temporal plugin setup retains its existing tracing path.
@@ -49,7 +57,7 @@ heading as part of the release PR or tag preparation.
 - Add explicit `runtime.engine: local | temporal` selection and recursive local
   capability checks in both SDKs. Local specs can omit task queues and Temporal
   settings; existing Temporal entry points reject local selection before runtime
-  setup. Omitted engine behavior remains Temporal. Local SDK execution is available;
+  setup. Omitted engines now select Local; Temporal requires explicit selection. Local SDK execution is available;
   See [local runtime](docs/local-runtime.md) for installation and migration.
 
 - Allow workflow manifests without a Temporal task queue in both SDK builders

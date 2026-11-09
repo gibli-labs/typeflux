@@ -60,6 +60,7 @@ function writeTsDialectProject(): string {
       "name: ts_resolver_demo_yaml",
       "task_queue: ts-resolver-demo",
       "runtime:",
+      "  engine: temporal",
       "  temporal:",
       "    address: localhost:7233",
       "  registry:",

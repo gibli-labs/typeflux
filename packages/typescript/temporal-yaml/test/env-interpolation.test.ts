@@ -43,13 +43,13 @@ describe("interpolateEnv (#452)", () => {
     const out = interpolateEnv(
       {
         task_queue: "${Q:-tq}",
-        runtime: { registry: { prompts: { greeting: "Hello ${NAME}, your code is ${CODE}" } } },
+        runtime: {engine: "temporal", registry: { prompts: { greeting: "Hello ${NAME}, your code is ${CODE}" } } },
       },
       { env: { Q: "real", NAME: "leak" } },
     );
     expect(out).toEqual({
       task_queue: "real", // config: interpolated
-      runtime: { registry: { prompts: { greeting: "Hello ${NAME}, your code is ${CODE}" } } }, // verbatim
+      runtime: {engine: "temporal", registry: { prompts: { greeting: "Hello ${NAME}, your code is ${CODE}" } } }, // verbatim
     });
   });
 

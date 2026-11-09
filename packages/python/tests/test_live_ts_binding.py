@@ -37,6 +37,7 @@ project: ts_live_demo
 name: ts_live_demo_yaml
 task_queue: ts-live-binding
 runtime:
+  engine: temporal
   temporal:
     address: localhost:7233
   registry:

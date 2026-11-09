@@ -43,6 +43,7 @@ project: p
 name: n
 task_queue: entry-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: "Summarize: {{text}}" } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -96,6 +97,7 @@ project: p
 name: n
 task_queue: entry-queue
 runtime:
+  engine: temporal
   temporal: {}
   observability:
     type: langfuse
@@ -223,7 +225,7 @@ describe("typeflux-yaml-worker --preflight (#687 review — one options assembly
 
 it("rejects local engine before the worker executable connects", async () => {
   const dir = writeFixture();
-  writeFileSync(join(dir, "typeflux.yaml"), SPEC.replace("runtime:\n", "runtime:\n  engine: local\n"));
+  writeFileSync(join(dir, "typeflux.yaml"), SPEC.replace("engine: temporal", "engine: local"));
   process.env.TYPEFLUX_YAML_PATH = join(dir, "typeflux.yaml");
   process.env.TYPEFLUX_WORKER_BINDINGS = join(dir, "bindings.mjs");
   const { NativeConnection } = await import("@temporalio/worker");

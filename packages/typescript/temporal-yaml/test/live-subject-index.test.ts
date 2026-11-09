@@ -29,6 +29,7 @@ project: claims
 name: claim_review
 task_queue: ${TASK_QUEUE}
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { claims/assess: assess the claim } }
   provider: { type: openai }

@@ -28,6 +28,7 @@ project: p
 name: n
 task_queue: ${queue}
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: zztopsecretzz } }
   provider:
@@ -48,6 +49,7 @@ project: p
 name: n
 task_queue: ${queue}
 runtime:
+  engine: temporal
   temporal:
     payload_codec:
       type: aes
@@ -136,6 +138,7 @@ project: p
 name: n
 task_queue: wf-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: zztopsecretzz } }
   provider:
@@ -231,6 +234,7 @@ project: p
 name: n
 task_queue: wf-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider:
@@ -585,6 +589,7 @@ project: p
 name: n
 task_queue: wf-queue
 runtime:
+  engine: temporal
   temporal:
     api_key: { value_from: { env: DEPLOY_TEMPORAL_KEY } }
   registry: { type: inline, prompts: { p/x: zztopsecretzz } }
@@ -676,6 +681,7 @@ project: p
 name: child
 task_queue: child-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: zztopsecretzz } }
   provider: { type: openai, model: ${model} }
@@ -691,6 +697,7 @@ project: p
 name: parent
 task_queue: parent-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: zztopsecretzz } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -778,6 +785,7 @@ project: p
 name: ${name}
 task_queue: ${name}-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: zztopsecretzz } }
   provider: { type: openai, model: gpt-4o-mini }

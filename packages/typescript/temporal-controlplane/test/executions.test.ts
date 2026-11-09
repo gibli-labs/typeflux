@@ -17,7 +17,7 @@ import {
 
 const SPEC = loadYamlSpec(
   "project: p\nname: n\ntask_queue: q\n" +
-    "runtime:\n  temporal: { address: 'localhost:7233' }\n" +
+    "runtime:\n  engine: temporal\n  temporal: { address: 'localhost:7233' }\n" +
     "  registry: { type: inline, prompts: { x: hi } }\n  provider: { type: openai, model: gpt-4o-mini }\n" +
     "activities:\n  definitions:\n    - { name: a, input: schemas:In, output: schemas:In, prompt: x }\n" +
     "workflow:\n  name: W\n  input: schemas:In\n  steps:\n    - { id: s1, activity: a }\n",
@@ -93,7 +93,7 @@ describe("listWorkflowExecutions (#620)", () => {
   it("narrows the query with the configured search attribute and clamps the limit", async () => {
     const attrSpec = loadYamlSpec(
       "project: p\nname: n\ntask_queue: q\n" +
-        "runtime:\n  temporal: { address: 'localhost:7233', workflow_search_attribute: TypefluxWorkflow }\n" +
+        "runtime:\n  engine: temporal\n  temporal: { address: 'localhost:7233', workflow_search_attribute: TypefluxWorkflow }\n" +
         "  registry: { type: inline, prompts: { x: hi } }\n  provider: { type: openai, model: gpt-4o-mini }\n" +
         "activities:\n  definitions:\n    - { name: a, input: schemas:In, output: schemas:In, prompt: x }\n" +
         "workflow:\n  name: W\n  input: schemas:In\n  steps:\n    - { id: s1, activity: a }\n",

@@ -9,6 +9,7 @@ name: insurance_claim_review
 task_queue: \${TEMPORAL_TASK_QUEUE:-insurance-claim-review}
 
 runtime:
+  engine: temporal
   temporal:
     address: \${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: default
@@ -75,6 +76,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline }
   provider:
@@ -115,6 +117,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline }
   provider: { type: openai }
@@ -136,6 +139,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: do it } }
   provider: { type: openai }
@@ -314,6 +318,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: do it } }
   provider: { type: openai }
@@ -401,6 +406,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: do it } }
   provider: { type: openai }
@@ -458,6 +464,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: do it } }
   provider: { type: openai }
@@ -517,6 +524,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: do it } }
   provider: { type: openai }
@@ -590,6 +598,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: do it } }
   provider: { type: openai }

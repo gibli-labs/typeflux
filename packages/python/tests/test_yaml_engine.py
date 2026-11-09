@@ -90,18 +90,15 @@ def test_local_closure_checks_skipped_nested_maps_and_references():
     lookup["leaf"] = root
     with pytest.raises(RuntimeCapabilityError, match="cyclic"):
         validate_local_capabilities(root, resolve_workflow=lookup.get)
-    for engine in (None, "temporal"):
-        raw = child.model_dump()
-        raw["runtime"].pop("engine")
-        if engine is not None:
-            raw["runtime"]["engine"] = engine
-        raw["task_queue"] = "existing"
-        lookup["child"] = TypefluxYamlSpec.model_validate(raw)
-        with pytest.raises(RuntimeCapabilityError, match="local graph requires") as caught:
-            validate_local_capabilities(root, resolve_workflow=lookup.get)
-        assert (caught.value.workflow, caught.value.path) == ("child", "runtime.engine")
-        assert "Use runtime.engine: local" in str(caught.value)
-        assert "Use runtime.engine: temporal" not in str(caught.value)
+    raw = child.model_dump()
+    raw["runtime"]["engine"] = "temporal"
+    raw["task_queue"] = "existing"
+    lookup["child"] = TypefluxYamlSpec.model_validate(raw)
+    with pytest.raises(RuntimeCapabilityError, match="local graph requires") as caught:
+        validate_local_capabilities(root, resolve_workflow=lookup.get)
+    assert (caught.value.workflow, caught.value.path) == ("child", "runtime.engine")
+    assert "Use runtime.engine: local" in str(caught.value)
+    assert "Use runtime.engine: temporal" not in str(caught.value)
 
 
 def test_local_diamond_resolves_each_child_once_and_preserves_errors():
@@ -135,14 +132,26 @@ def test_engine_defaults_overrides_and_roundtrip(tmp_path):
 
     raw = copy.deepcopy(FIXTURES["base"])
     del raw["runtime"]["engine"]
+    local = TypefluxYamlSpec.model_validate(raw)
+    assert runtime_engine(local) == "local"
+    assert "engine" not in local.model_dump()["runtime"]
+    assert validate_local_capabilities(local) == ("root",)
+    assert validate_local_capabilities(
+        TypefluxYamlSpec.model_validate_json(local.model_dump_json())
+    ) == ("root",)
+    with pytest.raises(RuntimeCapabilityError, match="Temporal entry point"):
+        require_temporal_engine(local)
     raw["task_queue"] = "existing"
+    assert runtime_engine(TypefluxYamlSpec.model_validate(raw)) == "local"
+    with pytest.raises(RuntimeCapabilityError, match="task_queue"):
+        validate_local_capabilities(TypefluxYamlSpec.model_validate(raw))
+    raw["runtime"]["engine"] = "temporal"
     temporal = TypefluxYamlSpec.model_validate(raw)
-    assert runtime_engine(temporal) == "temporal"
     assert require_temporal_engine(temporal) == "existing"
-    assert "engine" not in temporal.model_dump()["runtime"]
     del raw["task_queue"]
     with pytest.raises(ValueError, match="task_queue"):
         TypefluxYamlSpec.model_validate(raw)
+    del raw["runtime"]["engine"]
     path = tmp_path / "workflow.yaml"
     path.write_text(json.dumps(raw))
     local = load_yaml_spec(

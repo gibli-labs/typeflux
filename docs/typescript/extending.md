@@ -1,6 +1,6 @@
-# Extending Typeflux Temporal (TypeScript)
+# Extending Typeflux (TypeScript)
 
-> Using the Python SDK? See [Extending Typeflux Temporal](../extending.md).
+> Using the Python SDK? See [Extending Typeflux](../extending.md).
 
 Typeflux is protocol-shaped in both editions, but the TypeScript SDK extends
 differently — and, for most teams, more simply. Python resolves extension points

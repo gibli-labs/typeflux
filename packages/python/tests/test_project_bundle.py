@@ -302,6 +302,7 @@ def test_bundle_risk_tier_shows_the_closure_cascade_for_a_composed_workflow(
             f"name: {name}\n"
             f"task_queue: {name}-queue\n"
             "runtime:\n"
+            "  engine: temporal\n"
             "  temporal:\n"
             "    address: localhost:7233\n"
             "  registry:\n"
@@ -496,7 +497,7 @@ def _patch_workflow_yaml(
     path = tmp_path / "workflow.yaml"
     text = path.read_text(encoding="utf-8")
     if runtime_extra:
-        text = text.replace("runtime:\n  temporal:", f"runtime:\n{runtime_extra}  temporal:", 1)
+        text = text.replace("runtime:\n", f"runtime:\n{runtime_extra}", 1)
     if workflow_extra:
         text = text.replace("workflow:\n", f"workflow:\n{workflow_extra}", 1)
     path.write_text(text, encoding="utf-8")

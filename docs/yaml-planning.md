@@ -39,8 +39,8 @@ not depend on a Temporal SDK.
 ## Boundary of this release
 
 Planning validates computational structure; it does not execute a workflow or
-certify that an execution engine supports every configured feature. Existing YAML
-defaults, plan identities, predicates, context paths and validation rules are
+certify that an execution engine supports every configured feature. The planning API does not select an execution service. Plan identities, predicates,
+context paths and validation rules are
 preserved. Python can also load project/environment specs without Temporal.
 Building Temporal subworkflow classes, converting Temporal retry policies,
 importing decorated Temporal activities and constructing workers still require
@@ -73,5 +73,5 @@ candidate wheel/tarball installations, rejects Temporal SDK dependencies in the
 base installations, exercises planning and Python local workflow execution, and retains
 the existing Temporal regression and live-local checks.
 
-Explicit local engine selection and recursive capability checks are described in
+Local is the default engine; explicit Temporal selection and recursive Local capability checks are described in
 [the local runtime boundary](local-runtime.md). Execution in both editions is available through the explicit local builders.

@@ -747,7 +747,9 @@ export const artifactRuntimeSpec = z
 
 export const runtimeSpec = z
   .object({
-    engine: z.enum(["local", "temporal"]).optional(),
+    // Keep omission absent until overlays resolve; runtimeEngine defaults it to Local.
+    engine: z.enum(["local", "temporal"]).optional()
+      .describe("Omission selects Local. Select temporal explicitly for durable execution."),
     temporal: temporalSpec.default(() => temporalSpec.parse({})),
     registry: registrySpec,
     provider: providerSpec,
@@ -1337,9 +1339,9 @@ export const typefluxYamlSpec = z
   })
   .strict()
   .superRefine((spec, ctx) => {
-    if (spec.runtime.engine !== "local" && spec.task_queue === undefined) {
+    if (spec.runtime.engine === "temporal" && spec.task_queue === undefined) {
       ctx.addIssue({ code: "custom", path: ["task_queue"],
-        message: "task_queue is required for runtime.engine: temporal (the default)" });
+        message: "task_queue is required for runtime.engine: temporal" });
     }
     // Per-provider param support (#495; Python validate_provider_params_supported): a
     // configured param the selected provider never maps would be silently ignored —

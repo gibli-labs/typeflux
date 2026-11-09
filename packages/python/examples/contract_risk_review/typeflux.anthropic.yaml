@@ -3,6 +3,7 @@ name: contract_risk_review_anthropic
 task_queue: ${TEMPORAL_TASK_QUEUE:-contract-risk-review-anthropic-typeflux}
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

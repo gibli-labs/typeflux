@@ -1351,6 +1351,7 @@ def _write_base_env_workflow(path: Path, queue_expr: str) -> None:
             name: workflow
             task_queue: {queue_expr}
             runtime:
+              engine: temporal
               temporal: {{}}
               registry: {{ type: inline, prompts: {{ first: hi }} }}
               provider: {{ type: fake }}
@@ -2821,6 +2822,7 @@ def test_validate_project_bundle_reports_artifact_policy_failure(
             name: workflow
             task_queue: demo-task-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -2909,6 +2911,7 @@ def test_validate_project_bundle_reports_provider_retry_and_limit_policy_failure
             name: workflow
             task_queue: demo-task-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -4192,6 +4195,7 @@ async def test_drain_status_ignores_search_attribute_for_gating(
             name: workflow
             task_queue: demo-task-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
                 workflow_search_attribute: TypefluxWorkflow
@@ -4371,6 +4375,7 @@ project: demo_project
 name: workflow
 task_queue: demo-task-queue
 runtime:
+  engine: temporal
   temporal:
     address: localhost:7233
     tls: true
@@ -4490,6 +4495,7 @@ project: demo_project
 name: workflow
 task_queue: demo-task-queue
 runtime:
+  engine: temporal
   temporal:
     address: localhost:7233
     tls: true
@@ -4612,6 +4618,7 @@ def test_policy_require_secret_references_rejects_literal_observability_credenti
             name: workflow
             task_queue: demo-task-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -4872,6 +4879,7 @@ def test_resolved_workflow_bundle_is_secret_safe(
             name: workflow
             task_queue: demo-task-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
                 tls: true
@@ -4940,6 +4948,7 @@ def test_resolved_workflow_bundle_exposes_lifecycle_decisions(
             name: workflow
             task_queue: demo-task-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -5563,6 +5572,7 @@ def _write_workflow_yaml(
             name: {yaml_name}
             task_queue: demo-task-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -5619,6 +5629,7 @@ def _write_env_override_workflow_yaml(path: Path) -> None:
             name: env_override
             task_queue: ${BASE_TASK_QUEUE:-base-queue}
             runtime:
+              engine: temporal
               temporal:
                 address: ${TEMPORAL_ADDRESS:-base:7233}
                 namespace: ${TEMPORAL_NAMESPACE:-default}
@@ -5868,6 +5879,7 @@ project: demo_project
 name: workflow
 task_queue: demo-task-queue
 runtime:
+  engine: temporal
   temporal:
     address: localhost:7233
     api_key:
@@ -5975,6 +5987,7 @@ project: demo_project
 name: workflow
 task_queue: demo-task-queue
 runtime:
+  engine: temporal
   temporal:
     address: localhost:7233
     payload_codec:

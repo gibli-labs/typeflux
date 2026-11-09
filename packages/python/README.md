@@ -1,6 +1,6 @@
 # typeflux (Python SDK)
 
-The Python SDK for **Typeflux Temporal** — typed AI activities and YAML workflows
+The Python SDK for **Typeflux** — typed AI activities and YAML workflows
 with a foreground local runtime and an optional Temporal integration. Temporal
 owns durable execution; both paths reuse the Typeflux AI activity
 layer: Pydantic schemas, prompt references, structured provider calls,
@@ -25,7 +25,7 @@ to reuse project profiles and policy admission. See the
 [local runtime guide](https://github.com/gibli-labs/typeflux/blob/main/docs/local-runtime.md)
 and [offline example](examples/local_runtime/README.md). Temporal execution requires
 the `temporal` extra and a reachable Temporal server. Omitting `runtime.engine`
-retains Temporal behavior; local execution never falls back automatically.
+selects Local; local execution never falls back automatically.
 Process loss discards local progress and a new invocation may repeat effects.
 Durability, scheduling, review/lifecycle, compensation and run management remain
 Temporal features. Portable local activities use YAML definitions or `AIActivity`

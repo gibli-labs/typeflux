@@ -8,7 +8,7 @@ import { type LangfuseControlPlaneTransport, workflowRunCorrelation } from "../s
 const spec = (observability: string) =>
   loadYamlSpec(
     "project: p\nname: n\ntask_queue: q\n" +
-      "runtime:\n  temporal: { address: 'localhost:7233' }\n" +
+      "runtime:\n  engine: temporal\n  temporal: { address: 'localhost:7233' }\n" +
       `  observability: { type: ${observability} }\n` +
       "  registry: { type: inline, prompts: { x: hi } }\n  provider: { type: openai, model: gpt-4o-mini }\n" +
       "activities:\n  definitions:\n    - { name: a, input: schemas:In, output: schemas:In, prompt: x }\n" +
@@ -107,7 +107,7 @@ describe("correlation children listing (#55 §9)", () => {
   const parentSpec = () =>
     loadYamlSpec(
       "project: p\nname: parent\ntask_queue: q\n" +
-        "runtime:\n  temporal: { address: 'localhost:7233' }\n" +
+        "runtime:\n  engine: temporal\n  temporal: { address: 'localhost:7233' }\n" +
         "  registry: { type: inline, prompts: { x: hi } }\n  provider: { type: openai, model: gpt-4o-mini }\n" +
         "activities: { definitions: [] }\n" +
         "workflow:\n  name: Parent\n  input: schemas:In\n  output: schemas:In\n  steps:\n    - { id: sub, workflow: some_child }\n",

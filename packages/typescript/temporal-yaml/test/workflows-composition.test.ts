@@ -50,6 +50,7 @@ project: p
 name: disclosure_review
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline }
   provider: { type: openai }
@@ -182,6 +183,7 @@ project: p
 name: routing
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline }
   provider: { type: openai }

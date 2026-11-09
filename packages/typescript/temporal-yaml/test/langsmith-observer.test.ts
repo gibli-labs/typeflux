@@ -21,6 +21,7 @@ project: obs_demo
 name: obs_demo
 task_queue: obs-demo
 runtime:
+  engine: temporal
   temporal:
     address: localhost:7233
   registry:

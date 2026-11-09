@@ -1,6 +1,6 @@
-# Typeflux Temporal — TypeScript SDK
+# Typeflux — TypeScript SDK
 
-The TypeScript execution SDK for Typeflux Temporal, a peer to the Python SDK at
+The TypeScript execution SDK for Typeflux, a peer to the Python SDK at
 [`../python`](../python). Choose local foreground YAML execution or the optional Temporal integration.
 Temporal owns durable execution; both engines share the AI activity layer — Zod schemas, prompt references, structured provider calls,
 validation-repair retries, input-aware output checks, post-acceptance hooks,

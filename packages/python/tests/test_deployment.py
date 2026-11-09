@@ -768,6 +768,7 @@ def _write_observability_closure_project(
             name: {name}
             task_queue: {name}-typeflux
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -992,6 +993,7 @@ def _write_deployment_project(
             overrides:
               task_queue: claims-cloud-typeflux
               runtime:
+                engine: temporal
                 temporal:
                   address: cloud.tmprl:7233
                   namespace: claims-prod
@@ -1016,6 +1018,7 @@ def _write_deployment_project(
             overrides:
               task_queue: claims-cloud-typeflux
               runtime:
+                engine: temporal
                 temporal:
                   address: cloud.tmprl:7233
                   namespace: claims-prod
@@ -1114,6 +1117,7 @@ def _write_workflow_yaml(
             name: {yaml_name}
             task_queue: {task_queue}
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -1200,6 +1204,7 @@ def _setup_plan_project(tmp_path):
         "name: demo\n"
         "task_queue: demo-queue\n"
         "runtime:\n"
+        "  engine: temporal\n"
         "  temporal:\n    address: localhost:7233\n"
         "  registry:\n    type: inline\n    prompts:\n      assess: assess {{value}}\n"
         "  provider:\n    type: fake\n    model: fake-model\n"
@@ -1690,6 +1695,7 @@ def _write_closure_deployment_project(tmp_path: Path, *, child_has_review: bool)
             name: parent
             task_queue: closure-deploy-typeflux
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -1768,6 +1774,7 @@ def _write_closure_deployment_project(tmp_path: Path, *, child_has_review: bool)
             name: child
             task_queue: closure-deploy-typeflux
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -2013,6 +2020,7 @@ def test_secret_references_include_custom_extension_config_sources(tmp_path: Pat
             name: custom-config
             task_queue: q
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -2078,6 +2086,7 @@ def test_secret_references_skip_optional_file_config_sources(tmp_path: Path) -> 
             name: custom-config
             task_queue: q
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -2141,6 +2150,7 @@ def test_secret_references_include_declared_observability_credentials(tmp_path: 
             name: obs-creds
             task_queue: q
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -2451,6 +2461,7 @@ def test_optional_file_observability_credential_not_scaffolded(tmp_path: Path) -
             name: obs-optional-file
             task_queue: q
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:

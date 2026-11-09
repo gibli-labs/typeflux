@@ -517,7 +517,7 @@ class TsBindingTarget:
         per_overrides = per_workflow.get("overrides") if isinstance(per_workflow, dict) else None
         per_runtime = per_overrides.get("runtime") if isinstance(per_overrides, dict) else None
         temporal: dict[str, Any] = {}
-        engine: Any = "temporal"
+        engine: Any = "local"
         for layer in (
             defaults_runtime,
             workflow_runtime,

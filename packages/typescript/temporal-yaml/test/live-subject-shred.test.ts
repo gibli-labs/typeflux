@@ -62,6 +62,7 @@ project: claims
 name: claim_review_shred
 task_queue: typeflux-live-subject-shred
 runtime:
+  engine: temporal
   temporal:
 ${CODEC_BLOCK}
   registry: { type: inline, prompts: { claims/assess: assess the claim } }

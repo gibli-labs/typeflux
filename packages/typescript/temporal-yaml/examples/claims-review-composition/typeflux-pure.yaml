@@ -7,6 +7,7 @@ project: claims_review_composition
 name: claims_review_pure
 task_queue: claims-review-composition-ts
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline

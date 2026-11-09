@@ -23,7 +23,7 @@ import {
 /** A workflow spec with a review lifecycle and a frozen version label (memo carries the label). */
 const SPEC = loadYamlSpec(
   "project: p\nname: n\ntask_queue: tq\n" +
-    "runtime:\n  temporal: { address: 'localhost:7233' }\n" +
+    "runtime:\n  engine: temporal\n  temporal: { address: 'localhost:7233' }\n" +
     "  registry: { type: inline, prompts: { x: hi, y: yo } }\n  provider: { type: openai, model: gpt-4o-mini }\n" +
     "activities:\n  definitions:\n    - { name: a, input: schemas:In, output: schemas:In, prompt: x }\n" +
     "    - { name: b, input: schemas:In, output: schemas:In, prompt: y }\n" +
@@ -38,7 +38,7 @@ const DIGEST = workflowPlanDigest(workflowPlanFromSpec(SPEC));
 /** A spec with no version label (the memo omits `typeflux_workflow_version`). */
 const SPEC_NO_VERSION = loadYamlSpec(
   "project: p\nname: n\ntask_queue: tq\n" +
-    "runtime:\n  temporal: { address: 'localhost:7233' }\n" +
+    "runtime:\n  engine: temporal\n  temporal: { address: 'localhost:7233' }\n" +
     "  registry: { type: inline, prompts: { x: hi } }\n  provider: { type: openai, model: gpt-4o-mini }\n" +
     "activities:\n  definitions:\n    - { name: a, input: schemas:In, output: schemas:In, prompt: x }\n" +
     "workflow:\n  name: W\n  input: schemas:In\n  steps:\n    - { id: s1, activity: a }\n",
@@ -221,7 +221,7 @@ describe("WorkflowOperations.start — plan-as-argument shape (#563)", () => {
   it("passes the configured search attribute (name → logical workflow name)", async () => {
     const attrSpec = loadYamlSpec(
       "project: p\nname: n\ntask_queue: tq\n" +
-        "runtime:\n  temporal: { address: 'localhost:7233', workflow_search_attribute: TypefluxWorkflow }\n" +
+        "runtime:\n  engine: temporal\n  temporal: { address: 'localhost:7233', workflow_search_attribute: TypefluxWorkflow }\n" +
         "  registry: { type: inline, prompts: { x: hi } }\n  provider: { type: openai, model: gpt-4o-mini }\n" +
         "activities:\n  definitions:\n    - { name: a, input: schemas:In, output: schemas:In, prompt: x }\n" +
         "workflow:\n  name: W\n  input: schemas:In\n  steps:\n    - { id: s1, activity: a }\n",

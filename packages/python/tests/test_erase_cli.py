@@ -73,6 +73,7 @@ def _write_erase_fixture(
             name: demo
             task_queue: demo-queue
             runtime:
+              engine: temporal
               temporal:
                 address: localhost:7233
               registry:
@@ -446,6 +447,7 @@ def test_codec_free_spec_strips_the_payload_codec_and_keeps_the_connection(
             name: demo
             task_queue: demo-queue
             runtime:
+              engine: temporal
               temporal:
                 address: temporal.example:7233
                 namespace: prod-ns

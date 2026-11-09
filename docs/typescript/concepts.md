@@ -1,6 +1,6 @@
 # Concepts (TypeScript)
 
-The TypeScript counterpart of [Concepts](../concepts.md). Typeflux Temporal's
+The TypeScript counterpart of [Concepts](../concepts.md). Typeflux's
 TypeScript SDK defines typed AI activities for local foreground YAML execution
 and the optional Temporal integration, matching the Python engine boundary.
 See the [local CLI/SDK guide](../local-runtime.md) and the language-neutral

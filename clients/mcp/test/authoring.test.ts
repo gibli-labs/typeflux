@@ -228,6 +228,7 @@ describe("scaffold content generators (unit)", () => {
     const yaml = workflowYaml({
       project: "acme",
       name: "triage",
+      engine: "temporal",
       taskQueue: "triage-queue",
       provider: "anthropic",
       model: "claude-sonnet-4-6",
@@ -236,7 +237,7 @@ describe("scaffold content generators (unit)", () => {
     const doc = parseYaml(yaml) as {
       project: string;
       task_queue: string;
-      runtime: { provider: { type: string; api_key: { value_from: { env: string } } }; temporal: { address: string } };
+      runtime: {engine: "temporal", provider: { type: string; api_key: { value_from: { env: string } } }; temporal: { address: string } };
       workflow: { name: string; steps: { id: string; activity: string }[] };
     };
     expect(doc.project).toBe("acme");
@@ -254,6 +255,7 @@ describe("scaffold content generators (unit)", () => {
     const yaml = workflowYaml({
       project: "acme",
       name: "triage",
+      engine: "temporal",
       taskQueue: "triage-queue",
       provider: "anthropic",
       model: "claude-sonnet-4-6",
@@ -438,8 +440,22 @@ describe("scaffold tools RETURN content and NEVER write (design §6.4 boundary)"
     expect(structured.wrote_file).toBe(false);
     const doc = parseYaml(structured.content) as { name: string; runtime: { provider: { type: string; model: string } } };
     expect(doc.name).toBe("triage");
+    expect(doc).not.toHaveProperty("task_queue");
+    expect(doc.runtime).toMatchObject({engine: "local"});
+    expect(doc.runtime).not.toHaveProperty("temporal");
     expect(doc.runtime.provider.type).toBe("openai");
     expect(doc.runtime.provider.model).toBe("gpt-4o"); // provider default applied
+  });
+
+  it("scaffold requires explicit Temporal selection for a task queue", async () => {
+    const client = await connect(stubBackend());
+    const rejected = await client.callTool({name: "scaffold_workflow_yaml",
+      arguments: {project: "acme", name: "triage", task_queue: "jobs"}});
+    expect(rejected.isError).toBe(true);
+    const accepted = await client.callTool({name: "scaffold_workflow_yaml",
+      arguments: {project: "acme", name: "triage", engine: "temporal", task_queue: "jobs"}});
+    const doc = parseYaml((accepted.structuredContent as {content: string}).content);
+    expect(doc).toMatchObject({task_queue: "jobs", runtime: {engine: "temporal"}});
   });
 
   it("scaffold_project_entry returns a loadable manifest entry, wrote_file:false", async () => {

@@ -3,6 +3,7 @@ name: support_triage_langfuse
 task_queue: ${TEMPORAL_TASK_QUEUE:-support-triage-langfuse-typeflux}
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

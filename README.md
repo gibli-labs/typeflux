@@ -1,9 +1,9 @@
-# Typeflux Temporal
+# Typeflux
 
-Typeflux Temporal is a framework for typed AI activities and YAML workflows,
+Typeflux is a framework for typed AI activities and YAML workflows,
 with **two first-class SDKs — Python and TypeScript**. Run supported computational
-YAML in one foreground process with **Typeflux Local**, or use the **Temporal
-integration** for durable orchestration.
+YAML in one foreground process with **Typeflux Local**, the default runtime, or use
+the **Temporal integration** for durable orchestration.
 
 Temporal owns durable execution: workflows, activity scheduling, retries,
 timeouts, history, task queues, workers, signals, queries, and timers.
@@ -64,6 +64,8 @@ native delayed starts and triggering Local from an existing scheduler.
 
 The new local implementation is described against current source/candidate
 packages; the quickstarts show installing the actual candidate wheel/tarballs.
+Upgrading existing implicit-Temporal YAML requires adding `runtime.engine: temporal`;
+see the [migration instructions](docs/local-runtime.md#migrating-workflows-that-relied-on-the-old-default).
 Local execution remains [CLI/SDK-only](docs/local-management-decision.md);
 authoring tools and exported observations do not create managed Local runs.
 Registry installs apply once a release containing the feature is available:
@@ -89,8 +91,9 @@ npx -y typeflux-mcp
 
 The base Python package and `@typeflux/yaml` support both
 [shared planning](docs/yaml-planning.md) and local YAML execution without Temporal.
-Select `runtime.engine: local` explicitly. Omitting the engine retains Temporal
-behavior and requires a task queue; neither entry point automatically falls back.
+Local is the default when `runtime.engine` is omitted; `runtime.engine: local`
+selects it explicitly. Temporal requires `runtime.engine: temporal` and a task queue;
+neither entry point automatically falls back.
 The historical `@typeflux/temporal` core package name does not install `@temporalio/*`.
 
 Only the Temporal route needs a reachable service, such as a
@@ -308,6 +311,7 @@ name: support_triage
 task_queue: support-ai
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}
@@ -521,7 +525,7 @@ Typeflux is intentionally protocol-shaped:
 - Add a trace backend in `typeflux.observability` by implementing `ObservabilityBackend` with a
   `TraceWriter` and `TraceReader`.
 
-See [Extending Typeflux Temporal](docs/extending.md).
+See [Extending Typeflux](docs/extending.md).
 
 The built-in `OpenAIProvider()` uses the plain OpenAI SDK by default. Pass
 `enable_langfuse=True` when direct Python usage should route OpenAI calls
@@ -560,7 +564,7 @@ to both editions):
 - [Code-Defined Workflows](docs/code-defined-workflows.md)
 - [Observability](docs/observability.md)
 - [Multimodal Content Parts](docs/content-parts.md)
-- [Extending Typeflux Temporal](docs/extending.md)
+- [Extending Typeflux](docs/extending.md)
 - [Dependency Management](docs/dependencies.md)
 - [Live OpenAI + Langfuse Walkthrough](docs/live.md)
 - [Support Triage Langfuse Example](packages/python/examples/support_triage_langfuse/README.md)

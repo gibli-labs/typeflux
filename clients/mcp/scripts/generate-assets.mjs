@@ -26,6 +26,9 @@ const OUT = join(PKG_ROOT, "src/generated");
 
 /** The docs surfaced as `typeflux://docs/{slug}` (design §5). */
 const DOC_SLUGS = [
+  "local-runtime",
+  "local-management-decision",
+  "temporal-adoption",
   "concepts",
   "yaml",
   "code-defined-workflows",

@@ -3,6 +3,7 @@ name: replay_sub_map
 task_queue: replay-fixture-subworkflow-typeflux
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
   registry:

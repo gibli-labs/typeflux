@@ -1,6 +1,6 @@
 # Editions: Python and TypeScript
 
-Typeflux Temporal ships **two first-class SDKs**. This page is the router: what
+Typeflux ships **two first-class SDKs**. This page is the router: what
 is shared, what is edition-specific, and — honestly — which edition currently
 leads on which surface.
 
@@ -14,7 +14,7 @@ Use `runtime.engine: local` with `build_local_runtime` / `buildLocalRuntime` or
 `typeflux-local` for sequences, conditions, parallel branches, ordered bounded maps
 and same-project children without a Temporal SDK/server. Local runs reuse the
 activity pipeline but lose progress on exit; reruns can repeat effects.
-Omitting the engine retains Temporal behavior. Durable history, timers, reviews,
+Omitting the engine selects Local. Temporal requires explicit selection. Durable history, timers, reviews,
 compensation and management remain on the Temporal path. The workflow shape/type
 identity differences below describe that integration, not local child runs.
 See the [local guide](local-runtime.md), [Python quickstart](../packages/python/examples/local_runtime/README.md)

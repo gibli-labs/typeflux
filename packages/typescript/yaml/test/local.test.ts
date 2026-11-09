@@ -52,6 +52,15 @@ describe("local YAML execution", () => {
     }
   });
 
+  it("executes omitted-engine YAML through the Local pipeline", async () => {
+    const raw = structuredClone(fixtures.base);
+    delete raw.runtime.engine;
+    const provider = new Provider();
+    const runtime = await buildLocalRuntime(typefluxYamlSpec.parse(raw), {schemas, provider});
+    expect(await runtime.executeWorkflow({n: 1})).toEqual({n: 2});
+    expect(provider.calls).toEqual([1]);
+  });
+
   it("snapshots admission inputs and keeps invocations independent", async () => {
     const source = spec();
     const provider = new Provider();

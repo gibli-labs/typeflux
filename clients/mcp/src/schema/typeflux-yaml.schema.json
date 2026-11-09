@@ -17,6 +17,7 @@
       "type": "object",
       "properties": {
         "engine": {
+          "description": "Omission selects Local. Select temporal explicitly for durable execution.",
           "type": "string",
           "enum": [
             "local",

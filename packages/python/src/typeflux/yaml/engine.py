@@ -26,7 +26,7 @@ class RuntimeCapabilityError(TypefluxError, ValueError):
 
 
 def runtime_engine(spec: TypefluxYamlSpec) -> Literal["local", "temporal"]:
-    return spec.runtime.engine or "temporal"
+    return spec.runtime.engine or "local"
 
 
 def require_temporal_engine(spec: TypefluxYamlSpec) -> str:

@@ -130,7 +130,7 @@ are mutually exclusive (Vertex is keyless).
 - [Multimodal Content Parts](content-parts.md) — the portable content-part model
   (text/image/file references), provider compatibility matrix, and the
   safe-reference manifest guarantee.
-- [Extending Typeflux Temporal](extending.md) — the `ModelProvider` capability
+- [Extending Typeflux](extending.md) — the `ModelProvider` capability
   contract, including `supported_provider_params` and `supported_artifact_kinds`.
 - [YAML Runtime](yaml.md) — declaring `provider_params` and `artifact_inputs`.
 

@@ -1,4 +1,4 @@
-# Extending Typeflux Temporal
+# Extending Typeflux
 
 > Using the TypeScript SDK? See [Extending (TypeScript)](typescript/extending.md) —
 > the same seams, injected as structural transports rather than imported by

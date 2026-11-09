@@ -46,6 +46,7 @@ SPEC = """project: planning_fixture
 name: demo
 task_queue: existing-temporal-default
 runtime:
+  engine: temporal
   temporal: {}
   registry: {type: inline, prompts: {echo: 'Echo {{text}}'}}
   provider: {type: fake}
@@ -77,7 +78,7 @@ def main() -> None:
         local_path = root / "local-workflow.yaml"
         local_path.write_text(
             SPEC.replace("task_queue: existing-temporal-default\n", "").replace(
-                "  temporal: {}", "  engine: local"
+                "  engine: temporal\n", ""
             )
         )
         local = load_yaml_spec(local_path, load_dotenv=False, env={})
@@ -141,7 +142,10 @@ def main() -> None:
             project_path.read_text().replace("path: typeflux.yaml", "path: local-workflow.yaml")
         )
         local_resolved = resolve_project_workflow(
-            load_project_spec(project_path), workflow_id="demo", environment_id="local", base_env={}
+            load_project_spec(project_path),
+            workflow_id="demo",
+            environment_id="local",
+            base_env={},
         )
         assert validate_local_capabilities(local_resolved.spec) == ("demo",)
 

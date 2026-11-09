@@ -371,24 +371,30 @@ const PROVIDER_DEFAULTS: Readonly<Record<string, { model: string; keyEnv: string
 export function workflowYaml(opts: {
   project: string;
   name: string;
-  taskQueue: string;
+  engine?: "local" | "temporal";
+  taskQueue?: string;
   provider: string;
   model: string;
   keyEnv: string;
 }): string {
-  const { project, name, taskQueue, provider, model, keyEnv } = opts;
+  const { project, name, engine = "local", taskQueue, provider, model, keyEnv } = opts;
+  if (engine === "local" && taskQueue !== undefined) {
+    throw new Error("task_queue requires engine: temporal; Local does not use a task queue.");
+  }
   const activity = `${snakeCase(name)}_activity`;
   const inModel = `${pascalCase(name)}Input`;
   const outModel = `${pascalCase(name)}Output`;
   return (
     `project: ${project}\n` +
     `name: ${name}\n` +
-    `task_queue: ${taskQueue}\n` +
+    (engine === "temporal" ? `task_queue: ${taskQueue ?? `${name}-queue`}\n` : "") +
     "runtime:\n" +
-    "  temporal:\n" +
-    "    # ${ENV:-default} interpolation: resolved from the environment at load, else the default.\n" +
-    "    # (A bare ${VAR} with no default THROWS when unset — always give locally-defaulting vars a `:-`.)\n" +
-    "    address: ${TEMPORAL_ADDRESS:-localhost:7233}\n" +
+    `  engine: ${engine}\n` +
+    (engine === "temporal" ?
+      "  temporal:\n" +
+      "    # Use a development server or your configured Temporal service.\n" +
+      "    # Unset variables use the defaults below; references without defaults must be set.\n" +
+      "    address: ${TEMPORAL_ADDRESS:-localhost:7233}\n" : "") +
     "  registry:\n" +
     "    type: inline\n" +
     "    prompts:\n" +
@@ -801,11 +807,12 @@ export function registerAuthoringTools(
       {
         title: "Scaffold a workflow YAML",
         description:
-          "Return a seeded typeflux.yaml (runtime/registry/provider stubs with ${ENV} interpolation and a secret-reference api_key) for a new workflow. RETURNS CONTENT ONLY for you to apply as a reviewable diff; it never writes files.",
+          "Return workflow YAML with Local execution, inline prompts and a secret-reference provider key. Pass engine: temporal for durable execution with a task queue and a configurable Temporal address. Returns content for a reviewable diff; never writes files.",
         inputSchema: {
           project: z.string(),
           name: z.string(),
-          task_queue: z.string().optional(),
+          engine: z.enum(["local", "temporal"]).optional(),
+          task_queue: z.string().min(1).optional(),
           provider: z.string().optional(),
           model: z.string().optional(),
         },
@@ -826,8 +833,9 @@ export function registerAuthoringTools(
           const defaults = PROVIDER_DEFAULTS[providerRaw] ?? PROVIDER_DEFAULTS.anthropic!;
           const provider = PROVIDER_DEFAULTS[providerRaw] ? providerRaw : "anthropic";
           const model = typeof args.model === "string" && args.model ? args.model : defaults.model;
-          const taskQueue = typeof args.task_queue === "string" && args.task_queue ? args.task_queue : `${name}-queue`;
-          const content = workflowYaml({ project, name, taskQueue, provider, model, keyEnv: defaults.keyEnv });
+          const engine = args.engine === "temporal" ? "temporal" : "local";
+          const taskQueue = typeof args.task_queue === "string" ? args.task_queue : undefined;
+          const content = workflowYaml({ project, name, engine, taskQueue, provider, model, keyEnv: defaults.keyEnv });
           return scaffoldResult({
             style: "yaml",
             language: "yaml",

@@ -6,6 +6,7 @@ name: replay_plain_codec
 task_queue: replay-fixture-plain-codec-typeflux
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     payload_codec:

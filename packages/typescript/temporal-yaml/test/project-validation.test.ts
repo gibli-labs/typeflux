@@ -36,6 +36,7 @@ project: p
 name: n
 task_queue: base-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -320,6 +321,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -350,6 +352,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -378,6 +381,7 @@ project: p
 name: n
 task_queue: base-queue
 runtime:
+  engine: temporal
   temporal:
     api_key: { value_from: { env: TLS_CHECK_TEMPORAL_KEY } }${tls}
   registry: { type: inline, prompts: { p/x: hi } }
@@ -429,6 +433,7 @@ project: p
 name: n
 task_queue: base-queue
 runtime:
+  engine: temporal
   temporal:
     payload_codec:
       type: aes
