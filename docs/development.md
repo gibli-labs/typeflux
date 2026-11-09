@@ -62,12 +62,15 @@ kill or stalled teardown cannot guarantee detached-server cleanup or a complete
 native report. Keep the failed evidence and verify ownership before manually
 stopping leftover processes; the runner never kills by port or reuses an existing
 server. Subsequent checks still refuse occupied fixture ports.
-The overview (including project switches), drift, governance and security smoke
+The overview (including project switches and insight acknowledgements), drift, governance and security smoke
 checks wait up to 15 seconds for named successful GET responses and pending API
 reads before asserting content. The drift aggregate names deployments as well as
 both environment bundle reads; a six-second delay specifically holds its real
 deployments response. Other real fixture responses also include controlled
-six-second delays to guard against headings being mistaken for data readiness.
+six-second minimum response times to guard against headings being mistaken for data
+readiness. Upstream fetch time counts toward this minimum; the helper does not add
+another six seconds to an already slow response. The insight check waits for the
+page's bundle and annotation reads, separately from its direct API contract probe.
 The plan-row assertion retains its default five-second content budget; existing
 content/probe budgets and disabled retries remain unchanged. Failure probes cover missing data, unexpected
 errors retained after a later success, allowed outages and permanently pending

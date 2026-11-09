@@ -148,11 +148,12 @@ entities:
 
   - id: check.browser-data-readiness
     kind: check
-    description: Completed successful fixture data, including deployments and bundles for the drift aggregate, precedes overview/project-switch/drift/governance/security content assertions under controlled six-second delays; missing, failed and permanently pending data remain bounded failures.
+    description: Completed successful fixture data, including deployments and bundles for drift and page annotations for insights, precedes overview/project-switch/insights/drift/governance/security content assertions under controlled six-second minimum response times; missing, failed and permanently pending data remain bounded failures.
     environment: chromium-python-cp-and-ts-cp
     ci: [browser-python, browser-typescript]
     tests:
       - {path: clients/console/e2e/smoke.spec.ts, name: overview renders bundles and the project switch rescopes requests}
+      - {path: clients/console/e2e/smoke.spec.ts, name: 'insight acknowledgements: the annotations read is served per lane and stale acks render (#733)'}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the drift page renders the N-way environment matrix with diff links (#611)'}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the drift page aggregates plan, environment, and prompt drift (#583)'}
       - {path: clients/console/e2e/smoke.spec.ts, name: 'the governance page shows coverage, gaps, and structured policies (#587)'}

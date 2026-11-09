@@ -90,6 +90,15 @@ was applied only in a private temporary copy and matched all 39 original source
 hashes. It preserves the failed pilot for inspection; never apply it to the working
 repository, rerun paid calls or reset the cumulative ledger to reproduce a charge.
 
+On November 9, the original temporary worktrees and private run directories were
+found unavailable. The committed curated observations and source reconstruction
+patch remain available; the original raw CLI responses, full native reports and
+private validation logs cannot now be inspected. Their historical hashes and
+curated per-case outcomes do not restore the missing raw files. This further
+limits independent auditing of the pilot; no paid calls were repeated to replace
+those records. Subsequent development uses a persistent worktree and retains new
+verification evidence there.
+
 ## Protocol
 
 The [original freeze](https://github.com/gibli-labs/typeflux/issues/86#issuecomment-6683030577)
