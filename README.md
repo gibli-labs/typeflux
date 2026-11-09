@@ -299,9 +299,10 @@ classification = await workflow.execute_activity(
 ## YAML Runtime
 
 YAML assembles either runtime from schemas, prompt refs and portable activities.
-For local execution, select `runtime.engine: local`, omit Temporal placement and
-use `typeflux-local` or the local SDK builder. The example below selects Temporal
-through the default engine and task queue, and uses Python-specific module wiring.
+For local execution, omit `runtime.engine` (or set it to `local`), omit Temporal
+placement and use `typeflux-local` or the local SDK builder. The example below
+explicitly selects `runtime.engine: temporal`, includes a task queue and uses
+Python-specific module wiring.
 Hookless AI Activities can be declared directly in YAML; use Python modules when
 an activity needs a hook.
 
