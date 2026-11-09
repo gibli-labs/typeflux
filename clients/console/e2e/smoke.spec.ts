@@ -339,7 +339,8 @@ test("the GitHub drift section degrades honestly per the lane's capability (#727
   expect(errors, "no uncaught page errors").toEqual([]);
 });
 
-test("insight acknowledgements: the annotations read is served per lane and stale acks render (#733)", async ({ page }) => {
+test("insight acknowledgements: the annotations read is served per lane and stale acks render (#733)", async ({ page, apiHealth }) => {
+  const delivered = await delayFixtureData(page, /\/api\/v1\/annotations(\?|$)/);
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
 
@@ -356,6 +357,7 @@ test("insight acknowledgements: the annotations read is served per lane and stal
   expect(Array.isArray(body.annotations)).toBe(true);
   expect(body.annotations.length).toBe(EXPECT.annotations.count);
 
+  await apiHealth.waitForData([...bundleReads(), { path: "/api/v1/annotations" }]);
   const insights = page.locator("#insights");
   await expect(insights).toBeVisible();
   if (EXPECT.annotations.staleAckPattern) {
@@ -371,6 +373,7 @@ test("insight acknowledgements: the annotations read is served per lane and stal
     await expect(insights.getByText(/Acknowledgement expired/)).toHaveCount(0);
   }
 
+  expect(delivered(), "controlled slow annotation response was exercised").toBeGreaterThan(0);
   expect(errors, "no uncaught page errors").toEqual([]);
 });
 

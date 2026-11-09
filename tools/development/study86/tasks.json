@@ -1,0 +1,165 @@
+[
+  {
+    "id": "python-engine",
+    "kind": "python",
+    "startingRevision": "f763c2253cc2df540912280615ca20035f7d3955",
+    "referenceRevision": "49682c97c0f2f73e7445a4bdcae3e2e31c680ae0",
+    "brief": "Correct mixed-engine Local validation guidance. A Local graph containing a Temporal/default-engine child must attribute runtime.engine to that child and recommend making it Local. Other unsupported Local features retain their Temporal guidance. Preserve error types and existing validation.",
+    "editable": [
+      "packages/python/src/typeflux/yaml/engine.py"
+    ],
+    "search": "engine local graph runtime.engine RuntimeCapabilityError",
+    "heldout": [
+      "packages/python/tests/test_yaml_engine.py"
+    ],
+    "expectedChecks": {
+      "python": 8
+    }
+  },
+  {
+    "id": "typescript-engine",
+    "kind": "typescript",
+    "startingRevision": "f763c2253cc2df540912280615ca20035f7d3955",
+    "referenceRevision": "49682c97c0f2f73e7445a4bdcae3e2e31c680ae0",
+    "brief": "Correct mixed-engine Local validation guidance. A Local graph containing a Temporal/default-engine child must attribute runtime.engine to that child and recommend making it Local. Other unsupported Local features retain their Temporal guidance. Preserve existing validation and public error type.",
+    "editable": [
+      "packages/typescript/yaml/src/engine.ts"
+    ],
+    "search": "engine local graph RuntimeCapabilityError",
+    "heldout": [
+      "packages/typescript/yaml/test/engine.test.ts"
+    ],
+    "expectedChecks": {
+      "historical-typescript-dependency-build": 0,
+      "yaml": 4
+    }
+  },
+  {
+    "id": "graph-ci-ids",
+    "kind": "python",
+    "startingRevision": "793bd4b370570fcfb454049d282c3ad55579df2e",
+    "referenceRevision": "6946ba70c45084b72ba3b06d3b2c06a31bf186e6",
+    "brief": "Reject unknown graph check CI execution IDs locally using the selected revision's tools/development/checks.json as data. Validate the registry shape and fail clearly with declaration/check/unknown ID and registered IDs. Do not execute registry Python. Preserve historical pre-registry snapshot behavior without allowing a working tree or modern snapshot to bypass validation.",
+    "editable": [
+      "tools/project_graph/compiler.py",
+      "tools/project_graph/repository.py"
+    ],
+    "search": "CI check execution registry compile_graph snapshot",
+    "heldout": [
+      "packages/python/tests/test_project_graph.py"
+    ],
+    "expectedChecks": {
+      "python": 35
+    }
+  },
+  {
+    "id": "ci-diagnostics",
+    "kind": "python",
+    "startingRevision": "4b77323d81a239febd8b000b2dbf0e40bc04c1ab",
+    "referenceRevision": "bc3b1696e9244062d4458b9ec008c2b6f7ce8a2f",
+    "brief": "Retain bounded safe job observations when trusted CI acceptance rejects required jobs, without relaxing any gate or discarding original failures. Write unique non-overwriting JSON under job-observations/ with kind trusted-ci-job-observation; observedAt, repository, runId, attempt, headRevision, testedRevision, expected, missing, notPassed, observed, totalJobs, omittedJobs, truncatedFields and a limits explanation. Observed jobs retain only id/name/status/conclusion/run_id/run_attempt/head_sha. Prioritize required jobs; at most 100 jobs, strings at most 128 characters, fixed invalid-type/out-of-range markers for malformed fields and integers outside 0 <= x < 10**20. Summary must retain required missing/not-passed identities while staying at most 16,000 characters. Never copy logs, command/URL/freeform payloads or add authority. Workflow artifact naming must preserve run/attempt/evaluator identity and diagnostics with always() across failures. In the workflow, only add one separate diagnostic upload step after the existing acceptance evaluation using the existing upload-action pin; preserve every existing job, step, trigger, permission and setting.",
+    "editable": [
+      "tools/development/acceptance.py",
+      ".github/workflows/ci-acceptance.yml"
+    ],
+    "search": "job diagnostics required acceptance observations",
+    "heldout": [
+      "packages/python/tests/test_development_acceptance.py"
+    ],
+    "expectedChecks": {
+      "python": 12
+    }
+  },
+  {
+    "id": "skip-evidence",
+    "kind": "python",
+    "startingRevision": "6123ea468bcd59221169165189825a74db7a9745",
+    "referenceRevision": "fe46f0ff1f101d3a1d6efd4d7e333225af54d65d",
+    "brief": "Record safe bounded native pytest skip diagnostics: phase, classified fixed prerequisite reason codes, and whether details were omitted. Do not store arbitrary reason/exception text, paths, fixture values or personal data. Unclassified skips must remain explicit. Preserve failed status over later teardown skips and retain diagnostics on interruptions; do not weaken required test execution. Public output contract: skipDiagnostics contains at most 3 entries with phase (setup/call/teardown/unknown), reasonCode and detailsOmitted; extra entries increment skipDiagnosticsOmitted. Exact reviewed prerequisite reasons map to node-resolver-prerequisite, isolated-temporal-lane-required, git-prerequisite or temporal-sdk-prerequisite; expected failure maps to expected-failure, otherwise unclassified. Never classify a substring/prefix as an exact reason. Unclassified/expected-failure omit details. A known Node reason is \"needs node + the built TS dist (cd packages/typescript && pnpm -r build)\"; isolated lane reason is \"isolated Temporal lane required\". This task covers diagnostic behavior, not unrelated Temporal fixture migration.",
+    "editable": [
+      "tools/development/pytest_results.py",
+      "tools/development/__main__.py"
+    ],
+    "search": "skipDiagnostics pytest_results skipped reason",
+    "heldout": [
+      "packages/python/tests/test_development_pytest_evidence.py"
+    ],
+    "pytestSelection": "not required_temporal_connection_errors",
+    "expectedChecks": {
+      "python": 3
+    }
+  },
+  {
+    "id": "console-reads",
+    "kind": "console",
+    "startingRevision": "c31d5ed3799d027a173d0e3ae4cc88a16d571666",
+    "referenceRevision": "793bd4b370570fcfb454049d282c3ad55579df2e",
+    "brief": "An unavailable execution-list read is already bounded by the backend but the console automatically repeats it. Make a selected workflow/environment execution-list read settle after one request and retain the visible error. Keep existing retry behavior for ordinary unrelated reads and preserve routing/query keys.",
+    "editable": [
+      "clients/console/src/queries.ts"
+    ],
+    "search": "useExecutions retry createConsoleQueryClient",
+    "heldout": [
+      "query-control"
+    ],
+    "expectedChecks": {
+      "query": 4
+    }
+  },
+  {
+    "id": "dependent-pr-docs",
+    "kind": "docs",
+    "startingRevision": "6946ba70c45084b72ba3b06d3b2c06a31bf186e6",
+    "referenceRevision": "84cfc08056d5b55b60451b1bf59c93ff64e410f2",
+    "brief": "Write docs/dependent-pull-requests.md and link it from development.md. Explain how to develop, validate, refresh evidence/review and merge a dependent PR under this repository's actual main-target acceptance and squash-merge rules. Include safe read-only inspection commands and distinguish head/base/run/attempt, CI vs review, and PR evidence vs exact-main release evidence. Do not weaken checks, authorize publication or claim a base edit or rerun automatically tests a new base.",
+    "editable": [
+      "docs/dependent-pull-requests.md",
+      "docs/development.md"
+    ],
+    "search": "dependent prerequisite pull_request main acceptance merge parents",
+    "heldout": [
+      "documentation-rubric"
+    ],
+    "expectedChecks": {}
+  },
+  {
+    "id": "graph-ci-whitespace",
+    "kind": "python",
+    "predecessor": "graph-ci-ids",
+    "brief": "Extend your earlier CI-registry validation: reject whitespace-only execution IDs and whitespace-only name/verifier fields as malformed registry data. Preserve valid strings, unknown-ID diagnostics, historical snapshot compatibility and every earlier acceptance obligation.",
+    "editable": [
+      "tools/project_graph/compiler.py",
+      "tools/project_graph/repository.py"
+    ],
+    "search": "registry CI whitespace name verifier",
+    "heldout": [
+      "packages/python/tests/test_project_graph.py",
+      "whitespace-registry-control"
+    ],
+    "expectedChecks": {
+      "python": 38
+    }
+  },
+  {
+    "id": "skip-evidence-docs",
+    "kind": "docs",
+    "predecessor": "skip-evidence",
+    "brief": "Document your earlier native pytest skip diagnostics in docs/development.md: fields, actual safe codes and classification boundaries, failed-status precedence, bounded omissions, interruption handling, and the fact that classified/skipped evidence cannot satisfy mandatory execution or diagnose a historical cause. Match the behavior of your own earlier patch; do not claim deployment or past CI causes were established.",
+    "editable": [
+      "docs/development.md"
+    ],
+    "search": "skipDiagnostics pytest skip evidence",
+    "heldout": [
+      "documentation-rubric",
+      "packages/python/tests/test_development_pytest_evidence.py"
+    ],
+    "contextPaths": [
+      "tools/development/pytest_results.py",
+      "tools/development/__main__.py"
+    ],
+    "pytestSelection": "not required_temporal_connection_errors",
+    "expectedChecks": {
+      "python": 3
+    }
+  }
+]

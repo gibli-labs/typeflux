@@ -62,12 +62,15 @@ kill or stalled teardown cannot guarantee detached-server cleanup or a complete
 native report. Keep the failed evidence and verify ownership before manually
 stopping leftover processes; the runner never kills by port or reuses an existing
 server. Subsequent checks still refuse occupied fixture ports.
-The overview (including project switches), drift, governance and security smoke
+The overview (including project switches and insight acknowledgements), drift, governance and security smoke
 checks wait up to 15 seconds for named successful GET responses and pending API
 reads before asserting content. The drift aggregate names deployments as well as
 both environment bundle reads; a six-second delay specifically holds its real
 deployments response. Other real fixture responses also include controlled
-six-second delays to guard against headings being mistaken for data readiness.
+six-second minimum response times to guard against headings being mistaken for data
+readiness. Upstream fetch time counts toward this minimum; the helper does not add
+another six seconds to an already slow response. The insight check waits for the
+page's bundle and annotation reads, separately from its direct API contract probe.
 The plan-row assertion retains its default five-second content budget; existing
 content/probe budgets and disabled retries remain unchanged. Failure probes cover missing data, unexpected
 errors retained after a later success, allowed outages and permanently pending
@@ -521,3 +524,42 @@ Graph-assisted productivity and safe selective CI remain hypotheses. Compare mat
 tasks for correctness, review effort, time, cost and missed impact before expanding
 automation. Passing this development loop does not complete the larger evaluation or
 deployment obligations tracked in issue #46.
+
+## Remote verification when the local host is unavailable
+
+Finish implementation and focused local validation before publishing a completed
+branch. If the local host sleeps or otherwise cannot finish full verification,
+retain the failed receipts and record exactly which checks remain unpassed. A
+draft PR can provide visibility and the existing remote CI environment while that
+verification is incomplete. Do not describe local failures as passing or mark the
+PR ready until complete current-source native CI passes and implementation is
+finished. Merge still requires separately required review and trusted acceptance
+on the current head. This grants no new merge or release authority.
+
+A branch `workflow_dispatch` may supply independent native observations, but it
+is not trusted PR/main acceptance. Prefer creating the draft PR before starting
+its CI rather than dispatching CI on the same head before PR creation. In the
+observed [#165](https://github.com/gibli-labs/typeflux/issues/165) sequence, a later
+successful trusted acceptance check stayed in the earlier dispatch suite and was
+absent from the PR rollup. A green REST check alone did not unblock protected
+main. Keep the run, attempt, head, suite IDs, app identity and failed observations
+recorded individually; do not infer protected merge readiness from the native run label.
+
+Use this recovery only when all required native checks and other protected
+checks have passed on the current head, and the successful trusted acceptance is
+associated with the wrong suite. It is not a retry path for a failing check.
+Verify that evidence first. A documented head update (a necessary coherent change, or an explicitly explained signed-off
+empty commit) gives the PR fresh check suites. Reconcile prior findings, inspect review identity and obtain required review
+for the updated head. Then require all native CI again on that new source/head and verify that the
+trusted current-head `CI acceptance` is present in the PR rollup. Never manufacture
+a status, delete a failed check, change branch protection, rerun failed product
+tests to green or reuse the older head's acceptance. This is an operational
+recovery, not a CI-publisher redesign or support guarantee for arbitrary suite
+combinations. Exact-main accepted CI is still required before any publication.
+
+## Matched development evaluation
+
+The [graph development pilot](graph-development-study.md) is an explicit paid
+experiment, separate from the default development profile and Fable code reviews.
+Its frozen protocol, owned offline Docker checks and cost ledger do not establish
+full agent productivity, trusted CI or permission to publish.

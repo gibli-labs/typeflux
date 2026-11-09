@@ -17,7 +17,18 @@ entities:
       - {relation: requires, target: invariant.browser-fixture-cleanup}
   - id: invariant.browser-data-readiness
     kind: invariant
-    description: Required data GETs must complete successfully within a finite budget before content checks; missing data, pending requests and unexpected API failures cannot be accepted as readiness, including failures followed by success.
+    description: Required data GETs must complete successfully within a finite budget before content checks; missing data, pending requests and unexpected API failures cannot be accepted as readiness, including failures followed by success. Controlled successful fixture responses take at least six seconds from interception, including upstream fetch time; unsuccessful responses are preserved immediately and never counted as delayed successes.
+  - id: check.browser-delay-support
+    kind: check
+    description: Fast responses remain held until the minimum response time, already slow responses have no additional hold, and unsuccessful responses retain their original identity without holding or counting as successful deliveries.
+    environment: node
+    ci: [web]
+    tests:
+      - {path: clients/console/src/delayedData.test.ts, name: holds a fast successful upstream response before delivering the original response}
+      - {path: clients/console/src/delayedData.test.ts, name: delivers an already slow successful upstream response without an additional hold}
+      - {path: clients/console/src/delayedData.test.ts, name: delivers an unsuccessful upstream response unchanged without holding or counting it}
+    links:
+      - {relation: verifies, target: invariant.browser-data-readiness}
   - id: invariant.browser-fixture-cleanup
     kind: invariant
     description: Browser verification invokes Playwright directly and lets its SIGINT lifecycle clean owned detached webServer groups within the existing bounded shutdown budget. Failures, timeouts, interruption status, native reports and source identity remain truthful; unrelated processes are never killed by port and existing servers are never reused. Forced exit cannot guarantee detached cleanup or complete reports.
