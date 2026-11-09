@@ -847,8 +847,11 @@ class ImportPolicySpec(BaseModel):
 class RuntimeSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    # Omission keeps Temporal and stays absent from legacy serialized specs.
-    engine: Literal["local", "temporal"] | None = None
+    # Omission selects Local; preserve absence so environment/profile overlays can select an engine.
+    engine: Literal["local", "temporal"] | None = Field(
+        default=None,
+        description="Omission selects Local. Select temporal explicitly for durable execution.",
+    )
 
     @field_validator("engine", mode="before")
     @classmethod
@@ -862,7 +865,7 @@ class RuntimeSpec(BaseModel):
         result = handler(self)
         if self.engine is None:
             result.pop("engine", None)
-        elif self.engine == "local" and "temporal" in result:
+        if self.engine != "temporal" and "temporal" in result:
             result["temporal"] = {
                 key: value
                 for key, value in result["temporal"].items()
@@ -1818,14 +1821,14 @@ class TypefluxYamlSpec(BaseModel):
     @model_serializer(mode="wrap")
     def _serialize_local_queue(self, handler):
         result = handler(self)
-        if self.runtime.engine == "local" and self.task_queue is None:
+        if self.runtime.engine != "temporal" and self.task_queue is None:
             result.pop("task_queue", None)
         return result
 
     @model_validator(mode="after")
     def _validate_engine_queue(self) -> TypefluxYamlSpec:
-        if self.runtime.engine != "local" and self.task_queue is None:
-            raise ValueError("task_queue is required for runtime.engine: temporal (the default)")
+        if self.runtime.engine == "temporal" and self.task_queue is None:
+            raise ValueError("task_queue is required for runtime.engine: temporal")
         return self
 
     @model_validator(mode="after")

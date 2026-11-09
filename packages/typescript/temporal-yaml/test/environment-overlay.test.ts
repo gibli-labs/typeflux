@@ -17,6 +17,7 @@ project: p
 name: n
 task_queue: base-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -41,6 +42,7 @@ variables:
 overrides:
   task_queue: prod-queue
   runtime:
+    engine: temporal
     temporal: { namespace: base-from-env }
 workflows:
   W:
@@ -55,7 +57,7 @@ describe("mergedEnvironmentOverrides (#454; Python _merged_overrides)", () => {
     const merged = mergedEnvironmentOverrides(env, "W");
     expect(merged).toEqual({
       task_queue: "prod-queue",
-      runtime: { temporal: { namespace: "base-from-env", address: "wf.temporal:7233" } },
+      runtime: {engine: "temporal", temporal: { namespace: "base-from-env", address: "wf.temporal:7233" } },
     });
   });
 
@@ -63,7 +65,7 @@ describe("mergedEnvironmentOverrides (#454; Python _merged_overrides)", () => {
     const env = loadEnvironmentSpec(ENVIRONMENT);
     expect(mergedEnvironmentOverrides(env, "other")).toEqual({
       task_queue: "prod-queue",
-      runtime: { temporal: { namespace: "base-from-env" } },
+      runtime: {engine: "temporal", temporal: { namespace: "base-from-env" } },
     });
   });
 
@@ -84,7 +86,7 @@ describe("mergedEnvironmentOverrides (#454; Python _merged_overrides)", () => {
     const other = mergedEnvironmentOverrides(env, "other");
     expect(env.overrides).toEqual({
       task_queue: "prod-queue",
-      runtime: { temporal: { namespace: "base-from-env" } },
+      runtime: {engine: "temporal", temporal: { namespace: "base-from-env" } },
     });
     expect((env.workflows["W"] as { overrides: unknown }).overrides).toEqual({
       runtime: { temporal: { address: "wf.temporal:7233" } },

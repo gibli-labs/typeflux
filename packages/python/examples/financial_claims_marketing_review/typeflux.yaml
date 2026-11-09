@@ -3,6 +3,7 @@ name: financial_claims_marketing_review
 task_queue: ${TEMPORAL_TASK_QUEUE:-financial-claims-marketing-review-typeflux}
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

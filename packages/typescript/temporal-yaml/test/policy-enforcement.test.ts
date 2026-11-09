@@ -18,6 +18,7 @@ project: p
 name: w
 task_queue: q
 runtime:
+  engine: temporal
 ${runtime}
 activities:
   definitions:
@@ -52,6 +53,7 @@ project: p
 name: w
 task_queue: q
 runtime:
+  engine: temporal
 ${opts.runtime}
 activities:
   definitions:

@@ -50,6 +50,7 @@ project: ts_cloud_demo
 name: ts_cloud_demo_yaml
 task_queue: ts-cloud-binding
 runtime:
+  engine: temporal
   temporal:
     address: 127.0.0.1:1
   registry:

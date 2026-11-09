@@ -8,6 +8,7 @@ name: privacy_governance
 task_queue: ${TEMPORAL_TASK_QUEUE:-privacy-governance-typeflux}
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

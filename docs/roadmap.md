@@ -1,6 +1,6 @@
 # Roadmap
 
-The public plan for taking Typeflux Temporal from beta to a stable 1.0.
+The public plan for taking Typeflux from beta to a stable 1.0.
 Sequencing is deliberate; dates are not promised. Items move only when their
 gate evidence exists — see [GOVERNANCE.md](../GOVERNANCE.md) for how
 decisions land.

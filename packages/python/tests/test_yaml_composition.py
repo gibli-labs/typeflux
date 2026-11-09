@@ -150,6 +150,7 @@ def _yaml_text(
         name: disclosure_review
         task_queue: composition-queue
         runtime:
+          engine: temporal
           temporal:
             address: localhost:7233
           registry:

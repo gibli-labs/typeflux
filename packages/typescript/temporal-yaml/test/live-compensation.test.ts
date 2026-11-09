@@ -67,6 +67,7 @@ project: p
 name: saga
 task_queue: typeflux-live-compensation-${suffix}
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -274,6 +275,7 @@ project: p
 name: mapsaga
 task_queue: typeflux-live-mapsaga-${suffix}
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/process: "process {{v}}", p/undo: "undo_item" } }
   provider: { type: openai }
@@ -297,6 +299,7 @@ project: p
 name: parsaga
 task_queue: typeflux-live-parsaga-${suffix}
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/a: "task a", p/b: "task b", p/fin: "finalize", p/ua: "undo_a", p/ub: "undo_b" } }
   provider: { type: openai }

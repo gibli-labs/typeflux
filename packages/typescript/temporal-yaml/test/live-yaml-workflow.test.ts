@@ -26,6 +26,7 @@ project: p
 name: claim_review
 task_queue: typeflux-live-yaml
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -80,6 +81,7 @@ project: p
 name: hb
 task_queue: typeflux-live-hb
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -111,6 +113,7 @@ project: p
 name: ur
 task_queue: typeflux-live-ur
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -158,6 +161,7 @@ project: p
 name: cx
 task_queue: typeflux-live-cancel
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -186,6 +190,7 @@ project: p
 name: af
 task_queue: typeflux-live-artifacts
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -218,6 +223,7 @@ project: p
 name: lc
 task_queue: typeflux-live-lifecycle
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -251,6 +257,7 @@ project: p
 name: rv
 task_queue: typeflux-live-review
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -296,6 +303,7 @@ project: p
 name: rvg
 task_queue: typeflux-live-gates
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -414,6 +422,7 @@ project: p
 name: cached_review
 task_queue: typeflux-live-yaml-cache
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -479,6 +488,7 @@ project: p
 name: bounded_review
 task_queue: typeflux-live-yaml-maxbytes
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -993,6 +1003,7 @@ project: p
 name: comp
 task_queue: typeflux-live-composition
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline

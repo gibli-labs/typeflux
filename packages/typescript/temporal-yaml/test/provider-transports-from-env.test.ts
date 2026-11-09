@@ -42,6 +42,7 @@ project: prov_demo
 name: prov_demo
 task_queue: prov-demo
 runtime:
+  engine: temporal
   temporal:
     address: localhost:7233
   registry:

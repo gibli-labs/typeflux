@@ -33,6 +33,7 @@ def _spec(steps: list[dict[str, Any]], *, with_map_workflow: bool = False) -> Ty
             "name": "n",
             "task_queue": "q",
             "runtime": {
+                "engine": "temporal",
                 "registry": {"type": "inline", "prompts": {"p/x": "hi"}},
                 "provider": {"type": "openai", "model": "gpt-4o-mini"},
             },

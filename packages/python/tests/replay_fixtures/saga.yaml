@@ -3,6 +3,7 @@ name: replay_saga
 task_queue: replay-fixture-saga-typeflux
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
   registry:

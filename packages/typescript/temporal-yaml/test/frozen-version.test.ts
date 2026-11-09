@@ -16,6 +16,7 @@ project: p
 name: frozen_demo
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: do it } }
   provider: { type: openai }

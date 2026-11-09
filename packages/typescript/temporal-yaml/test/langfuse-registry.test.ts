@@ -32,6 +32,7 @@ project: reg_demo
 name: reg_demo
 task_queue: reg-demo
 runtime:
+  engine: temporal
   temporal:
     address: localhost:7233
   registry:

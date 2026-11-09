@@ -25,6 +25,7 @@ project: p
 name: saga
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: x } }
   provider: { type: openai }
@@ -101,7 +102,7 @@ describe("compensation spec + plan (#299)", () => {
 project: p
 name: s
 task_queue: q
-runtime: { temporal: {}, registry: { type: inline, prompts: { p/x: x } }, provider: { type: openai } }
+runtime: {engine: "temporal", temporal: {}, registry: { type: inline, prompts: { p/x: x } }, provider: { type: openai } }
 activities:
   definitions:
     - { name: book, input: schemas:A, output: schemas:B, prompt: p/x }
@@ -140,6 +141,7 @@ project: p
 name: route
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: x } }
   provider: { type: openai }
@@ -199,6 +201,7 @@ project: p
 name: mapself
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: x } }
   provider: { type: openai }
@@ -224,6 +227,7 @@ project: p
 name: brc
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: x } }
   provider: { type: openai }
@@ -253,6 +257,7 @@ project: p
 name: tlg
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: x } }
   provider: { type: openai }

@@ -1,6 +1,6 @@
 # Insurance Claim Evidence Review Example
 
-This demo is a fan-out focused live example for Typeflux Temporal.
+This demo is a fan-out focused live example for Typeflux.
 
 It shows:
 

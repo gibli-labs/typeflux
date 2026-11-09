@@ -12,6 +12,7 @@ project: planning_fixture
 name: demo
 task_queue: existing-temporal-default
 runtime:
+  engine: temporal
   temporal: {}
   registry: {type: inline, prompts: {echo: 'Echo {{text}}'}}
   provider: {type: fake}
@@ -28,7 +29,7 @@ workflow:
       when: {path: input.text, neq: stop}
 `;
 const local = loadYamlSpec(yaml.replace("task_queue: existing-temporal-default\n", "")
-  .replace("  temporal: {}", "  engine: local"));
+  .replace("  engine: temporal\n", ""));
 assert.deepEqual(validateLocalCapabilities(local), ["demo"]);
 assert.throws(() => requireTemporalEngine(local), RuntimeCapabilityError);
 const spec = loadYamlSpec(yaml);

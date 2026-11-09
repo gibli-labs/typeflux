@@ -207,6 +207,7 @@ def make_minimal_project(
         name: {slug}_demo
         task_queue: {dashed_slug}-demo-queue
         runtime:
+          engine: temporal
           temporal:
             address: localhost:7233
           registry:

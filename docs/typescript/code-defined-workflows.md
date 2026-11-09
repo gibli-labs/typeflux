@@ -1,7 +1,7 @@
 # Code-Defined Workflows (TypeScript)
 
 The TypeScript counterpart of [Code-Defined Workflows](../code-defined-workflows.md).
-Typeflux Temporal's TS SDK supports two ways to orchestrate AI activities: the
+Typeflux's TS SDK supports two ways to orchestrate AI activities: the
 declarative [YAML runtime](yaml.md), and **code-first** orchestration in plain
 TypeScript. This page covers the code-first path — the composition primitives,
 durable child-workflow composition, and the conventions that keep workflow code

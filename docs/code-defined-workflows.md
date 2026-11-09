@@ -1,6 +1,6 @@
 # Code-Defined Workflows
 
-Typeflux Temporal supports two ways to orchestrate AI activities: the declarative
+Typeflux supports two ways to orchestrate AI activities: the declarative
 [YAML runtime](yaml.md), and **code-first** orchestration in plain Python. This page
 covers the code-first path — the composition primitives, durable `@workflow.defn`
 composition, and the conventions that keep workflow code deterministic.

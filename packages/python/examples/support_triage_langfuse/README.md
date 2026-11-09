@@ -1,6 +1,6 @@
 # Support Triage Langfuse Example
 
-This example is the main live demo for Typeflux Temporal.
+This example is the main live demo for Typeflux.
 
 It shows:
 

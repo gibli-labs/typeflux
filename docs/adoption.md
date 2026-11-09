@@ -11,7 +11,7 @@ uses (`engine.lock`). That dependency/source pin is separate from the workflow's
 Choose the runtime first: local foreground execution needs no Temporal SDK/server
 and loses progress on exit; Temporal supplies durable orchestration and the existing
 review/management surfaces. See the [local quickstarts, capabilities and migration](local-runtime.md).
-Omitted `runtime.engine` retains Temporal behavior. Local control-plane/console/MCP
+Omitted `runtime.engine` selects Local. Select `runtime.engine: temporal` for durable execution. Local control-plane/console/MCP
 run management is outside the local runtime MVP.
 
 Authoring modes compose with that runtime choice:

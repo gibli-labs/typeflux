@@ -30,6 +30,7 @@ workflows:
     overrides:
       task_queue: contract-risk-review-cloud-typeflux
       runtime:
+        engine: temporal
         registry:
           type: langfuse
           label: ${LANGFUSE_PROMPT_LABEL:-production}

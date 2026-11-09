@@ -143,6 +143,6 @@ Gemini also spends **thinking tokens** against `max_output_tokens` — budget
 
 - [Provider Portability](provider-portability.md) — the no-silent-divergence
   contract and the capability matrix.
-- [Extending Typeflux Temporal](extending.md) — the `ModelProvider` contract,
+- [Extending Typeflux](extending.md) — the `ModelProvider` contract,
   `supported_provider_params`, and `supported_artifact_kinds`.
 - [YAML Runtime](yaml.md) — declaring `artifact_inputs` and `attach`.

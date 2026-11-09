@@ -12,6 +12,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline }
   provider:

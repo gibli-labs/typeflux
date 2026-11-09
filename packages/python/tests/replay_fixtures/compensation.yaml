@@ -3,6 +3,7 @@ name: replay_compensation
 task_queue: replay-fixture-compensation-typeflux
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
   registry:

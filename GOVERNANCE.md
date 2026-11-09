@@ -1,6 +1,6 @@
 # Governance
 
-Typeflux Temporal is currently a **single-maintainer project**. This document
+Typeflux is currently a **single-maintainer project**. This document
 states how decisions are made today and how that evolves as the contributor
 base grows — honestly, without implying a committee that does not exist.
 

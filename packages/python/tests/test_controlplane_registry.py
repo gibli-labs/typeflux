@@ -792,6 +792,7 @@ def test_git_sourced_python_project_resolves_bundle(tmp_path: Path) -> None:
         "name: demo\n"
         "task_queue: demo-q\n"
         "runtime:\n"
+        "  engine: temporal\n"
         "  temporal: {address: localhost:7233}\n"
         "  registry: {type: inline, prompts: {classify: 'classify {{text}}'}}\n"
         "  provider: {type: fake, model: fake-1}\n"

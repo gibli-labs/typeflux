@@ -69,6 +69,7 @@ project: refiner_demo
 name: review_blob
 task_queue: refiner-demo-ts
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -180,6 +181,7 @@ project: refiner_demo
 name: review_code_only
 task_queue: refiner-demo-ts
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline

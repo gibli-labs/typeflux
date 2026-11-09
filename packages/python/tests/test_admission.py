@@ -166,6 +166,7 @@ project: evil_admission_probe
 name: hostile
 task_queue: q
 runtime:
+  engine: temporal
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
 activities:
@@ -240,6 +241,7 @@ def _spec_yaml(*, name: str, model: str) -> str:
         f"name: {name}\n"
         "task_queue: q\n"
         "runtime:\n"
+        "  engine: temporal\n"
         "  registry: { type: inline, prompts: { p/x: hi } }\n"
         f"  provider: {{ type: openai, model: {model} }}\n"
         "activities:\n"

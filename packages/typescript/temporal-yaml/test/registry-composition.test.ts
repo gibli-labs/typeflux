@@ -31,6 +31,7 @@ project: p
 name: ${opts.name}
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry:
 ${opts.registry}

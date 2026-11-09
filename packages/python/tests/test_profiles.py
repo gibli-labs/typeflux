@@ -49,6 +49,7 @@ def _write_workflow_yaml(tmp_path: Path) -> None:
         name: demo
         task_queue: demo-task-queue
         runtime:
+          engine: temporal
           temporal:
             address: localhost:7233
           registry:

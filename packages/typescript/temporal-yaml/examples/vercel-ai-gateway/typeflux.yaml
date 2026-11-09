@@ -2,6 +2,7 @@ project: examples.vercel_ai_gateway
 name: vercel_gateway
 task_queue: vercel-gateway
 runtime:
+  engine: temporal
   temporal: {address: "${TEMPORAL_ADDRESS:-localhost:7233}"}
   registry:
     type: inline

@@ -14,6 +14,7 @@ project: smoke
 name: smoke
 task_queue: smoke
 runtime:
+  engine: temporal
   temporal: {}
   registry: {type: inline}
   provider: {type: vercel-ai-gateway, model: anthropic/claude-haiku-4.5}

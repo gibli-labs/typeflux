@@ -9,6 +9,7 @@ name: replay_composition
 task_queue: replay-fixture-composition-typeflux
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
   registry:

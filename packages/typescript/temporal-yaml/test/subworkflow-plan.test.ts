@@ -21,6 +21,7 @@ project: claims
 name: claim_assessment
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline }
   provider: { type: openai }
@@ -42,6 +43,7 @@ project: claims
 name: intake
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline }
   provider: { type: openai }
@@ -62,6 +64,7 @@ project: claims
 name: batch_intake
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline }
   provider: { type: openai }
@@ -138,7 +141,7 @@ describe("sub-workflow plan derivation (#55 slice 3)", () => {
 project: p
 name: a
 task_queue: q
-runtime: { temporal: {}, registry: { type: inline }, provider: { type: openai } }
+runtime: {engine: "temporal", temporal: {}, registry: { type: inline }, provider: { type: openai } }
 activities: { definitions: [] }
 workflow:
   name: A
@@ -152,7 +155,7 @@ workflow:
 project: p
 name: b
 task_queue: q
-runtime: { temporal: {}, registry: { type: inline }, provider: { type: openai } }
+runtime: {engine: "temporal", temporal: {}, registry: { type: inline }, provider: { type: openai } }
 activities: { definitions: [] }
 workflow:
   name: B
@@ -186,7 +189,7 @@ workflow:
 project: claims
 name: intake_mismatch
 task_queue: q
-runtime: { temporal: {}, registry: { type: inline }, provider: { type: openai } }
+runtime: {engine: "temporal", temporal: {}, registry: { type: inline }, provider: { type: openai } }
 activities:
   definitions:
     - { name: classify, input: "schemas:Disclosure", output: "schemas:Classification", prompt: claims/c }
@@ -240,7 +243,7 @@ describe("sub-workflow resolution errors and memoization (#55 review round)", ()
 project: p
 name: d
 task_queue: q
-runtime: { temporal: {}, registry: { type: inline }, provider: { type: openai } }
+runtime: {engine: "temporal", temporal: {}, registry: { type: inline }, provider: { type: openai } }
 activities:
   definitions: [{ name: leaf, input: "schemas:X", output: "schemas:X", prompt: p/x }]
 workflow:
@@ -253,7 +256,7 @@ workflow:
 project: p
 name: ${name}
 task_queue: q
-runtime: { temporal: {}, registry: { type: inline }, provider: { type: openai } }
+runtime: {engine: "temporal", temporal: {}, registry: { type: inline }, provider: { type: openai } }
 activities: { definitions: [] }
 workflow:
   name: ${name.toUpperCase()}
@@ -265,7 +268,7 @@ workflow:
 project: p
 name: a
 task_queue: q
-runtime: { temporal: {}, registry: { type: inline }, provider: { type: openai } }
+runtime: {engine: "temporal", temporal: {}, registry: { type: inline }, provider: { type: openai } }
 activities: { definitions: [] }
 workflow:
   name: A

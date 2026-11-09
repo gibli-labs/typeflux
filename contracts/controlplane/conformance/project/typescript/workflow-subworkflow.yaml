@@ -6,6 +6,7 @@ project: conformance_project
 name: conformance_subworkflow
 task_queue: conformance-demo-queue
 runtime:
+  engine: temporal
   temporal:
     address: localhost:7233
   registry:

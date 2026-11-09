@@ -22,7 +22,7 @@ const minimalSpec = () => ({
   project: "p",
   name: "n",
   task_queue: "q",
-  runtime: {
+  runtime: {engine: "temporal",
     temporal: {} as Record<string, unknown>,
     registry: { type: "inline", prompts: { "p/x": "do it" } } as Record<string, unknown>,
     provider: { type: "openai" } as Record<string, unknown>,
@@ -254,14 +254,14 @@ describe("sub-schema refinements", () => {
   it("custom-extension config is stub-rejected with a pointer (#792)", () => {
     // The TS SDK rejects Python `class:` extensions; `config` accompanies them, so it
     // gets the same pointer-error treatment instead of a bare unknown-key rejection.
-    const cases: Array<[string, RegExp]> = [
+    const cases: Array<["provider" | "registry" | "observability", RegExp]> = [
       ["provider", /injected provider or transport/],
       ["registry", /injected `registryTransport`/],
       ["observability", /injected observer transport/],
     ];
     for (const [section, pointer] of cases) {
       const bad = minimalSpec();
-      const runtime = bad.runtime as Record<string, Record<string, unknown>>;
+      const runtime: Partial<Record<"provider" | "registry" | "observability", Record<string, unknown>>> = bad.runtime;
       runtime[section] = { ...(runtime[section] ?? { type: "none" }), config: { api_key: "x" } };
       const parsed = typefluxYamlSpec.safeParse(bad);
       expect(parsed.success).toBe(false);

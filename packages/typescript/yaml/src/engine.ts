@@ -15,7 +15,7 @@ export class RuntimeCapabilityError extends Error {
 }
 
 export function runtimeEngine(spec: TypefluxYamlSpec): "local" | "temporal" {
-  return spec.runtime.engine ?? "temporal";
+  return spec.runtime.engine ?? "local";
 }
 
 /** Guard an existing Temporal-only surface and return its required queue. */

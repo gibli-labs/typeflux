@@ -592,7 +592,7 @@ def test_build_runtime_rejects_subject_scope_with_subworkflows(
     monkeypatch.setenv("TF_SUBJ_CODEC_KEY", _WIRED_TEST_KEY)
     spec = SimpleNamespace(
         runtime=SimpleNamespace(
-            engine=None, temporal=SimpleNamespace(payload_codec=_subject_scope_spec())
+            engine="temporal", temporal=SimpleNamespace(payload_codec=_subject_scope_spec())
         ),
         task_queue="test-queue",
         workflow=SimpleNamespace(version=None),

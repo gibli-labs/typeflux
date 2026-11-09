@@ -171,6 +171,7 @@ def test_build_redactor_threads_spec_custom_rules(
         "name: demo\n"
         "task_queue: q\n"
         "runtime:\n"
+        "  engine: temporal\n"
         "  registry: { type: inline, prompts: { p: hi } }\n"
         "  provider: { type: fake }\n"
         "  observability:\n"

@@ -4,20 +4,30 @@ How to set up a project to use Typeflux effectively — the questions the author
 doesn't cover: which mode to start in, where files go, how the manifest grows, how the
 engine is pinned. Full narrative: `docs/adoption.md` in the engine repo.
 
+## Choose the runtime
+
+Omitted `runtime.engine` selects Local: foreground CLI/SDK execution without a
+Temporal SDK or server. Use `typeflux-local` or the Local SDK to run it. Local
+progress ends with its process; it provides no managed run history or review gates.
+For durable execution, scheduling, review and run management, explicitly select
+`runtime.engine: temporal` and configure a queue and Temporal service. Existing
+implicit-Temporal workflows must add that engine selection before upgrading.
+MCP's `managed-local` name describes its control-plane backend, not Local execution.
+
 ## Pick the authoring mode (a dial, not a fork)
 
 - **Pure YAML** — every activity is prompt+schemas, declared in `typeflux.yaml`. Lowest
   friction, fully governable. Default for greenfield.
-- **Code-first SDK** — `defineActivity`/`defineCodeActivity` (TS) or `@ai_activity.defn`
-  (Python) in your own Temporal workflows. Right when the project already runs Temporal, or
+- **Code-first SDK** — `defineActivity`/`defineCodeActivity` (TS) or `AIActivity`
+  (Python) for direct/Local execution. Temporal decorators run in Temporal workflows. Right when the project already runs Temporal, or
   when adoption should proceed one activity at a time.
 - **Hybrid** — a YAML workflow whose steps call injected code activities (`extraActivities`
   in TS, `activities.modules` in Python) alongside declared AI ones. The intended shape when
   some activities can't be a prompt; not a compromise.
 
 Two constraints: governance inspects `activities.definitions`, so an injected activity sits
-outside declarative validation (keep the MODEL CALL declarable where you can); and anything
-crossing the workflow→activity boundary lands in Temporal history — fuse a read with its
+outside declarative validation (keep the MODEL CALL declarable where you can); and on the Temporal path, values
+crossing the workflow→activity boundary land in Temporal history — fuse a read with its
 model call in one code activity when the payload must never appear there.
 
 ## Layout
@@ -63,7 +73,8 @@ The rules that make it worth having:
 ## First-session loop
 
 Wire `.mcp.json` (`npx -y typeflux-mcp`), then: schema + examples → scaffold → apply as a
-reviewable diff → `validate_project` → `get_bundle` → only then run. With no manifest the
+reviewable diff → run with the Local CLI/SDK. For Temporal, use `validate_project`
+→ `get_bundle` → the Temporal worker/starter flow. With no manifest the
 static tier is available; creating `typeflux.project.yaml` activates the live tier for a
 roots-advertising client (otherwise set `TYPEFLUX_MANIFEST` explicitly). Managed-local is
 SHAPE-ONLY for schema-referencing workflows: reads that need resolved schemas answer 422

@@ -40,6 +40,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/sum: summarize it } }
   provider: { type: openai }
@@ -151,6 +152,7 @@ project: p
 name: Parent
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/sum: summarize it } }
   provider: { type: openai }

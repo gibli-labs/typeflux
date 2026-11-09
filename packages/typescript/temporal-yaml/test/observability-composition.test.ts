@@ -30,6 +30,7 @@ project: p
 name: ${name}
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
 ${observability === "" ? "" : `  observability:\n    type: ${observability}\n`}  registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai }

@@ -6,6 +6,7 @@ project: p
 name: demo
 task_queue: existing-temporal-default
 runtime:
+  engine: temporal
   temporal: {}
   registry: {type: inline, prompts: {echo: 'Echo {{text}}'}}
   provider: {type: fake}

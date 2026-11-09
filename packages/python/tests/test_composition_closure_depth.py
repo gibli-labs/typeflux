@@ -39,6 +39,7 @@ def _write_workflow(path: Path, *, name: str, steps_yaml: str, with_activity: bo
         f"name: {name}\n"
         "task_queue: q\n"
         "runtime:\n"
+        "  engine: temporal\n"
         "  registry: { type: inline, prompts: { p/x: hi } }\n"
         "  provider: { type: openai, model: gpt-4o-mini }\n"
         f"{activities}"

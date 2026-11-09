@@ -25,6 +25,7 @@ project: p
 name: claim_review
 task_queue: spec-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -358,6 +359,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -411,6 +413,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/review: review it } }
   provider: { type: openai, params: { model: params-only-model } }
@@ -439,6 +442,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/review: review it } }
   provider: { type: openai }
@@ -491,6 +495,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/review: review it } }
   provider: { type: openai }
@@ -540,6 +545,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/review: review it } }
   provider: { type: openai }
@@ -659,6 +665,7 @@ project: p
 name: n
 task_queue: q
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/review: review it } }
   provider: { type: openai }

@@ -25,8 +25,8 @@ schema contracts and the existing predicate/context helpers. Its dependency on
 `@typeflux/temporal` is the historical name of the dependency-light core activity
 SDK; that package does not install a Temporal SDK.
 
-Select `runtime.engine: local` explicitly; omitting the engine retains Temporal
-behavior and requires a task queue. There is no automatic fallback.
+Omitting `runtime.engine` selects Local; `runtime.engine: local` selects it explicitly.
+Temporal requires `runtime.engine: temporal` and a task queue. There is no automatic fallback.
 Run supported computational YAML in-process with `await buildLocalRuntime(spec,
 {schemas, provider})`, then `await runtime.executeWorkflow(input)`. The builder
 reuses the same activity services, performs full-closure preflight, and has no durable

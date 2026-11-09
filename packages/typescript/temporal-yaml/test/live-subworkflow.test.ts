@@ -28,6 +28,7 @@ project: claims
 name: claim_assessment
 task_queue: ${TASK_QUEUE}
 runtime:
+  engine: temporal
   temporal: {}
   registry:
     type: inline
@@ -55,6 +56,7 @@ project: claims
 name: intake
 task_queue: ${TASK_QUEUE}
 runtime:
+  engine: temporal
   temporal:
     workflow_search_attribute: TypefluxWorkflowName
   registry: { type: inline, prompts: { claims/assess: assess the item } }
@@ -76,6 +78,7 @@ project: claims
 name: batch_intake
 task_queue: ${TASK_QUEUE}
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { claims/assess: assess the item } }
   provider: { type: openai }

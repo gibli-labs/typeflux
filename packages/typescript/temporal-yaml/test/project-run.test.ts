@@ -13,6 +13,7 @@ project: p
 name: n
 task_queue: ${queueExpr}
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -149,6 +150,7 @@ project: p
 name: parent
 task_queue: parent-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }

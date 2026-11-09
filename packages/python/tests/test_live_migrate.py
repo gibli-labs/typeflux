@@ -43,6 +43,7 @@ project: replay_demo_project
 name: migrate_live_v1
 task_queue: {_QUEUE}
 runtime:
+  engine: temporal
   temporal:
     address: ${{TEMPORAL_ADDRESS:-localhost:7233}}
   registry:
@@ -88,6 +89,7 @@ project: replay_demo_project
 name: migrate_live_v2
 task_queue: {_QUEUE}
 runtime:
+  engine: temporal
   temporal:
     address: ${{TEMPORAL_ADDRESS:-localhost:7233}}
   registry:

@@ -3,6 +3,7 @@ name: regulated_claims_adjudication
 task_queue: ${TEMPORAL_TASK_QUEUE:-regulated-claims-adjudication-typeflux}
 
 runtime:
+  engine: temporal
   temporal:
     address: ${TEMPORAL_ADDRESS:-localhost:7233}
     namespace: ${TEMPORAL_NAMESPACE:-default}

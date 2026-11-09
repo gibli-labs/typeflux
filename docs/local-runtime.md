@@ -37,6 +37,21 @@ packages with `pnpm --filter @typeflux/temporal pack --pack-destination /absolut
 and the same command for `@typeflux/yaml`. Use those actual filenames in the
 quickstarts; the maintained probes install and exercise the same candidate inputs.
 
+## Migrating workflows that relied on the old default
+
+Local is now the default when `runtime.engine` is omitted. To retain durable
+execution for existing YAML, add `runtime.engine: temporal` in the workflow or its
+selected project defaults, runtime profile or environment, and keep its task queue.
+Apply the selection to every reachable child workflow. A queue or Temporal
+connection block alone does not select Temporal: Local refuses those settings.
+Existing Temporal worker/control-plane commands refuse implicit Local selection
+with instructions to select Temporal; they do not silently launch a Local run.
+
+For Local, remove Temporal placement and unsupported lifecycle/review or
+compensation settings, then run `typeflux-local` or the Local SDK. Explicit
+`runtime.engine: local` remains valid. Package/import names and the explicit
+Temporal SDK entry points are unchanged.
+
 ## Choosing an engine
 
 | Behavior | Local (both editions) | Temporal integration |
@@ -74,8 +89,8 @@ workflow:
   steps: [{id: echo, activity: echo}]
 ```
 
-Omitting `runtime.engine` retains Temporal behavior and requires `task_queue`.
-`runtime.engine: temporal` selects it explicitly. Engine selection is separate from
+Omitting `runtime.engine` selects Local. `runtime.engine: temporal` selects
+durable execution and requires `task_queue`. Engine selection is separate from
 SDK language. Runtime component profiles can set `engine`, using the existing
 precedence: project runtime defaults, workflow YAML, selected component profiles,
 then environment overrides. No automatic engine fallback occurs.
@@ -441,8 +456,8 @@ ID as a durable run handle.
    Register that file in the manifest's `environments` map and select the same
    environment for the parent and its whole child closure. Existing environment,
    profile and policy admission rules still apply. Standalone files can make the
-   same placement changes directly. Omitting the engine also retains Temporal
-   behavior and requires a queue.
+   same placement changes directly. Temporal must be explicitly selected; omitting
+   the engine selects Local even when a task queue is present.
 3. Replace the foreground local entry point with the existing Temporal runtime:
    Python `build_runtime` / worker + `execute_workflow`; TypeScript `buildRuntime`
    / worker + `runWorkflow`. The existing project worker commands are

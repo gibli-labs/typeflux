@@ -20,6 +20,7 @@ project: claims
 name: ClaimAssessment
 task_queue: base-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }
@@ -37,6 +38,7 @@ project: claims
 name: Intake
 task_queue: base-queue
 runtime:
+  engine: temporal
   temporal: {}
   registry: { type: inline, prompts: { p/x: hi } }
   provider: { type: openai, model: gpt-4o-mini }

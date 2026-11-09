@@ -1,6 +1,6 @@
 # Dependency Management
 
-Typeflux Temporal uses `uv.lock` as the reproducible dependency artifact for
+Typeflux uses `uv.lock` as the reproducible dependency artifact for
 repo development, CI, auto-fix runs, and live examples.
 
 ## Setup
@@ -39,7 +39,9 @@ runtime engine.
 For Temporal workflows and workers, add the `temporal` extra (Temporal SDK and
 payload-codec encryption dependencies). Existing consumers upgrading from an
 installation of `typeflux` or a provider-only extra must add `temporal` to keep
-using those entry points. No import path changes are required.
+using those entry points. YAML must also select `runtime.engine: temporal` explicitly
+in the workflow, defaults, profile or environment; omission now selects Local.
+No import path changes are required.
 
 Install only the runtime, provider and backend dependencies needed:
 

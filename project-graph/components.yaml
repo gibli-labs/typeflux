@@ -87,7 +87,7 @@ entities:
   - id: component.documentation
     kind: component
     description: Repository documentation; capability-level coverage is intentionally incremental.
-    paths: [docs/**, README.md, CHANGELOG.md, packages/typescript/README.md]
+    paths: [docs/**, README.md, CHANGELOG.md, CONTRIBUTING.md, GOVERNANCE.md, packages/typescript/README.md]
   - id: component.deployment
     kind: component
     description: Reference worker deployment templates.

@@ -48,18 +48,16 @@ describe("engine boundaries", () => {
     leaf.project = root.project;
     lookup.set("leaf", root);
     expect(() => validateLocalCapabilities(root, resolver)).toThrow(/cyclic/);
-    for (const engine of [undefined, "temporal"] as const) {
-      lookup.set("child", typefluxYamlSpec.parse({
-        ...child, runtime: {...child.runtime, engine}, task_queue: "existing",
-      }));
-      let caught: unknown;
-      try { validateLocalCapabilities(root, resolver); } catch (error) { caught = error; }
-      expect(caught).toBeInstanceOf(RuntimeCapabilityError);
-      expect(caught).toMatchObject({workflow: "child", path: "runtime.engine"});
-      expect(String(caught)).toContain("local graph requires");
-      expect(String(caught)).toContain("Use runtime.engine: local");
-      expect(String(caught)).not.toContain("Use runtime.engine: temporal");
-    }
+    lookup.set("child", typefluxYamlSpec.parse({
+      ...child, runtime: {...child.runtime, engine: "temporal"}, task_queue: "existing",
+    }));
+    let caught: unknown;
+    try { validateLocalCapabilities(root, resolver); } catch (error) { caught = error; }
+    expect(caught).toBeInstanceOf(RuntimeCapabilityError);
+    expect(caught).toMatchObject({workflow: "child", path: "runtime.engine"});
+    expect(String(caught)).toContain("local graph requires");
+    expect(String(caught)).toContain("Use runtime.engine: local");
+    expect(String(caught)).not.toContain("Use runtime.engine: temporal");
   });
 
   it("resolves diamond children once and preserves resolver errors", () => {
@@ -79,13 +77,20 @@ describe("engine boundaries", () => {
   it("preserves defaults and resolves engine overrides before validation", () => {
     const raw = structuredClone(fixtures.base);
     delete raw.runtime.engine;
+    const implicit = typefluxYamlSpec.parse(raw);
+    expect(runtimeEngine(implicit)).toBe("local");
+    expect(implicit.runtime).not.toHaveProperty("engine");
+    expect(validateLocalCapabilities(implicit)).toEqual(["root"]);
+    expect(validateLocalCapabilities(typefluxYamlSpec.parse(JSON.parse(JSON.stringify(implicit))))).toEqual(["root"]);
+    expect(() => requireTemporalEngine(implicit)).toThrow(/Temporal entry point/);
     raw.task_queue = "existing";
-    const temporal = typefluxYamlSpec.parse(raw);
-    expect(runtimeEngine(temporal)).toBe("temporal");
-    expect(requireTemporalEngine(temporal)).toBe("existing");
-    expect(temporal.runtime).not.toHaveProperty("engine");
+    expect(runtimeEngine(typefluxYamlSpec.parse(raw))).toBe("local");
+    expect(() => validateLocalCapabilities(typefluxYamlSpec.parse(raw))).toThrow(/task_queue/);
+    raw.runtime.engine = "temporal";
+    expect(requireTemporalEngine(typefluxYamlSpec.parse(raw))).toBe("existing");
     delete raw.task_queue;
     expect(() => typefluxYamlSpec.parse(raw)).toThrow(/task_queue/);
+    delete raw.runtime.engine;
     const local = loadYamlSpec(JSON.stringify(raw), {runtimeDefaults: {engine: "temporal"}, overrides: {runtime: {engine: "local"}}});
     expect(runtimeEngine(local)).toBe("local");
     expect(validateLocalCapabilities(local)).toEqual(["root"]);

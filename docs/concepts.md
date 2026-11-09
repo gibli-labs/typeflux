@@ -1,6 +1,6 @@
 # Concepts
 
-Typeflux Temporal defines typed AI activities shared by local YAML execution and
+Typeflux defines typed AI activities shared by local YAML execution and
 the optional Temporal integration. Local runs use one foreground process with no
 Temporal SDK/server; the Temporal path adds durable orchestration. See the
 [engine comparison](local-runtime.md#choosing-an-engine).

@@ -13,6 +13,8 @@ entities:
       - packages/python/src/typeflux/project/environment.py
       - packages/python/src/typeflux/project/profiles.py
       - packages/python/src/typeflux/project/binding_ts.py
+      - clients/mcp/src/authoring.ts
+      - clients/mcp/scripts/generate-assets.mjs
       - packages/typescript/yaml/src/engine.ts
       - packages/typescript/yaml/src/spec.ts
       - packages/typescript/yaml/src/overrides.ts
@@ -22,12 +24,12 @@ entities:
       - packages/typescript/temporal-controlplane/src/executions.ts
       - packages/typescript/temporal-controlplane/src/http/server.ts
       - packages/typescript/temporal-yaml/src/deployment.ts
-    documentation: [README.md, docs/local-management-decision.md, docs/local-runtime.md, docs/local-runtime-acceptance.md, docs/control-plane.md, docs/typescript/control-plane.md, clients/mcp/README.md, docs/yaml-planning.md, contracts/local-runtime/README.md]
+    documentation: [README.md, clients/mcp/src/guide/project-layout.md, clients/mcp/src/guide/authoring-checklist.md, docs/local-management-decision.md, docs/local-runtime.md, docs/local-runtime-acceptance.md, docs/control-plane.md, docs/typescript/control-plane.md, clients/mcp/README.md, docs/yaml-planning.md, contracts/local-runtime/README.md]
     links:
       - {relation: requires, target: invariant.local-engine-boundary}
   - id: invariant.local-engine-boundary
     kind: invariant
-    description: Omitted engine retains Temporal. Local capabilities reject explicit Temporal settings, lifecycle/review and compensation throughout the reachable graph, while schema defaults are harmless. Existing Temporal execution surfaces refuse local selection before service construction. Local execution retains foreground CLI/SDK ownership; definition or exported-observation access and MCP's in-process managed-local control-plane backend do not create managed Local runs or resumable handles.
+    description: Omitted engine selects Local; Temporal requires explicit selection through workflow, defaults, profile or environment. Local capabilities reject explicit Temporal settings, lifecycle/review and compensation throughout the reachable graph, while schema defaults are harmless. Existing Temporal execution surfaces refuse local selection before service construction. Local execution retains foreground CLI/SDK ownership; definition or exported-observation access and MCP's in-process managed-local control-plane backend do not create managed Local runs or resumable handles.
   - id: check.local-runtime-boundary-python
     kind: check
     description: Shared capability fixtures, nested/skipped references with corrective mixed-engine guidance, defaults/serialization/overrides and zero-effect Temporal entry guards; the no-Temporal probe also exercises the public boundary.
@@ -40,6 +42,7 @@ entities:
       - {path: packages/python/tests/test_yaml_engine.py, name: test_local_closure_checks_skipped_nested_maps_and_references}
       - {path: packages/python/tests/test_yaml_engine.py, name: test_local_diamond_resolves_each_child_once_and_preserves_errors}
       - {path: packages/python/tests/test_yaml_engine.py, name: test_engine_defaults_overrides_and_roundtrip}
+      - {path: packages/python/tests/test_yaml_local.py, name: test_local_sequence_gate_validation_and_snapshot}
       - {path: packages/python/tests/test_yaml_engine.py, name: test_temporal_entry_points_refuse_local_before_effects}
       - {path: packages/python/tests/test_yaml_engine.py, name: test_local_worker_query_rejects_even_with_queue_override}
       - {path: packages/python/tests/test_yaml_planning.py, name: test_yaml_and_project_planning_without_temporal}
@@ -57,8 +60,19 @@ entities:
       - {path: packages/typescript/yaml/test/engine.test.ts, name: checks skipped nested maps and references}
       - {path: packages/typescript/yaml/test/engine.test.ts, name: resolves diamond children once and preserves resolver errors}
       - {path: packages/typescript/yaml/test/engine.test.ts, name: preserves defaults and resolves engine overrides before validation}
+      - {path: packages/typescript/yaml/test/local.test.ts, name: executes omitted-engine YAML through the Local pipeline}
       - {path: packages/typescript/temporal-controlplane/test/engine-boundary.test.ts, name: rejects local worker queries even with an explicit queue}
       - {path: packages/typescript/temporal-yaml/test/engine-boundary.test.ts, name: selects engine from a runtime component profile before schema validation}
       - {path: packages/typescript/temporal-yaml/test/engine-boundary.test.ts, name: rejects local root and children before runtime services}
+    links:
+      - {relation: verifies, target: invariant.local-engine-boundary}
+  - id: check.local-default-mcp
+    kind: check
+    description: Workflow authoring defaults to Local without Temporal placement and requires explicit Temporal selection for queued durable workflows.
+    environment: node-non-live
+    ci: [mcp]
+    tests:
+      - {path: clients/mcp/test/authoring.test.ts, name: 'scaffold_workflow_yaml returns YAML that loads, wrote_file:false'}
+      - {path: clients/mcp/test/authoring.test.ts, name: scaffold requires explicit Temporal selection for a task queue}
     links:
       - {relation: verifies, target: invariant.local-engine-boundary}

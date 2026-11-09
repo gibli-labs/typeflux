@@ -24,6 +24,13 @@ npx -y typeflux-mcp
 **stdio** by default, or over **Streamable HTTP** for a shared/hosted server (see
 [Transports](#transports)).
 
+Workflow scaffolding defaults to Local: `scaffold_workflow_yaml` emits
+`runtime.engine: local` without a task queue or Temporal connection. Pass
+`engine: temporal` to scaffold durable execution; `task_queue` is accepted only
+with that explicit selection. Typeflux YAML also defaults to Local when the engine
+is omitted. Existing implicit-Temporal workflows must add `runtime.engine: temporal`
+in their workflow, defaults, runtime profile or environment before upgrading.
+
 ## Two modes
 
 | Mode | Trigger | What it does |

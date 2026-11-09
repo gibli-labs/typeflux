@@ -152,6 +152,7 @@ _CHILD_YAML = """\
     name: assess_claim
     task_queue: sub-queue
     runtime:
+      engine: temporal
       temporal:
         address: localhost:7233
       registry:
@@ -185,6 +186,7 @@ def _parent_plain_yaml(pkg: str) -> str:
         name: review
         task_queue: sub-queue
         runtime:
+          engine: temporal
           temporal:
             address: localhost:7233
             workflow_search_attribute: TypefluxWorkflow
@@ -216,6 +218,7 @@ def _parent_map_yaml(pkg: str) -> str:
         name: review_batch
         task_queue: sub-queue
         runtime:
+          engine: temporal
           temporal:
             address: localhost:7233
           registry:
@@ -423,6 +426,7 @@ def test_parent_digest_moves_when_child_graph_changes(tmp_path, monkeypatch) -> 
         name: assess_claim
         task_queue: sub-queue
         runtime:
+          engine: temporal
           temporal: { address: localhost:7233 }
           registry: { type: inline, prompts: { assess: assess } }
           provider: { type: fake }
@@ -486,6 +490,7 @@ def test_reference_cycle_rejects(tmp_path, monkeypatch) -> None:
             name: {name}
             task_queue: q
             runtime:
+              engine: temporal
               temporal: {{ address: localhost:7233 }}
               registry: {{ type: inline, prompts: {{ p: p }} }}
               provider: {{ type: fake }}
@@ -752,6 +757,7 @@ def _wf(
         name: {name}
         task_queue: q
         runtime:
+          engine: temporal
           temporal: {{ address: localhost:7233{attr} }}
           registry: {{ type: inline, prompts: {{ p: p }} }}
           provider: {{ type: fake }}
@@ -1631,6 +1637,7 @@ def _setup_closure_project(
         name: assess_child
         task_queue: closure-queue
         runtime:
+          engine: temporal
           temporal:
             address: localhost:7233
           registry:
@@ -1663,6 +1670,7 @@ def _setup_closure_project(
         name: review_parent
         task_queue: closure-queue
         runtime:
+          engine: temporal
           temporal:
             address: localhost:7233
           registry:

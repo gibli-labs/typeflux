@@ -97,6 +97,7 @@ def _setup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         name: controlplane_demo
         task_queue: controlplane-demo-queue
         runtime:
+          engine: temporal
           temporal:
             address: localhost:7233
           registry:

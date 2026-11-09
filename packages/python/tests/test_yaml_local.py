@@ -419,7 +419,8 @@ async def test_local_cancellation_is_never_an_execution_error(fixture, cancel_ty
 
 
 @pytest.mark.asyncio
-async def test_local_sequence_gate_validation_and_snapshot(fixture):
+@pytest.mark.parametrize("explicit_engine", [False, True])
+async def test_local_sequence_gate_validation_and_snapshot(fixture, explicit_engine):
     provider, writer = fixture
     source = spec(
         steps=[
@@ -427,6 +428,10 @@ async def test_local_sequence_gate_validation_and_snapshot(fixture):
             {"id": "second", "activity": "echo", "when": {"path": "first.n", "lt": 5}},
         ]
     )
+    if not explicit_engine:
+        raw = source.model_dump(by_alias=True, exclude_none=True)
+        del raw["runtime"]["engine"]
+        source = TypefluxYamlSpec.model_validate(raw)
     runtime = build_local_runtime(source)
     source.workflow.steps[0].activity = "mutated-after-build"
     assert await runtime.execute_workflow({"n": 1}) == Item(n=3)
