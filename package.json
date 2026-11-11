@@ -2,7 +2,7 @@
   "name": "typeflux-workspace",
   "private": true,
   "devDependencies": {
-    "vite": "^8.3.4"
+    "vite": "^8.3.6"
   },
   "engines": {
     "node": "^24.15.0"
