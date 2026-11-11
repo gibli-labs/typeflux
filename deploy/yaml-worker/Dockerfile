@@ -2,7 +2,7 @@
 
 # For production builds, pin this base image by digest in your own Dockerfile,
 # for example: python:3.14-slim-bookworm@sha256:<digest>.
-FROM python:3.14-slim-bookworm
+FROM python:3.15-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
